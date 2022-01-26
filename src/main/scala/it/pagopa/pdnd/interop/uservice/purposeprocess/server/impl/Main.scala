@@ -16,6 +16,7 @@ import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
+  PurposeApiMarshallerImpl,
   PurposeApiServiceImpl,
   problemOf
 }
@@ -27,12 +28,36 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.common.system.{
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl.PurposeManagementServiceImpl
+import it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl.{
+  CatalogManagementServiceImpl,
+  PartyManagementServiceImpl,
+  PurposeManagementServiceImpl
+}
 import kamon.Kamon
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
+
+trait CatalogManagementDependency {
+  private final val catalogManagementInvoker: CatalogManagementInvoker = CatalogManagementInvoker()
+  private final val catalogManagementApi: CatalogManagementApi = CatalogManagementApi(
+    ApplicationConfiguration.catalogManagementURL
+  )
+
+  val catalogManagement: CatalogManagementService =
+    CatalogManagementServiceImpl(catalogManagementInvoker, catalogManagementApi)
+}
+
+trait PartyManagementDependency {
+  private final val partyManagementInvoker: PartyManagementInvoker = PartyManagementInvoker()
+  private final val partyManagementApi: PartyManagementApi = PartyManagementApi(
+    ApplicationConfiguration.partyManagementURL
+  )
+
+  val partyManagement: PartyManagementService =
+    PartyManagementServiceImpl(partyManagementInvoker, partyManagementApi)
+}
 
 trait PurposeManagementDependency {
   private final val purposeManagementInvoker: PurposeManagementInvoker = PurposeManagementInvoker()
@@ -47,7 +72,12 @@ trait PurposeManagementDependency {
 //shuts down the actor system in case of startup errors
 case object StartupErrorShutdown extends CoordinatedShutdown.Reason
 
-object Main extends App with CORSSupport with PurposeManagementDependency {
+object Main
+    extends App
+    with CORSSupport
+    with CatalogManagementDependency
+    with PartyManagementDependency
+    with PurposeManagementDependency {
 
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
@@ -70,8 +100,8 @@ object Main extends App with CORSSupport with PurposeManagementDependency {
     Kamon.init()
 
     val purposeApi: ProcessApi = new ProcessApi(
-      PurposeApiServiceImpl(purposeManagement, jwtReader),
-//      new PurposeApiMarshallerImpl(),
+      PurposeApiServiceImpl(catalogManagement, partyManagement, purposeManagement, jwtReader),
+      PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
 

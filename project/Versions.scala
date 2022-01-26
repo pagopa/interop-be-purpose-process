@@ -24,5 +24,7 @@ object Versions {
 
 object PDNDVersions {
   lazy val purposeManagementVersion = "0.0.0" // TODO Change me
+  lazy val catalogManagementVersion = "0.1.1-SNAPSHOT"
+  lazy val partyManagementVersion   = "0.1.1-SNAPSHOT"
   lazy val commonsVersion           = "0.1.1-SNAPSHOT"
 }

@@ -27,9 +27,13 @@ object Dependencies {
     lazy val namespace = "it.pagopa"
     lazy val purposeManagementClient =
       namespace %% "pdnd-interop-uservice-purpose-management-client" % purposeManagementVersion
+    lazy val catalogManagementClient =
+      namespace %% "pdnd-interop-uservice-catalog-management-client" % catalogManagementVersion
+    lazy val partyManagementClient =
+      namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
 
-    lazy val commons = namespace %% "pdnd-interop-commons-utils" % commonsVersion
-    lazy val commonsJWT = namespace %% "pdnd-interop-commons-jwt" % commonsVersion
+    lazy val commons    = namespace %% "pdnd-interop-commons-utils" % commonsVersion
+    lazy val commonsJWT = namespace %% "pdnd-interop-commons-jwt"   % commonsVersion
   }
 
   private[this] object cats {
@@ -107,6 +111,8 @@ object Dependencies {
       logback.classic                % Compile,
       mustache.mustache              % Compile,
       pagopa.purposeManagementClient % Compile,
+      pagopa.catalogManagementClient % Compile,
+      pagopa.partyManagementClient   % Compile,
       pagopa.commons                 % Compile,
       pagopa.commonsJWT              % Compile,
       akka.httpTestkit               % Test,
