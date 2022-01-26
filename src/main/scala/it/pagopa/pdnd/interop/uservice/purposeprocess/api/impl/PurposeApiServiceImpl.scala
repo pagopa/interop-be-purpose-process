@@ -43,7 +43,6 @@ final case class PurposeApiServiceImpl(
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    // TODO Not sure about payload logging. What if tomorrow it will contain sensitive data?
     logger.info("Creating Purpose {}", purposeSeed)
     val result: Future[Purpose] = for {
       bearerToken <- validateBearer(contexts, jwtReader)
