@@ -18,6 +18,6 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def createPurpose(bearerToken: String)(seed: PurposeSeed): Future[Purpose] = {
     val request: ApiRequest[Purpose] = api.createPurpose(seed)(BearerToken(bearerToken))
-    invoker.invoke(request, s"Creating purpose")
+    invoker.invoke(request, s"Creating purpose for EService ${seed.eserviceId} and Consumer ${seed.consumerId}")
   }
 }
