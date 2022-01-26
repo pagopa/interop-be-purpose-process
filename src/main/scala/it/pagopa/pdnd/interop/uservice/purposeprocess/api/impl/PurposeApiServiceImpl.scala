@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.ApiError
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.ProcessApiService
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
   PurposeSeedConverter
@@ -31,7 +31,7 @@ final case class PurposeApiServiceImpl(
   purposeManagementService: PurposeManagementService,
   jwtReader: JWTReader
 )(implicit ec: ExecutionContext)
-    extends ProcessApiService {
+    extends PurposeApiService {
   private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
   override def createPurpose(purposeSeed: PurposeSeed)(implicit
@@ -57,7 +57,7 @@ final case class PurposeApiServiceImpl(
         val defaultProblem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
         val errorResponse = ex.responseContent.fold(defaultProblem) {
           case err: Problem => err
-          case _ => defaultProblem
+          case _            => defaultProblem
         }
         complete(errorResponse.status, errorResponse)
       case Failure(ex) =>

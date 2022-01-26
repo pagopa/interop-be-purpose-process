@@ -20,7 +20,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.{
   PurposeApiServiceImpl,
   problemOf
 }
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.{HealthApi, ProcessApi}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.{HealthApi, PurposeApi}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.common.system.{
   ApplicationConfiguration,
   classicActorSystem,
@@ -99,7 +99,7 @@ object Main
   private def launchApp(jwtReader: JWTReader): Future[Http.ServerBinding] = {
     Kamon.init()
 
-    val purposeApi: ProcessApi = new ProcessApi(
+    val purposeApi: PurposeApi = new PurposeApi(
       PurposeApiServiceImpl(catalogManagement, partyManagement, purposeManagement, jwtReader),
       PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
@@ -117,7 +117,7 @@ object Main
 
     val controller: Controller = new Controller(
       health = healthApi,
-      process = purposeApi,
+      purpose = purposeApi,
       validationExceptionToRoute = Some(report => {
         val error =
           problemOf(

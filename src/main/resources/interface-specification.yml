@@ -16,7 +16,7 @@ servers:
 security:
   - bearerAuth: [ ]
 tags:
-  - name: process
+  - name: purpose
     description: Implements purpose process
     externalDocs:
       description: Find out more
@@ -44,7 +44,7 @@ paths:
   /purposes:
     post:
       tags:
-        - process
+        - purpose
       operationId: createPurpose
       description: Creates the Purpose
       responses:

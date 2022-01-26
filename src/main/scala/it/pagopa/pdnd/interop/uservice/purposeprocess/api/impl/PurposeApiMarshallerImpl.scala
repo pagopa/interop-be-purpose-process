@@ -3,11 +3,11 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.ProcessApiMarshaller
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiMarshaller
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 import spray.json._
 
-object PurposeApiMarshallerImpl extends ProcessApiMarshaller with SprayJsonSupport with DefaultJsonProtocol {
+object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSupport with DefaultJsonProtocol {
 
   override implicit def toEntityMarshallerPurpose: ToEntityMarshaller[Purpose] = sprayJsonMarshaller[Purpose]
 
