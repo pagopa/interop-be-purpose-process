@@ -2,48 +2,30 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
   PurposeSeedConverter
 }
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.{PurposeApiMarshallerImpl, PurposeApiServiceImpl}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
-  CatalogManagementService,
-  PartyManagementService,
-  PurposeManagementService
-}
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
-class PurposeApiServiceSpec extends AnyWordSpecLike with MockFactory with SpecHelper with ScalatestRouteTest {
+class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
 
   import PurposeApiMarshallerImpl._
 
-  val mockPartyManagementService: PartyManagementService     = mock[PartyManagementService]
-  val mockPurposeManagementService: PurposeManagementService = mock[PurposeManagementService]
-  val mockCatalogManagementService: CatalogManagementService = mock[CatalogManagementService]
-  val mockJWTReader: JWTReader                               = mock[JWTReader]
-
-  val service: PurposeApiService = PurposeApiServiceImpl(
-    mockCatalogManagementService,
-    mockPartyManagementService,
-    mockPurposeManagementService,
-    mockJWTReader
-  )(ExecutionContext.global)
-
-  implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken)
-
   "Purpose creation" should {
     "succeed" in {
-
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -68,23 +50,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with MockFactory with SpecHe
         updatedAt = None
       )
 
-      (mockJWTReader
-        .getClaims(_: String))
-        .expects(*)
-        .returning(mockSubject(UUID.randomUUID().toString))
-        .once()
-
-      (mockCatalogManagementService
-        .getEServiceById(_: String)(_: UUID))
-        .expects(bearerToken, eServiceId)
-        .once()
-        .returns(Future.successful(SpecData.eService.copy(id = eServiceId)))
-
-      (mockPartyManagementService
-        .getOrganizationById(_: String)(_: UUID))
-        .expects(bearerToken, consumerId)
-        .once()
-        .returns(Future.successful(SpecData.organization))
+      mockJwtValidation()
+      mockEServiceRetrieve(eServiceId)
+      mockOrganizationRetrieve(consumerId)
 
       (mockPurposeManagementService
         .createPurpose(_: String)(_: PurposeManagementDependency.PurposeSeed))
@@ -97,6 +65,69 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with MockFactory with SpecHe
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[Purpose] shouldEqual expected
+      }
+    }
+
+    "fail if EService does not exist" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = Some("A description")
+      )
+
+      val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
+      val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
+
+      mockJwtValidation()
+
+      (mockCatalogManagementService
+        .getEServiceById(_: String)(_: UUID))
+        .expects(bearerToken, eServiceId)
+        .once()
+        .returns(
+          Future
+            .failed(CatalogApiError[CatalogProblem](SpecData.catalogProblem.status, "Some error", Some(catalogProblem)))
+        )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+    "fail if Consumer does not exist" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = Some("A description")
+      )
+
+      val partyProblem: PartyProblem = SpecData.partyProblem.copy(status = 404)
+      val expectedProblem: Problem   = partymanagement.ProblemConverter.dependencyToApi(partyProblem)
+
+      mockJwtValidation()
+      mockEServiceRetrieve(eServiceId)
+
+      (mockPartyManagementService
+        .getOrganizationById(_: String)(_: UUID))
+        .expects(bearerToken, consumerId)
+        .once()
+        .returns(
+          Future
+            .failed(PartyApiError[PartyProblem](SpecData.partyProblem.status, "Some error", Some(partyProblem)))
+        )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
       }
     }
 

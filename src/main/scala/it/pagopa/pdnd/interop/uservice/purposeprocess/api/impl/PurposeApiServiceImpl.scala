@@ -3,12 +3,16 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Route, StandardRoute}
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.ApiError
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
   PurposeSeedConverter
@@ -23,7 +27,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
@@ -49,22 +53,30 @@ final case class PurposeApiServiceImpl(
       purpose <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
     } yield PurposeConverter.dependencyToApi(purpose)
 
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
-      case Success(purpose) =>
-        createPurpose201(purpose)
-      case Failure(ex: ApiError[_]) =>
-        logger.error("Error while creating purpose {}", purposeSeed, ex)
-        val defaultProblem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
-        val errorResponse = ex.responseContent.fold(defaultProblem) {
-          case err: Problem => err
-          case _            => defaultProblem
-        }
-        complete(errorResponse.status, errorResponse)
-      case Failure(ex) =>
-        logger.error("Error while creating purpose {}", purposeSeed, ex)
-        val errorResponse: Problem =
-          problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
-        createPurpose400(errorResponse)
+      handleApiError(defaultProblem) orElse {
+        case Success(purpose) =>
+          createPurpose201(purpose)
+        case Failure(ex) =>
+          logger.error("Error while creating purpose {}", purposeSeed, ex)
+          createPurpose400(defaultProblem)
+      }
     }
+  }
+
+  def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
+    case Failure(err: CatalogApiError[_]) =>
+      val problem = err.responseContent.fold(defaultProblem) {
+        case problem: CatalogProblem => catalogmanagement.ProblemConverter.dependencyToApi(problem)
+        case _                       => defaultProblem
+      }
+      complete(problem.status, problem)
+    case Failure(err: PartyApiError[_]) =>
+      val problem = err.responseContent.fold(defaultProblem) {
+        case problem: PartyProblem => partymanagement.ProblemConverter.dependencyToApi(problem)
+        case _                     => defaultProblem
+      }
+      complete(problem.status, problem)
   }
 }
