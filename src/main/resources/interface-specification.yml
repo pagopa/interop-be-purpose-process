@@ -28,6 +28,44 @@ tags:
       url: 'http://swagger.io'
 paths:
   /purposes:
+    get:
+      tags:
+        - purpose
+      operationId: getPurposes
+      description: Retrieve Purposes
+      parameters:
+        - in: query
+          name: eserviceId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: consumerId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: states
+          description: comma separated sequence of states to filter the response with
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PurposeVersionState'
+            default: [ ]
+          explode: false
+      responses:
+        '200':
+          description: Purposes requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purposes'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
     post:
       tags:
         - purpose
@@ -139,6 +177,10 @@ components:
         - title
         - createdAt
       description: business representation of a purpose
+    Purposes:
+      type: array
+      items:
+        $ref: '#/components/schemas/Purpose'
     PurposeVersion:
       type: object
       properties:

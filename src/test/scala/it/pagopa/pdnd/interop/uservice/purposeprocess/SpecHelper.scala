@@ -54,6 +54,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
     sprayJsonUnmarshaller[Purpose]
+  implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Seq[Purpose]] =
+    sprayJsonUnmarshaller[Seq[Purpose]]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
     sprayJsonUnmarshaller[Problem]
 }
