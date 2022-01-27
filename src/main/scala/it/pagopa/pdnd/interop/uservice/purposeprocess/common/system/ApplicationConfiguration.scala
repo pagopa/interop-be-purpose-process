@@ -5,10 +5,10 @@ import com.typesafe.config.{Config, ConfigFactory}
 object ApplicationConfiguration {
   lazy val config: Config = ConfigFactory.load()
 
-  def serverPort: Int = {
-    config.getInt("uservice-purpose-process.port")
-  }
+  lazy val serverPort: Int = config.getInt("uservice-purpose-process.port")
 
-  def purposeManagementURL: String = config.getString("services.purpose-management")
+  lazy val catalogManagementURL: String = config.getString("services.catalog-management")
+  lazy val partyManagementURL: String   = config.getString("services.party-management")
+  lazy val purposeManagementURL: String = config.getString("services.purpose-management")
 
 }

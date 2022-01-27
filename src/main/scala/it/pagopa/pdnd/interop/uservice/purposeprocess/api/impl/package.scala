@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCode
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getFutureBearer
+import it.pagopa.pdnd.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.pdnd.interop.commons.utils.errors.ComponentError
 import it.pagopa.pdnd.interop.uservice._
@@ -18,6 +19,12 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   final val serviceErrorCodePrefix: String = "012"
   final val defaultProblemType: String     = "about:blank"
+
+  implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
+    jsonFormat3(PurposeVersionDocument)
+  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion] = jsonFormat6(PurposeVersion)
+  implicit def purposeFormat: RootJsonFormat[Purpose]               = jsonFormat10(Purpose)
+  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]       = jsonFormat4(PurposeSeed)
 
   implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)

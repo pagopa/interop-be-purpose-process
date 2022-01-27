@@ -16,7 +16,7 @@ servers:
 security:
   - bearerAuth: [ ]
 tags:
-  - name: process
+  - name: purpose
     description: Implements purpose process
     externalDocs:
       description: Find out more
@@ -42,15 +42,137 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
   /purposes:
-    get:
+    post:
       tags:
-        - process
-      operationId: placeholder
+        - purpose
+      operationId: createPurpose
+      description: Creates the Purpose
       responses:
-        '204':
-          description: Placeholder
+        '201':
+          description: Create a new Purpose
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeSeed'
+        required: true
 components:
   schemas:
+    Purpose:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurposeVersion'
+        suspendedByConsumer:
+          type: boolean
+        suspendedByProducer:
+          type: boolean
+        title:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eserviceId
+        - consumerId
+        - versions
+        - title
+        - createdAt
+      description: business representation of a purpose
+    PurposeVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/PurposeVersionState'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        expectedApprovalDate:
+          type: string
+          format: date-time
+        riskAnalysis:
+          $ref: '#/components/schemas/PurposeVersionDocument'
+      required:
+        - id
+        - state
+        - createdAt
+      description: business representation of a purpose version
+    PurposeVersionState:
+      type: string
+      description: Purpose State
+      enum:
+        - ACTIVE
+        - DRAFT
+        - SUSPENDED
+        - WAITING_FOR_APPROVAL
+        - ARCHIVED
+    PurposeVersionDocument:
+      type: object
+      required:
+        - id
+        - contentType
+        - path
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        contentType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PurposeSeed:
+      type: object
+      description: contains the expected payload for purpose creation.
+      properties:
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+      required:
+        - eserviceId
+        - consumerId
+        - title
     Problem:
       properties:
         type:
