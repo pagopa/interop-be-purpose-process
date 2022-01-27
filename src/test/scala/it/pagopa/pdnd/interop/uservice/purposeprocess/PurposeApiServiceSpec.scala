@@ -6,6 +6,8 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiErro
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
@@ -123,6 +125,38 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+    "fail on Purpose Management error" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = Some("A description")
+      )
+
+      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 400)
+      val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+
+      mockEServiceRetrieve(eServiceId)
+      mockOrganizationRetrieve(consumerId)
+
+      (mockPurposeManagementService
+        .createPurpose(_: String)(_: PurposeManagementDependency.PurposeSeed))
+        .expects(bearerToken, PurposeSeedConverter.apiToDependency(seed))
+        .once()
+        .returns(
+          Future
+            .failed(PurposeApiError[PurposeProblem](SpecData.purposeProblem.status, "Some error", Some(purposeProblem)))
+        )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
         responseAs[Problem] shouldEqual expectedProblem
       }
     }

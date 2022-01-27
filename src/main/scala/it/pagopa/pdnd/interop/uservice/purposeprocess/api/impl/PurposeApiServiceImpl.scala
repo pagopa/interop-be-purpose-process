@@ -12,6 +12,8 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiErro
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
@@ -77,5 +79,12 @@ final case class PurposeApiServiceImpl(
         case _                     => defaultProblem
       }
       complete(problem.status, problem)
+    case Failure(err: PurposeApiError[_]) =>
+      val problem = err.responseContent.fold(defaultProblem) {
+        case problem: PurposeProblem => purposemanagement.ProblemConverter.dependencyToApi(problem)
+        case _                       => defaultProblem
+      }
+      complete(problem.status, problem)
+
   }
 }

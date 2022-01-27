@@ -12,6 +12,10 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   Problem => PartyProblem,
   ProblemError => PartyProblemError
 }
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  Problem => PurposeProblem,
+  ProblemError => PurposeProblemError
+}
 
 import java.util.UUID
 
@@ -49,6 +53,14 @@ object SpecData {
     title = "A title",
     detail = None,
     errors = Seq(PartyProblemError(code = "AAA-BBBB", detail = "Error details"))
+  )
+
+  val purposeProblem: PurposeProblem = PurposeProblem(
+    `type` = "something",
+    status = 400,
+    title = "A title",
+    detail = None,
+    errors = Seq(PurposeProblemError(code = "AAA-BBBB", detail = "Error details"))
   )
 
 }
