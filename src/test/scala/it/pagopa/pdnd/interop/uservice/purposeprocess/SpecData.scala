@@ -13,13 +13,17 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
   ProblemError => PartyProblemError
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  Purpose,
   Problem => PurposeProblem,
   ProblemError => PurposeProblemError
 }
 
+import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 object SpecData {
+  final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
+
   val eService: EService = EService(
     id = UUID.randomUUID(),
     producerId = UUID.randomUUID(),
@@ -37,6 +41,19 @@ object SpecData {
     digitalAddress = "address",
     taxCode = "taxCode",
     attributes = Seq.empty
+  )
+
+  val purpose: Purpose = Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "A title",
+    description = Some("A description"),
+    createdAt = timestamp,
+    updatedAt = None
   )
 
   val catalogProblem: CatalogProblem = CatalogProblem(

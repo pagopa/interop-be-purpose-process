@@ -27,20 +27,6 @@ tags:
       description: Find out more
       url: 'http://swagger.io'
 paths:
-  /status:
-    get:
-      tags:
-        - health
-      summary: Health status endpoint
-      description: Return ok
-      operationId: getStatus
-      responses:
-        '200':
-          description: successful operation
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /purposes:
     post:
       tags:
@@ -49,7 +35,7 @@ paths:
       description: Creates the Purpose
       responses:
         '201':
-          description: Create a new Purpose
+          description: Purpose created
           content:
             application/json:
               schema:
@@ -66,6 +52,53 @@ paths:
             schema:
               $ref: '#/components/schemas/PurposeSeed'
         required: true
+  /purposes/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: the purpose id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - purpose
+      operationId: getPurpose
+      description: Retrieve the Purpose
+      responses:
+        '200':
+          description: Purpose requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Purpose Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /status:
+    get:
+      tags:
+        - health
+      summary: Health status endpoint
+      description: Return ok
+      operationId: getStatus
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     Purpose:

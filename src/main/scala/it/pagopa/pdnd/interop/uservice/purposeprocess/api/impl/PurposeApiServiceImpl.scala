@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
@@ -62,6 +62,30 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error while creating purpose {}", purposeSeed, ex)
           createPurpose400(defaultProblem)
+      }
+    }
+  }
+
+  override def getPurpose(id: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Retrieving Purpose {}", id)
+    val result: Future[Purpose] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      uuid        <- id.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
+    } yield PurposeConverter.dependencyToApi(purpose)
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse {
+        case Success(purpose) =>
+          getPurpose200(purpose)
+        case Failure(ex) =>
+          logger.error("Error while retrieving purpose {}", id, ex)
+          getPurpose400(defaultProblem)
       }
     }
   }

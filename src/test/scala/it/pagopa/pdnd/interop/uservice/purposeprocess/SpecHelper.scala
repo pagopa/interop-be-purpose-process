@@ -17,14 +17,12 @@ import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 import spray.json.DefaultJsonProtocol
 
-import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
-  final val timestamp           = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
   final val bearerToken: String = "token"
 
   implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken)
