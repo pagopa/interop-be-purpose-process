@@ -50,7 +50,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockJwtValidation()
       mockEServiceRetrieve(eServiceId)
       mockOrganizationRetrieve(consumerId)
 
@@ -82,8 +81,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
       val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
 
-      mockJwtValidation()
-
       (mockCatalogManagementService
         .getEServiceById(_: String)(_: UUID))
         .expects(bearerToken, eServiceId)
@@ -113,7 +110,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyProblem: PartyProblem = SpecData.partyProblem.copy(status = 404)
       val expectedProblem: Problem   = partymanagement.ProblemConverter.dependencyToApi(partyProblem)
 
-      mockJwtValidation()
       mockEServiceRetrieve(eServiceId)
 
       (mockPartyManagementService

@@ -3,7 +3,6 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
-import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Organization
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
@@ -14,7 +13,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PartyManagementService,
   PurposeManagementService
 }
-import org.scalamock.handlers.{CallHandler1, CallHandler2}
+import org.scalamock.handlers.CallHandler2
 import org.scalamock.scalatest.MockFactory
 import spray.json.DefaultJsonProtocol
 
@@ -33,21 +32,13 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockPartyManagementService: PartyManagementService     = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService = mock[PurposeManagementService]
   val mockCatalogManagementService: CatalogManagementService = mock[CatalogManagementService]
-  val mockJWTReader: JWTReader                               = mock[JWTReader]
 
-  val service: PurposeApiService = PurposeApiServiceImpl(
-    mockCatalogManagementService,
-    mockPartyManagementService,
-    mockPurposeManagementService,
-    mockJWTReader
-  )(ExecutionContext.global)
+  val service: PurposeApiService =
+    PurposeApiServiceImpl(mockCatalogManagementService, mockPartyManagementService, mockPurposeManagementService)(
+      ExecutionContext.global
+    )
 
   def mockSubject(uuid: String): Try[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
-  def mockJwtValidation(): CallHandler1[String, Try[JWTClaimsSet]] = (mockJWTReader
-    .getClaims(_: String))
-    .expects(*)
-    .returning(mockSubject(UUID.randomUUID().toString))
-    .once()
 
   def mockEServiceRetrieve(eServiceId: UUID): CallHandler2[String, UUID, Future[EService]] =
     (mockCatalogManagementService

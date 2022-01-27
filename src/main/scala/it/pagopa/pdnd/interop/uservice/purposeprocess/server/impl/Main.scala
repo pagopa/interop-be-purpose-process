@@ -100,7 +100,7 @@ object Main
     Kamon.init()
 
     val purposeApi: PurposeApi = new PurposeApi(
-      PurposeApiServiceImpl(catalogManagement, partyManagement, purposeManagement, jwtReader),
+      PurposeApiServiceImpl(catalogManagement, partyManagement, purposeManagement),
       PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
