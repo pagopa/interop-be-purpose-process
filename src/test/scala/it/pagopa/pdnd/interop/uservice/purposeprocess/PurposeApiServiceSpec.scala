@@ -12,7 +12,8 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => Purpos
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
-  PurposeSeedConverter
+  PurposeSeedConverter,
+  PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
@@ -221,13 +222,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         ))
         .expects(bearerToken, Some(eServiceId), Some(consumerId), states)
         .once()
-        .returns(Future.successful(Seq(SpecData.purpose)))
+        .returns(Future.successful(SpecData.purposes))
 
-      val expected: Seq[Purpose] = Seq(PurposeConverter.dependencyToApi(SpecData.purpose))
+      val expected: Purposes = PurposesConverter.dependencyToApi(SpecData.purposes)
 
       Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Seq[Purpose]] shouldEqual expected
+        responseAs[Purposes] shouldEqual expected
       }
     }
 

@@ -16,6 +16,6 @@ object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSuppo
 
   override implicit def toEntityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 
-  override implicit def toEntityMarshallerPurposearray: ToEntityMarshaller[Seq[Purpose]] =
-    sprayJsonMarshaller[Seq[Purpose]]
+  override implicit def toEntityMarshallerPurposes: ToEntityMarshaller[Purposes] =
+    sprayJsonMarshaller[Purposes]
 }

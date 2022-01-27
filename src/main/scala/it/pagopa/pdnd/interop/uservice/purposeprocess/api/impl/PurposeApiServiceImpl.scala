@@ -23,10 +23,11 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
-  PurposeSeedConverter
+  PurposeSeedConverter,
+  PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors.CreatePurposeBadRequest
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed, Purposes}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
   PartyManagementService,
@@ -97,17 +98,17 @@ final case class PurposeApiServiceImpl(
 
   override def getPurposes(eserviceId: Option[String], consumerId: Option[String], states: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurposearray: ToEntityMarshaller[Seq[Purpose]],
+    toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Retrieving Purposes for EService {}, Consumer {} and States {}", eserviceId, consumerId, states)
-    val result: Future[Seq[Purpose]] = for {
+    val result: Future[Purposes] = for {
       bearerToken  <- getBearer(contexts).toFuture
       eServiceUUID <- eserviceId.traverse(_.toFutureUUID)
       consumerUUID <- consumerId.traverse(_.toFutureUUID)
       states       <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
       purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
-    } yield purposes.map(PurposeConverter.dependencyToApi)
+    } yield PurposesConverter.dependencyToApi(purposes)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {

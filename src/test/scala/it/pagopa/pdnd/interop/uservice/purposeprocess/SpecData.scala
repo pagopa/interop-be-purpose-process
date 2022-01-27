@@ -14,6 +14,7 @@ import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   Purpose,
+  Purposes,
   Problem => PurposeProblem,
   ProblemError => PurposeProblemError
 }
@@ -55,6 +56,8 @@ object SpecData {
     createdAt = timestamp,
     updatedAt = None
   )
+
+  val purposes: Purposes = Purposes(Seq(purpose))
 
   val catalogProblem: CatalogProblem = CatalogProblem(
     `type` = "something",

@@ -7,7 +7,7 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Organization
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, Purposes}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
   PartyManagementService,
@@ -54,8 +54,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
     sprayJsonUnmarshaller[Purpose]
-  implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Seq[Purpose]] =
-    sprayJsonUnmarshaller[Seq[Purpose]]
+  implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes] =
+    sprayJsonUnmarshaller[Purposes]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
     sprayJsonUnmarshaller[Problem]
 }

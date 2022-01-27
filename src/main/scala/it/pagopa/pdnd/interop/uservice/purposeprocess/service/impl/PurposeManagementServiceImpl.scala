@@ -1,7 +1,12 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Purpose, PurposeSeed, PurposeVersionState}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  Purpose,
+  PurposeSeed,
+  PurposeVersionState,
+  Purposes
+}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PurposeManagementApi,
   PurposeManagementInvoker,
@@ -29,8 +34,8 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def getPurposes(
     bearerToken: String
-  )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Seq[Purpose]] = {
-    val request: ApiRequest[Seq[Purpose]] = api.getPurposes(eserviceId, consumerId, states)(BearerToken(bearerToken))
+  )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes] = {
+    val request: ApiRequest[Purposes] = api.getPurposes(eserviceId, consumerId, states)(BearerToken(bearerToken))
     invoker.invoke(request, s"Retrieving purposes for EService $eserviceId, Consumer $consumerId and States $states")
   }
 }
