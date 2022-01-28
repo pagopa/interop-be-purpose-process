@@ -4,24 +4,30 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
+import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
+import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
+import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Problem => PurposeProblem}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  Problem => PurposeProblem,
+  PurposeVersionState => DepPurposeVersionState
+}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
-  PurposeSeedConverter
+  PurposeSeedConverter,
+  PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors.CreatePurposeBadRequest
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed, Purposes}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
   PartyManagementService,
@@ -62,6 +68,62 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error while creating purpose {}", purposeSeed, ex)
           createPurpose400(defaultProblem)
+      }
+    }
+  }
+
+  override def getPurpose(id: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Retrieving Purpose {}", id)
+    val result: Future[Purpose] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      uuid        <- id.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
+    } yield PurposeConverter.dependencyToApi(purpose)
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse {
+        case Success(purpose) =>
+          getPurpose200(purpose)
+        case Failure(ex) =>
+          logger.error("Error while retrieving purpose {}", id, ex)
+          getPurpose400(defaultProblem)
+      }
+    }
+  }
+
+  override def getPurposes(eserviceId: Option[String], consumerId: Option[String], states: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Retrieving Purposes for EService {}, Consumer {} and States {}", eserviceId, consumerId, states)
+    val result: Future[Purposes] = for {
+      bearerToken  <- getBearer(contexts).toFuture
+      eServiceUUID <- eserviceId.traverse(_.toFutureUUID)
+      consumerUUID <- consumerId.traverse(_.toFutureUUID)
+      states       <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
+      purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
+    } yield PurposesConverter.dependencyToApi(purposes)
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse {
+        case Success(purpose) =>
+          getPurposes200(purpose)
+        case Failure(ex) =>
+          logger.error(
+            "Error while retrieving purposes for EService {}, Consumer {} and States {}",
+            eserviceId,
+            consumerId,
+            states,
+            ex
+          )
+          getPurposes400(defaultProblem)
       }
     }
   }

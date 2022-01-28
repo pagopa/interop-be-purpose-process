@@ -12,7 +12,8 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => Purpos
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
-  PurposeSeedConverter
+  PurposeSeedConverter,
+  PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
@@ -48,7 +49,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = seed.title,
         description = seed.description,
-        createdAt = timestamp,
+        createdAt = SpecData.timestamp,
         updatedAt = None
       )
 
@@ -140,7 +141,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = Some("A description")
       )
 
-      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 400)
+      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
 
       mockEServiceRetrieve(eServiceId)
@@ -156,7 +157,100 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.ImATeapot
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+  }
+
+  "Purpose retrieve" should {
+    "succeed" in {
+      val purposeId = UUID.randomUUID()
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(Future.successful(SpecData.purpose))
+
+      val expected: Purpose = PurposeConverter.dependencyToApi(SpecData.purpose)
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[Purpose] shouldEqual expected
+      }
+    }
+
+    "fail if Purpose does not exist" in {
+      val purposeId = UUID.randomUUID()
+
+      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
+      val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(
+          Future
+            .failed(PurposeApiError[PurposeProblem](SpecData.purposeProblem.status, "Some error", Some(purposeProblem)))
+        )
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+  }
+
+  "Purposes listing" should {
+    "succeed" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val states = Seq(
+        PurposeManagementDependency.PurposeVersionState.DRAFT,
+        PurposeManagementDependency.PurposeVersionState.ACTIVE
+      )
+
+      (mockPurposeManagementService
+        .getPurposes(_: String)(
+          _: Option[UUID],
+          _: Option[UUID],
+          _: Seq[PurposeManagementDependency.PurposeVersionState]
+        ))
+        .expects(bearerToken, Some(eServiceId), Some(consumerId), states)
+        .once()
+        .returns(Future.successful(SpecData.purposes))
+
+      val expected: Purposes = PurposesConverter.dependencyToApi(SpecData.purposes)
+
+      Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[Purposes] shouldEqual expected
+      }
+    }
+
+    "fail on Purpose management error" in {
+      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
+      val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+
+      (mockPurposeManagementService
+        .getPurposes(_: String)(
+          _: Option[UUID],
+          _: Option[UUID],
+          _: Seq[PurposeManagementDependency.PurposeVersionState]
+        ))
+        .expects(bearerToken, None, None, Seq.empty)
+        .once()
+        .returns(
+          Future
+            .failed(PurposeApiError[PurposeProblem](SpecData.purposeProblem.status, "Some error", Some(purposeProblem)))
+        )
+
+      Get() ~> service.getPurposes(None, None, "") ~> check {
+        status shouldEqual StatusCodes.ImATeapot
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
