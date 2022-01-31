@@ -3,8 +3,11 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.commons.utils.UID
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Problem
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -17,13 +20,12 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
   "Purpose version archive" should {
     "succeed" in {
-      val userId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
-
+      val userId     = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
@@ -45,34 +47,50 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-//    "fail if EService does not exist" in {
-//      val eServiceId = UUID.randomUUID()
-//      val consumerId = UUID.randomUUID()
-//
-//      val seed: PurposeSeed = PurposeSeed(
-//        eserviceId = eServiceId,
-//        consumerId = consumerId,
-//        title = "A title",
-//        description = Some("A description")
-//      )
-//
-//      val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
-//      val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
-//
-//      (mockCatalogManagementService
-//        .getEServiceById(_: String)(_: UUID))
-//        .expects(bearerToken, eServiceId)
-//        .once()
-//        .returns(
-//          Future
-//            .failed(CatalogApiError[CatalogProblem](SpecData.catalogProblem.status, "Some error", Some(catalogProblem)))
-//        )
-//
-//      Get() ~> service.createPurpose(seed) ~> check {
-//        status shouldEqual StatusCodes.NotFound
-//        responseAs[Problem] shouldEqual expectedProblem
-//      }
-//    }
+    "fail if Purpose does not exist" in {
+      val userId    = UUID.randomUUID()
+      val purposeId = UUID.randomUUID()
+      val versionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
+      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(
+          Future.failed(
+            PurposeApiError[PurposeManagement.Problem](purposeProblem.status, "Some error", Some(purposeProblem))
+          )
+        )
+
+      Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+    "fail if User is not a Consumer" in {
+      val userId     = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+
+      Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0007"
+      }
+    }
 
   }
 

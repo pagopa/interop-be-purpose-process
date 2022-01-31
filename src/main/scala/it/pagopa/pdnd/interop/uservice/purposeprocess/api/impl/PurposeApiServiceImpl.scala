@@ -34,7 +34,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   UserIsNotTheProducer,
   UserNotAllowed
 }
-import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors.CreatePurposeBadRequest
+import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed, Purposes}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
@@ -93,7 +93,7 @@ final case class PurposeApiServiceImpl(
       purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
     } yield PurposeConverter.dependencyToApi(purpose)
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
     onComplete(result) {
       handleApiError(defaultProblem) orElse {
         case Success(purpose) =>
@@ -119,7 +119,7 @@ final case class PurposeApiServiceImpl(
       purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
     } yield PurposesConverter.dependencyToApi(purposes)
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
     onComplete(result) {
       handleApiError(defaultProblem) orElse {
         case Success(purpose) =>
@@ -156,7 +156,7 @@ final case class PurposeApiServiceImpl(
       _ <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
     } yield ()
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse {
         case Success(_) =>
@@ -191,7 +191,8 @@ final case class PurposeApiServiceImpl(
       )
     } yield ()
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    val defaultProblem: Problem =
+      problemOf(StatusCodes.BadRequest, WaitForApprovalPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse {
         case Success(_) =>
@@ -222,15 +223,16 @@ final case class PurposeApiServiceImpl(
       _ <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
     } yield ()
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
-        case Success(_) =>
-          archivePurposeVersion204
-        case Failure(ex) =>
-          logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
-          archivePurposeVersion400(defaultProblem)
-      }
+      handleApiError(defaultProblem) orElse
+        handleUserTypeError orElse {
+          case Success(_) =>
+            archivePurposeVersion204
+          case Failure(ex) =>
+            logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
+            archivePurposeVersion400(defaultProblem)
+        }
     }
   }
 
@@ -282,6 +284,17 @@ final case class PurposeApiServiceImpl(
         case _                       => defaultProblem
       }
       complete(problem.status, problem)
+  }
 
+  val handleUserTypeError: PartialFunction[Try[_], StandardRoute] = {
+    case Failure(_: UserIsNotTheConsumer) =>
+      val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
+      complete(problem.status, problem)
+    case Failure(_: UserIsNotTheProducer) =>
+      val problem = problemOf(StatusCodes.Forbidden, OnlyProducerAllowedError)
+      complete(problem.status, problem)
+    case Failure(_: UserNotAllowed) =>
+      val problem = problemOf(StatusCodes.Forbidden, UserNotAllowedError)
+      complete(problem.status, problem)
   }
 }
