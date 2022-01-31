@@ -94,4 +94,80 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
   }
 
+  "Purpose version wait for approval" should {
+    "succeed" in {
+      val userId     = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+
+      (mockPurposeManagementService
+        .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .expects(
+          bearerToken,
+          purposeId,
+          versionId,
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+        )
+        .once()
+        .returns(Future.successful(()))
+
+      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[Option[String]] shouldEqual Some("")
+      }
+    }
+
+    "fail if Purpose does not exist" in {
+      val userId    = UUID.randomUUID()
+      val purposeId = UUID.randomUUID()
+      val versionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
+      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(
+          Future.failed(
+            PurposeApiError[PurposeManagement.Problem](purposeProblem.status, "Some error", Some(purposeProblem))
+          )
+        )
+
+      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
+
+    "fail if User is not a Consumer" in {
+      val userId     = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+
+      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0007"
+      }
+    }
+
+  }
+
 }

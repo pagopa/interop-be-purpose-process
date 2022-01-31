@@ -148,7 +148,7 @@ final case class PurposeApiServiceImpl(
       versionUUID <- versionId.toFutureUUID
       userId <- contexts
         .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(new RuntimeException("User ID not found in context"))
+        .toFuture(UserIdNotInContext)
       userUUID <- userId._2.toFutureUUID
       purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       userType <- userType(userUUID, purpose)(bearerToken)
@@ -179,7 +179,7 @@ final case class PurposeApiServiceImpl(
       versionUUID <- versionId.toFutureUUID
       userId <- contexts
         .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(new RuntimeException("User ID not found in context"))
+        .toFuture(UserIdNotInContext)
       userUUID <- userId._2.toFutureUUID
       purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       _        <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
@@ -194,7 +194,7 @@ final case class PurposeApiServiceImpl(
     val defaultProblem: Problem =
       problemOf(StatusCodes.BadRequest, WaitForApprovalPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(_) =>
           waitForApprovalPurposeVersion204
         case Failure(ex) =>
@@ -225,14 +225,13 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse
-        handleUserTypeError orElse {
-          case Success(_) =>
-            archivePurposeVersion204
-          case Failure(ex) =>
-            logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
-            archivePurposeVersion400(defaultProblem)
-        }
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(_) =>
+          archivePurposeVersion204
+        case Failure(ex) =>
+          logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
+          archivePurposeVersion400(defaultProblem)
+      }
     }
   }
 
