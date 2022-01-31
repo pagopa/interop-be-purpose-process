@@ -158,7 +158,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(_) =>
           suspendPurposeVersion204
         case Failure(ex) =>
@@ -241,28 +241,29 @@ final case class PurposeApiServiceImpl(
     bearerToken: String
   ): Future[PurposeManagementDependency.ChangedBy] =
     assertUserIsAConsumer(userId, purpose.consumerId)(bearerToken)
-      .as(ChangedBy.CONSUMER)
-      .recoverWith[ChangedBy](_ =>
-        assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken).as(ChangedBy.PRODUCER)
-      )
-      .recoverWith[ChangedBy](_ => Future.failed(UserNotAllowed(userId)))
+      .recoverWith(_ => assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken))
+      .recoverWith(_ => Future.failed(UserNotAllowed(userId)))
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAConsumer(userId: UUID, consumerId: UUID)(bearerToken: String): Future[Unit] =
+  def assertUserIsAConsumer(userId: UUID, consumerId: UUID)(
+    bearerToken: String
+  ): Future[PurposeManagementDependency.ChangedBy] =
     for {
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, consumerId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheConsumer(userId)).toFuture
-    } yield ()
+    } yield PurposeManagementDependency.ChangedBy.CONSUMER
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAProducer(userId: UUID, eServiceId: UUID)(bearerToken: String): Future[Unit] =
+  def assertUserIsAProducer(userId: UUID, eServiceId: UUID)(
+    bearerToken: String
+  ): Future[PurposeManagementDependency.ChangedBy] =
     for {
       eService      <- catalogManagementService.getEServiceById(bearerToken)(eServiceId)
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, eService.producerId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
-    } yield ()
+    } yield PurposeManagementDependency.ChangedBy.PRODUCER
 
   def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>

@@ -40,12 +40,15 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   def mockSubject(uuid: String): Try[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
-  def mockEServiceRetrieve(eServiceId: UUID): CallHandler2[String, UUID, Future[CatalogManagement.EService]] =
+  def mockEServiceRetrieve(
+    eServiceId: UUID,
+    result: CatalogManagement.EService = SpecData.eService
+  ): CallHandler2[String, UUID, Future[CatalogManagement.EService]] =
     (mockCatalogManagementService
       .getEServiceById(_: String)(_: UUID))
       .expects(bearerToken, eServiceId)
       .once()
-      .returns(Future.successful(SpecData.eService.copy(id = eServiceId)))
+      .returns(Future.successful(result.copy(id = eServiceId)))
 
   def mockOrganizationRetrieve(organizationId: UUID): CallHandler2[String, UUID, Future[PartyManagement.Organization]] =
     (mockPartyManagementService
