@@ -4,7 +4,7 @@ import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
-import cats.implicits.toTraverseOps
+import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
@@ -27,6 +27,12 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemana
   PurposeConverter,
   PurposeSeedConverter,
   PurposesConverter
+}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
+  UserIdNotInContext,
+  UserIsNotTheConsumer,
+  UserIsNotTheProducer,
+  UserNotAllowed
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors.CreatePurposeBadRequest
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed, Purposes}
@@ -144,7 +150,8 @@ final case class PurposeApiServiceImpl(
         .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
         .toFuture(new RuntimeException("User ID not found in context"))
       userUUID <- userId._2.toFutureUUID
-      userType <- userType(userUUID, purposeUUID)(bearerToken)
+      purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      userType <- userType(userUUID, purpose)(bearerToken)
       stateChangeDetails = PurposeManagementDependency.StateChangeDetails(userType)
       _ <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
     } yield ()
@@ -207,7 +214,7 @@ final case class PurposeApiServiceImpl(
       versionUUID <- versionId.toFutureUUID
       userId <- contexts
         .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(new RuntimeException("User ID not found in context"))
+        .toFuture(UserIdNotInContext)
       userUUID <- userId._2.toFutureUUID
       purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       _        <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
@@ -227,41 +234,33 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-//  def userType(userId: UUID, purposeId: UUID)(bearerToken: String): Future[ChangedBy] =
-//    for {
-//      purpose <- purposeManagementService.getPurpose(bearerToken)(purposeId)
-//      consumerRelationships: Relationships <- partyManagementService.getRelationships(bearerToken)(userId, purpose.consumerId)
-//      _ <- if(consumerRelationships.items.isEmpty) {
-//        for {
-//          eService <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
-//          producerRelationships: Relationships <- partyManagementService.getRelationships(bearerToken)(userId, eService.producerId)
-//          _ <- Either.cond(producerRelationships.items.isEmpty, new RuntimeException("User not allowed"), ())
-//        } yield ChangedBy.PRODUCER
-//      } else Future.successful(())
-//    } yield ChangedBy.CONSUMER
+  // TODO This may not work as expected if the user has an active relationship with
+  //      both producer and consumer
+  def userType(userId: UUID, purpose: PurposeManagementDependency.Purpose)(
+    bearerToken: String
+  ): Future[PurposeManagementDependency.ChangedBy] =
+    assertUserIsAConsumer(userId, purpose.consumerId)(bearerToken)
+      .as(ChangedBy.CONSUMER)
+      .recoverWith[ChangedBy](_ =>
+        assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken).as(ChangedBy.PRODUCER)
+      )
+      .recoverWith[ChangedBy](_ => Future.failed(UserNotAllowed(userId)))
 
-  def userType(userId: UUID, purposeId: UUID)(bearerToken: String): Future[ChangedBy] =
-    for {
-      purpose <- purposeManagementService.getPurpose(bearerToken)(purposeId)
-      result <- assertUserIsAConsumer(userId, purpose.consumerId)(bearerToken)
-        .map(_ => ChangedBy.CONSUMER)
-        .recoverWith[ChangedBy](_ =>
-          assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken).map(_ => ChangedBy.PRODUCER)
-        )
-        .recoverWith[ChangedBy](_ => Future.failed(new RuntimeException("User not allowed")))
-    } yield result
-
+  // TODO This may not work as expected if the user has an active relationship with
+  //      both producer and consumer
   def assertUserIsAConsumer(userId: UUID, consumerId: UUID)(bearerToken: String): Future[Unit] =
     for {
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, consumerId)
-      _             <- Either.cond(relationships.items.nonEmpty, (), new RuntimeException("User not a consumer")).toFuture
+      _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheConsumer(userId)).toFuture
     } yield ()
 
+  // TODO This may not work as expected if the user has an active relationship with
+  //      both producer and consumer
   def assertUserIsAProducer(userId: UUID, eServiceId: UUID)(bearerToken: String): Future[Unit] =
     for {
       eService      <- catalogManagementService.getEServiceById(bearerToken)(eServiceId)
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, eService.producerId)
-      _             <- Either.cond(relationships.items.nonEmpty, (), new RuntimeException("User not a producer")).toFuture
+      _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
     } yield ()
 
   def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
