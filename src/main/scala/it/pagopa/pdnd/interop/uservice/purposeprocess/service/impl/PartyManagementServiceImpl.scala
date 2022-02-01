@@ -1,7 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Organization
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Organization, RelationshipState, Relationships}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PartyManagementApi,
   PartyManagementInvoker,
@@ -20,5 +20,17 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
   override def getOrganizationById(bearerToken: String)(organizationId: UUID): Future[Organization] = {
     val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))
     invoker.invoke(request, s"Retrieving Organization $organizationId")
+  }
+
+  override def getActiveRelationships(bearerToken: String)(from: UUID, to: UUID): Future[Relationships] = {
+    val request: ApiRequest[Relationships] = api.getRelationships(
+      Some(from),
+      Some(to),
+      roles = Seq.empty,
+      states = Seq(RelationshipState.ACTIVE),
+      products = Seq.empty, // TODO Should be fixed to interop product
+      productRoles = Seq.empty
+    )(BearerToken(bearerToken))
+    invoker.invoke(request, s"Retrieving active Relationships from $from to $to")
   }
 }

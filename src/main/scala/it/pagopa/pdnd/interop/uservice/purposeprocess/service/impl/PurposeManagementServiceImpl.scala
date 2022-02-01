@@ -5,7 +5,8 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   Purpose,
   PurposeSeed,
   PurposeVersionState,
-  Purposes
+  Purposes,
+  StateChangeDetails
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PurposeManagementApi,
@@ -37,5 +38,32 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes] = {
     val request: ApiRequest[Purposes] = api.getPurposes(eserviceId, consumerId, states)(BearerToken(bearerToken))
     invoker.invoke(request, s"Retrieving purposes for EService $eserviceId, Consumer $consumerId and States $states")
+  }
+
+  override def suspendPurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      api.suspendPurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Suspending Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
+  }
+
+  override def waitForApprovalPurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      api.waitForApprovalPurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
+    invoker.invoke(
+      request,
+      s"Waiting for Approval for Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}"
+    )
+  }
+
+  override def archivePurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      api.archivePurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }
 }
