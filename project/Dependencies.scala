@@ -32,8 +32,9 @@ object Dependencies {
     lazy val partyManagementClient =
       namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
 
-    lazy val commons    = namespace %% "pdnd-interop-commons-utils" % commonsVersion
-    lazy val commonsJWT = namespace %% "pdnd-interop-commons-jwt"   % commonsVersion
+    lazy val commons     = namespace %% "pdnd-interop-commons-utils"        % commonsVersion
+    lazy val fileManager = namespace %% "pdnd-interop-commons-file-manager" % commonsVersion
+    lazy val jwt         = namespace %% "pdnd-interop-commons-jwt"          % commonsVersion
   }
 
   private[this] object cats {
@@ -114,7 +115,8 @@ object Dependencies {
       pagopa.catalogManagementClient % Compile,
       pagopa.partyManagementClient   % Compile,
       pagopa.commons                 % Compile,
-      pagopa.commonsJWT              % Compile,
+      pagopa.fileManager             % Compile,
+      pagopa.jwt                     % Compile,
       akka.httpTestkit               % Test,
       akka.testkit                   % Test,
       akka.untypedTestkit            % Test,

@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.service
 
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  ActivatePurposeVersionPayload,
   Purpose,
   PurposeSeed,
   PurposeVersion,
@@ -20,6 +21,10 @@ trait PurposeManagementService {
   def getPurposes(
     bearerToken: String
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes]
+
+  def activatePurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[Unit]
 
   def suspendPurposeVersion(
     bearerToken: String

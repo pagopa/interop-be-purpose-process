@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
@@ -56,7 +57,8 @@ import scala.util.{Failure, Success, Try}
 final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
-  purposeManagementService: PurposeManagementService
+  purposeManagementService: PurposeManagementService,
+  fileManager: FileManager
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
   private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
@@ -178,6 +180,43 @@ final case class PurposeApiServiceImpl(
       }
     }
   }
+
+  override def activatePurposeVersion(purposeId: String, versionId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
+    val result: Future[Unit] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      userId <- contexts
+        .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
+        .toFuture(UserIdNotInContext)
+      userUUID <- userId._2.toFutureUUID
+      purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      userType <- userType(userUUID, purpose)(bearerToken)
+      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(userType)
+//      _ <- if(purpose.versions.find(_.id == versionUUID).flatMap(_.riskAnalysis).isEmpty)
+      _ <- purposeManagementService.activatePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
+    } yield ()
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ActivatePurposeBadRequest(purposeId, versionId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(_) =>
+          activatePurposeVersion204
+        case Failure(ex) =>
+          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          activatePurposeVersion400(defaultProblem)
+      }
+    }
+  }
+
+  def createRiskAnalysis() = for {
+    // TODO
+    _ <-fileManager.store(ApplicationConfiguration.storageContainer)(filePath)
+  } yield ???
 
   override def suspendPurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],

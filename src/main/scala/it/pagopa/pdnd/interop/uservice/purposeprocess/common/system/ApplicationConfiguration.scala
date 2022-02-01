@@ -14,4 +14,6 @@ object ApplicationConfiguration {
   lazy val partyManagementURL: String   = config.getString("services.party-management")
   lazy val purposeManagementURL: String = config.getString("services.purpose-management")
 
+  lazy val storageContainer: String = config.getString("pdnd-interop-commons.storage.container")
+
 }

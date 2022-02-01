@@ -2,6 +2,7 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl
 
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiRequest, BearerToken}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  ActivatePurposeVersionPayload,
   Purpose,
   PurposeSeed,
   PurposeVersion,
@@ -47,6 +48,17 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes] = {
     val request: ApiRequest[Purposes] = api.getPurposes(eserviceId, consumerId, states)(BearerToken(bearerToken))
     invoker.invoke(request, s"Retrieving purposes for EService $eserviceId, Consumer $consumerId and States $states")
+  }
+
+  override def activatePurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      api.activatePurposeVersion(purposeId, versionId, payload)(BearerToken(bearerToken))
+    invoker.invoke(
+      request,
+      s"Activating Version $versionId of Purpose $purposeId by ${payload.stateChangeDetails.changedBy}"
+    )
   }
 
   override def suspendPurposeVersion(
