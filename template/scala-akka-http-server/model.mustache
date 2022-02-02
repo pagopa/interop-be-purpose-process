@@ -63,7 +63,7 @@ object {{classname}} {
         obj match {
   {{#allowableValues}}
   {{#values}}
-           case {{.}} => JsString("{{.}}")
+           case `{{.}}` => JsString("{{.}}")
   {{/values}}
   {{/allowableValues}}
         }

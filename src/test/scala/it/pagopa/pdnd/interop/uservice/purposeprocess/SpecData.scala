@@ -3,6 +3,11 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
+  FormUsesPersonalDataAnswers,
+  RiskAnalysisForm,
+  RiskAnalysisFormAnswers
+}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -63,6 +68,16 @@ object SpecData {
   )
 
   val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
+
+  val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = RiskAnalysisFormAnswers(
+      purpose = "purpose",
+      usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataYes,
+      usesThirdPartyPersonalData = None,
+      usesConfidentialData = None
+    )
+  )
 
   val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(
     `type` = "something",

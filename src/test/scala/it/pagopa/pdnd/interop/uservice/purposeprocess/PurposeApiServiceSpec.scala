@@ -37,7 +37,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description")
+        description = Some("A description"),
+        riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -78,7 +79,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description")
+        description = Some("A description"),
+        riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
       val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
@@ -107,7 +109,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description")
+        description = Some("A description"),
+        riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
       val partyProblem: PartyProblem = SpecData.partyProblem.copy(status = 404)
@@ -138,7 +141,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description")
+        description = Some("A description"),
+        riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)

@@ -267,9 +267,12 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      val purpose  = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId)
+      val eService = SpecData.eService.copy(producerId = producerId)
+
+      mockPurposeRetrieve(purposeId, purpose)
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
-      mockEServiceRetrieve(eServiceId, SpecData.eService.copy(producerId = producerId))
+      mockEServiceRetrieve(eServiceId, eService)
       mockRelationshipsRetrieve(userId, producerId, SpecData.relationships().copy(items = Seq.empty))
 
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {

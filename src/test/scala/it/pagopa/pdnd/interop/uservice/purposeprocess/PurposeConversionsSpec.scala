@@ -33,6 +33,7 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
             createdAt = OffsetDateTime.now(),
             updatedAt = Some(OffsetDateTime.now()),
             expectedApprovalDate = Some(OffsetDateTime.now()),
+            dailyCalls = 100,
             riskAnalysis = Some(
               DependencyPurposeVersionDocument(
                 id = UUID.randomUUID(),

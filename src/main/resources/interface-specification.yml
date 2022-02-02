@@ -356,6 +356,8 @@ components:
         consumerId:
           type: string
           format: uuid
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
         title:
           type: string
         description:
@@ -363,7 +365,49 @@ components:
       required:
         - eserviceId
         - consumerId
+        - riskAnalysisForm
         - title
+    RiskAnalysisForm:
+      type: object
+      properties:
+        version:
+          type: string
+        answers:
+          $ref: '#/components/schemas/RiskAnalysisFormAnswers'
+      required:
+        - version
+        - answers
+    RiskAnalysisFormAnswers:
+      type: object
+      properties:
+        purpose:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        usesPersonalData:
+          $ref: '#/components/schemas/FormUsesPersonalDataAnswers'
+        usesThirdPartyPersonalData:
+          $ref: '#/components/schemas/FormUsesThirdPartyPersonalDataAnswers'
+        usesConfidentialData:
+          $ref: '#/components/schemas/FormUsesConfidentialDataAnswers'
+      required:
+        - purpose
+        - usesPersonalData
+    RiskAnalysisFormTextAnswer:
+      type: string
+    FormUsesPersonalDataAnswers:
+      type: string
+      enum:
+        - usesPersonalDataYes
+        - usesPersonalDataNo
+    FormUsesThirdPartyPersonalDataAnswers:
+      type: string
+      enum:
+        - usesThirdPartyPersonalDataYes
+        - usesThirdPartyPersonalDataNo
+    FormUsesConfidentialDataAnswers:
+      type: string
+      enum:
+        - usesConfidentialDataYes
+        - usesConfidentialDataNo
     Problem:
       properties:
         type:
