@@ -5,20 +5,10 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   RiskAnalysisForm => DepRiskAnalysisForm,
   RiskAnalysisSingleAnswer => SingleAnswer
 }
+import it.pagopa.pdnd.interop.uservice.purposeprocess.error._
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation.{
-  DependencyNotFound,
-  MissingExpectedField,
-  UnexpectedFieldValue,
-  ValidationResult
-}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
-  FormUsesConfidentialDataAnswers,
-  FormUsesPersonalDataAnswers,
-  FormUsesThirdPartyPersonalDataAnswers,
-  RiskAnalysisForm,
-  RiskAnalysisFormAnswers
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation.ValidationResult
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -42,7 +32,6 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       result shouldBe expected.validNec
     }
 
-    // TODO
     "succeed if not required field is missing" in {}
 
     "fail if an existing answer depends on a missing field" in {
@@ -77,7 +66,6 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       result shouldBe UnexpectedFieldValue("usesThirdPartyPersonalData").invalidNec
     }
 
-    // TODO
     "fail on missing expected answer (answer tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
