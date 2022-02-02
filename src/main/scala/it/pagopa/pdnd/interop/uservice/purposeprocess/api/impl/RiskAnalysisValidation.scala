@@ -1,6 +1,5 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl
 
-import cats.data.Validated.Valid
 import cats.data._
 import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
@@ -66,8 +65,10 @@ object RiskAnalysisValidation {
     validationTree: List[ValidationEntry]
   ): Seq[Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]]] = {
     answersJson.fields.map { case (key, value) =>
-      validateField(answersJson, validationTree)(key) match {
-        case Valid(_) =>
+      validateField(answersJson, validationTree)(key).fold(
+        err =>
+          Left[ValidationResult[SingleAnswer], Nothing](err.invalid),
+        _ =>
           value match {
             case str: JsString =>
               Left(SingleAnswer(key, Some(str.value)).validNec[RiskAnalysisValidationError])
@@ -81,9 +82,7 @@ object RiskAnalysisValidation {
               Right(values.sequence.map(MultiAnswer(key, _)))
             case _ => Left(UnexpectedFieldFormat(key).invalidNec)
           }
-        case err: ValidatedNec[_, _] =>
-          Left[ValidationResult[SingleAnswer], Nothing](err.as(SingleAnswer("", None))) // TODO Fix this
-      }
+      )
     }.toSeq
   }
 
