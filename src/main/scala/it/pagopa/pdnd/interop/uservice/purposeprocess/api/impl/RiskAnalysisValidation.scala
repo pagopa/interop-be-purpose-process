@@ -39,11 +39,47 @@ object RiskAnalysisValidation {
 
     val singleAnswers: ValidationResult[Seq[SingleAnswer]] = validations.collect { case Left(s) => s }.sequence
     val multiAnswers: ValidationResult[Seq[MultiAnswer]]   = validations.collect { case Right(m) => m }.sequence
+    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationTree)
 
-    (singleAnswers, multiAnswers).mapN((l1, l2) =>
+    (singleAnswers, multiAnswers, expectedFields).mapN((l1, l2, _) =>
       DepRiskAnalysisForm(version = form.version, singleAnswers = l1, multiAnswers = l2)
     )
+  }
 
+  /** Verify that if field is present when its dependencies are met
+    */
+  def validateExpectedFields(
+    answersJson: JsObject,
+    validationTree: List[ValidationEntry]
+  ): ValidationResult[List[Unit]] = {
+    validationTree.map { entry =>
+      val allFieldDependenciesSatisfied: Boolean = entry.dependencies.forall { dep =>
+        answersJson.getFields(dep.fieldName).exists { f =>
+          f match {
+            case str: JsString => str.value == dep.fieldValue
+            case arr: JsArray  => arrayContainsValue(arr, dep.fieldValue)
+            case _             => false
+          }
+//        answersJson.getFields(dep.fieldName) match {
+//          case Nil => false
+//          case f :: Nil =>
+//            f match {
+//              case str: JsString => str.value == dep.fieldValue
+//              case arr: JsArray  => arrayContainsValue(arr, dep.fieldValue)
+//              case _             => false
+//            }
+//          case _ :: _ => false
+        }
+      }
+
+      if (
+        !allFieldDependenciesSatisfied ||
+        (allFieldDependenciesSatisfied && answersJson.getFields(entry.fieldName).nonEmpty)
+      )
+        ().validNec
+      else
+        MissingExpectedField(entry.fieldName).invalidNec
+    }.sequence
   }
 
   // TODO Check `required` field

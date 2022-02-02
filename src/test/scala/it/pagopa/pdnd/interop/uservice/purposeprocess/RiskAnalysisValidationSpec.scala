@@ -84,7 +84,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         answers = RiskAnalysisFormAnswers(
           purpose = "purpose",
           usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataNo,
-          usesThirdPartyPersonalData = Some(FormUsesThirdPartyPersonalDataAnswers.usesThirdPartyPersonalDataNo),
+          usesThirdPartyPersonalData = Some(FormUsesThirdPartyPersonalDataAnswers.usesThirdPartyPersonalDataYes),
           usesConfidentialData = None
         )
       )
