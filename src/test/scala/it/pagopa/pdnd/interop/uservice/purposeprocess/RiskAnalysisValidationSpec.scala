@@ -27,24 +27,21 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         version = riskAnalysis.version,
         singleAnswers = Seq(
           SingleAnswer("purpose", Some(riskAnalysis.answers.purpose)),
-          SingleAnswer("usesPersonalData", Some(riskAnalysis.answers.usesPersonalData.toString)),
+          SingleAnswer("usesPersonalData", Some("YES")),
           SingleAnswer("legalObligationReference", riskAnalysis.answers.legalObligationReference),
           SingleAnswer("publicInterestReference", riskAnalysis.answers.publicInterestReference),
-          SingleAnswer("knowsAccessedDataCategories", riskAnalysis.answers.knowsAccessedDataCategories.map(_.toString)),
-          SingleAnswer("accessDataArt9Gdpr", riskAnalysis.answers.accessDataArt9Gdpr.map(_.toString)),
-          SingleAnswer("accessUnderageData", riskAnalysis.answers.accessUnderageData.map(_.toString)),
-          SingleAnswer("knowsDataQuantity", riskAnalysis.answers.knowsDataQuantity.map(_.toString)),
-          SingleAnswer("deliveryMethod", riskAnalysis.answers.deliveryMethod.map(_.toString)),
-          SingleAnswer("doneDpia", riskAnalysis.answers.doneDpia.map(_.toString)),
-          SingleAnswer("definedDataRetentionPeriod", riskAnalysis.answers.definedDataRetentionPeriod.map(_.toString)),
-          SingleAnswer("purposePursuit", riskAnalysis.answers.purposePursuit.map(_.toString))
+          SingleAnswer("knowsAccessedDataCategories", Some("YES")),
+          SingleAnswer("accessDataArt9Gdpr", Some("NO")),
+          SingleAnswer("accessUnderageData", Some("NO")),
+          SingleAnswer("knowsDataQuantity", Some("NO")),
+          SingleAnswer("deliveryMethod", Some("ANONYMOUS")),
+          SingleAnswer("doneDpia", Some("NO")),
+          SingleAnswer("definedDataRetentionPeriod", Some("NO")),
+          SingleAnswer("purposePursuit", Some("MERE_CORRECTNESS"))
         ),
         multiAnswers = Seq(
-          MultiAnswer("legalBasis", riskAnalysis.answers.legalBasis.toList.flatten.map(_.toString)),
-          MultiAnswer(
-            "checkedExistenceMereCorrectnessInteropCatalogue",
-            riskAnalysis.answers.checkedExistenceMereCorrectnessInteropCatalogue.toList.flatten.map(_.toString)
-          )
+          MultiAnswer("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")),
+          MultiAnswer("checkedExistenceMereCorrectnessInteropCatalogue", Seq("YES"))
         )
       )
 
