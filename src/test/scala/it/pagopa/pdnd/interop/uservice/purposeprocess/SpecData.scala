@@ -3,21 +3,7 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
-  FormAccessDataArt9GdprAnswers,
-  FormAccessUnderageDataAnswers,
-  FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers,
-  FormDefinedDataRetentionPeriodAnswers,
-  FormDeliveryMethodAnswers,
-  FormDoneDpiaAnswers,
-  FormKnowsAccessedDataCategoriesAnswers,
-  FormKnowsDataQuantityAnswers,
-  FormLegalBasisAnswers,
-  FormPurposePursuitAnswers,
-  FormUsesPersonalDataAnswers,
-  RiskAnalysisForm,
-  RiskAnalysisFormAnswers
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -83,27 +69,25 @@ object SpecData {
     version = "1.0",
     answers = RiskAnalysisFormAnswers(
       purpose = "purpose",
-      usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataYes,
+      usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
       usesThirdPartyPersonalData = None,
       usesConfidentialData = None,
       securedDataAccess = None,
-      legalBasis =
-        Some(Seq(FormLegalBasisAnswers.legalBasisLegalObligation, FormLegalBasisAnswers.legalBasisPublicInterest)),
+      legalBasis = Some(Seq(FormLegalBasisAnswers.LEGAL_OBLIGATION, FormLegalBasisAnswers.PUBLIC_INTEREST)),
       legalObligationReference = Some("something"),
       publicInterestReference = Some("something"),
-      knowsAccessedDataCategories = Some(FormKnowsAccessedDataCategoriesAnswers.knowsAccessedDataCategoriesYes),
-      accessDataArt9Gdpr = Some(FormAccessDataArt9GdprAnswers.accessDataArt9GdprNo),
-      accessUnderageData = Some(FormAccessUnderageDataAnswers.accessUnderageDataNo),
-      knowsDataQuantity = Some(FormKnowsDataQuantityAnswers.knowsDataQuantityNo),
+      knowsAccessedDataCategories = Some(RiskAnalysisFormYesNoAnswer.YES),
+      accessDataArt9Gdpr = Some(RiskAnalysisFormYesNoAnswer.NO),
+      accessUnderageData = Some(RiskAnalysisFormYesNoAnswer.NO),
+      knowsDataQuantity = Some(RiskAnalysisFormYesNoAnswer.NO),
       dataQuantity = None,
-      deliveryMethod = Some(FormDeliveryMethodAnswers.deliveryMethodAnonymous),
-      doneDpia = Some(FormDoneDpiaAnswers.doneDpiaNo),
-      definedDataRetentionPeriod = Some(FormDefinedDataRetentionPeriodAnswers.definedDataRetentionPeriodNo),
-      purposePursuit = Some(FormPurposePursuitAnswers.purposePursuitMereCorrectness),
-      checkedExistenceMereCorrectnessPdndCatalogue =
-        Some(Seq(FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers.checkedExistencePdndCatalogueYes)),
+      deliveryMethod = Some(FormDeliveryMethodAnswers.ANONYMOUS),
+      doneDpia = Some(RiskAnalysisFormYesNoAnswer.NO),
+      definedDataRetentionPeriod = Some(RiskAnalysisFormYesNoAnswer.NO),
+      purposePursuit = Some(FormPurposePursuitAnswers.MERE_CORRECTNESS),
+      checkedExistenceMereCorrectnessInteropCatalogue = Some(Seq(RiskAnalysisFormYesAnswer.YES)),
       checkedAllDataNeeded = None,
-      checkedExistenceMinimalDataPdndCatalogue = None
+      checkedExistenceMinimalDataInteropCatalogue = None
     )
   )
 

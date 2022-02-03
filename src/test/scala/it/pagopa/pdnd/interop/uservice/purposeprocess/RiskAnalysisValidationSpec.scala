@@ -42,8 +42,8 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         multiAnswers = Seq(
           MultiAnswer("legalBasis", riskAnalysis.answers.legalBasis.toList.flatten.map(_.toString)),
           MultiAnswer(
-            "checkedExistenceMereCorrectnessPdndCatalogue",
-            riskAnalysis.answers.checkedExistenceMereCorrectnessPdndCatalogue.toList.flatten.map(_.toString)
+            "checkedExistenceMereCorrectnessInteropCatalogue",
+            riskAnalysis.answers.checkedExistenceMereCorrectnessInteropCatalogue.toList.flatten.map(_.toString)
           )
         )
       )
@@ -59,9 +59,9 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         version = "1.0",
         answers = RiskAnalysisFormAnswers(
           purpose = "purpose",
-          usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataYes,
+          usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
           usesThirdPartyPersonalData = None,
-          usesConfidentialData = Some(FormUsesConfidentialDataAnswers.usesConfidentialDataYes)
+          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
         )
       )
 
@@ -75,9 +75,9 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         version = "1.0",
         answers = RiskAnalysisFormAnswers(
           purpose = "purpose",
-          usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataNo,
-          usesThirdPartyPersonalData = Some(FormUsesThirdPartyPersonalDataAnswers.usesThirdPartyPersonalDataNo),
-          usesConfidentialData = Some(FormUsesConfidentialDataAnswers.usesConfidentialDataYes)
+          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
+          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.NO),
+          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
         )
       )
 
@@ -91,8 +91,8 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         version = "1.0",
         answers = RiskAnalysisFormAnswers(
           purpose = "purpose",
-          usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataNo,
-          usesThirdPartyPersonalData = Some(FormUsesThirdPartyPersonalDataAnswers.usesThirdPartyPersonalDataYes),
+          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
+          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.YES),
           usesConfidentialData = None,
           securedDataAccess = None
         )

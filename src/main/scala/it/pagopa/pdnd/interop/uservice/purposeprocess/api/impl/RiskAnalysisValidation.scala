@@ -19,11 +19,11 @@ object RiskAnalysisValidation {
   def validate(form: RiskAnalysisForm): ValidationResult[DepRiskAnalysisForm] = {
     val answersJson: JsObject = form.answers.toJson.asJsObject
 
-    val validations = validateForm(answersJson, validationTree)
+    val validations = validateForm(answersJson, validationGraph)
 
     val singleAnswers: ValidationResult[Seq[SingleAnswer]] = validations.collect { case Left(s) => s }.sequence
     val multiAnswers: ValidationResult[Seq[MultiAnswer]]   = validations.collect { case Right(m) => m }.sequence
-    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationTree)
+    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationGraph)
 
     (singleAnswers, multiAnswers, expectedFields).mapN((l1, l2, _) =>
       DepRiskAnalysisForm(version = form.version, singleAnswers = l1, multiAnswers = l2)
@@ -122,103 +122,74 @@ object ValidationRules {
   final case class DependencyEntry(fieldName: String, fieldValue: String)
   final case class ValidationEntry(fieldName: String, required: Boolean, dependencies: Seq[DependencyEntry])
 
-  val validationTree: List[ValidationEntry] = List(
+  val YES: String = RiskAnalysisFormYesNoAnswer.YES.toString
+  val NO: String  = RiskAnalysisFormYesNoAnswer.NO.toString
+
+  val validationGraph: List[ValidationEntry] = List(
     ValidationEntry("purpose", required = true, Seq.empty),
     ValidationEntry("usesPersonalData", required = true, Seq.empty),
-    ValidationEntry(
-      "usesThirdPartyPersonalData",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataNo"))
-    ),
+    ValidationEntry("usesThirdPartyPersonalData", required = true, Seq(DependencyEntry("usesPersonalData", NO))),
     ValidationEntry(
       "usesConfidentialData",
       required = true,
-      Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataNo"),
-        DependencyEntry("usesThirdPartyPersonalData", "usesThirdPartyPersonalDataYes")
-      )
+      Seq(DependencyEntry("usesPersonalData", NO), DependencyEntry("usesThirdPartyPersonalData", YES))
     ),
-    ValidationEntry(
-      "securedDataAccess",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataNo"))
-    ),
-    ValidationEntry("legalBasis", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry("securedDataAccess", required = true, Seq(DependencyEntry("usesPersonalData", NO))),
+    ValidationEntry("legalBasis", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
     ValidationEntry(
       "legalObligationReference",
       required = true,
-      Seq(DependencyEntry("legalBasis", "legalBasisLegalObligation"))
+      Seq(DependencyEntry("legalBasis", FormLegalBasisAnswers.LEGAL_OBLIGATION.toString))
     ),
     ValidationEntry(
       "publicInterestReference",
       required = true,
-      Seq(DependencyEntry("legalBasis", "legalBasisPublicInterest"))
+      Seq(DependencyEntry("legalBasis", FormLegalBasisAnswers.PUBLIC_INTEREST.toString))
     ),
-    ValidationEntry(
-      "knowsAccessedDataCategories",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
-    ),
+    ValidationEntry("knowsAccessedDataCategories", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
     ValidationEntry(
       "accessDataArt9Gdpr",
       required = true,
-      Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("knowsAccessedDataCategories", "knowsAccessedDataCategoriesYes")
-      )
+      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsAccessedDataCategories", YES))
     ),
     ValidationEntry(
       "accessUnderageData",
       required = true,
-      Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("knowsAccessedDataCategories", "knowsAccessedDataCategoriesYes")
-      )
+      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsAccessedDataCategories", YES))
     ),
-    ValidationEntry(
-      "knowsDataQuantity",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
-    ),
+    ValidationEntry("knowsDataQuantity", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
     ValidationEntry(
       "dataQuantity",
       required = true,
-      Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("knowsDataQuantity", "knowsDataQuantityYes")
-      )
+      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsDataQuantity", YES))
     ),
-    ValidationEntry("deliveryMethod", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
-    ValidationEntry("doneDpia", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry("deliveryMethod", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
+    ValidationEntry("doneDpia", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
+    ValidationEntry("definedDataRetentionPeriod", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
+    ValidationEntry("purposePursuit", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
     ValidationEntry(
-      "definedDataRetentionPeriod",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
-    ),
-    ValidationEntry("purposePursuit", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
-    ValidationEntry(
-      "checkedExistenceMereCorrectnessPdndCatalogue",
+      "checkedExistenceMereCorrectnessInteropCatalogue",
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("purposePursuit", "purposePursuitMereCorrectness")
+        DependencyEntry("usesPersonalData", YES),
+        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.MERE_CORRECTNESS.toString)
       )
     ),
     ValidationEntry(
       "checkedAllDataNeeded",
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("purposePursuit", "purposePursuitNewPersonalData")
+        DependencyEntry("usesPersonalData", YES),
+        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString)
       )
     ),
     ValidationEntry(
-      "checkedExistenceMinimalDataPdndCatalogue",
+      "checkedExistenceMinimalDataInteropCatalogue",
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
-        DependencyEntry("purposePursuit", "purposePursuitNewPersonalData"),
-        DependencyEntry("checkedAllDataNeeded", "checkedAllDataNeededNo")
+        DependencyEntry("usesPersonalData", YES),
+        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString),
+        DependencyEntry("checkedAllDataNeeded", NO)
       )
     )
   )
