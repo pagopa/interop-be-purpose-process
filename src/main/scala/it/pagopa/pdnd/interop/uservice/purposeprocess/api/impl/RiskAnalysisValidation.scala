@@ -16,38 +16,37 @@ object RiskAnalysisValidation {
 
   type ValidationResult[A] = ValidatedNec[RiskAnalysisValidationError, A]
 
+  /** Validate a Process risk analysis form and returns the same in the Management format
+    * @param form Risk Analysis Form
+    * @return Validated risk analysis
+    */
   def validate(form: RiskAnalysisForm): ValidationResult[DepRiskAnalysisForm] = {
     val answersJson: JsObject = form.answers.toJson.asJsObject
 
-    val validations = validateForm(answersJson, validationGraph)
+    val validations = validateForm(answersJson, validationRules)
 
     val singleAnswers: ValidationResult[Seq[SingleAnswer]] = validations.collect { case Left(s) => s }.sequence
     val multiAnswers: ValidationResult[Seq[MultiAnswer]]   = validations.collect { case Right(m) => m }.sequence
-    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationGraph)
+    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationRules)
 
     (singleAnswers, multiAnswers, expectedFields).mapN((l1, l2, _) =>
       DepRiskAnalysisForm(version = form.version, singleAnswers = l1, multiAnswers = l2)
     )
   }
 
-  /** Verify if field is present when its dependencies are met */
+  /** Verify that each field is present when the related dependencies are met
+    * @param answersJson form in json format
+    * @param validationRules validation rules
+    * @return
+    */
   def validateExpectedFields(
     answersJson: JsObject,
-    validationTree: List[ValidationEntry]
+    validationRules: List[ValidationEntry]
   ): ValidationResult[List[Unit]] = {
-    validationTree
+    validationRules
       .filter(_.required)
       .map { entry =>
-        val dependenciesSatisfied: Boolean =
-          entry.dependencies.forall { dep =>
-            answersJson.getFields(dep.fieldName).exists { f =>
-              f match {
-                case str: JsString => str.value == dep.fieldValue
-                case arr: JsArray  => jsArrayContains(arr, dep.fieldValue)
-                case _             => false
-              }
-            }
-          }
+        val dependenciesSatisfied: Boolean = entry.dependencies.forall(formContainsDependency(answersJson, _))
 
         if (
           !dependenciesSatisfied ||
@@ -60,41 +59,82 @@ object RiskAnalysisValidation {
       .sequence
   }
 
+  /** Check if the form contains the dependency (field with the specific value)
+    * @param answersJson form in json format
+    * @param dependency dependency
+    * @return true if contained, false otherwise
+    */
+  def formContainsDependency(answersJson: JsObject, dependency: DependencyEntry): Boolean =
+    answersJson.getFields(dependency.fieldName).exists { f =>
+      f match {
+        case str: JsString => str.value == dependency.fieldValue
+        case arr: JsArray  => jsArrayContains(arr, dependency.fieldValue)
+        case _             => false
+      }
+    }
+
+  /** Validate the form using the validation rules
+    * @param answersJson form in json format
+    * @param validationRules validation rules
+    * @return List of validations for single and multiple answers
+    */
   def validateForm(
     answersJson: JsObject,
-    validationTree: List[ValidationEntry]
+    validationRules: List[ValidationEntry]
   ): Seq[Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]]] = {
     answersJson.fields.map { case (key, value) =>
-      validateField(answersJson, validationTree)(key).fold(
+      validateField(answersJson, validationRules)(key).fold(
         err => Left[ValidationResult[SingleAnswer], Nothing](err.invalid),
-        _ =>
-          value match {
-            case str: JsString =>
-              Left(SingleAnswer(key, Some(str.value)).validNec[RiskAnalysisValidationError])
-            case arr: JsArray =>
-              val values: Seq[ValidationResult[String]] = {
-                arr.elements.map {
-                  case str: JsString => str.value.validNec
-                  case _             => UnexpectedFieldFormat(key).invalidNec
-                }
-              }
-              Right(values.sequence.map(MultiAnswer(key, _)))
-            case _ => Left(UnexpectedFieldFormat(key).invalidNec)
-          }
+        _ => answerToDependency(key, value)
       )
     }.toSeq
   }
 
-  def validateField(answersJson: JsObject, validationTree: List[ValidationEntry])(
-    key: String
+  /** Convert a form answer to a Management answer
+    * @param fieldName form field name
+    * @param value form field value
+    * @return Either for the validation of the SingleAnswer (Left) or MultiAnswer (Right)
+    */
+  def answerToDependency(
+    fieldName: String,
+    value: JsValue
+  ): Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]] =
+    value match {
+      case str: JsString =>
+        Left(SingleAnswer(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
+      case arr: JsArray =>
+        val values: Seq[ValidationResult[String]] = {
+          arr.elements.map {
+            case str: JsString => str.value.validNec
+            case _             => UnexpectedFieldFormat(fieldName).invalidNec
+          }
+        }
+        Right(values.sequence.map(MultiAnswer(fieldName, _)))
+      case _ =>
+        Left(UnexpectedFieldFormat(fieldName).invalidNec)
+    }
+
+  /** Verify that the field found in the form satisfies the validation rules
+    * @param answersJson form in json format
+    * @param validationRules validation rules
+    * @param fieldName field name
+    * @return
+    */
+  def validateField(answersJson: JsObject, validationRules: List[ValidationEntry])(
+    fieldName: String
   ): ValidationResult[Seq[Unit]] =
-    validationTree.find(_.fieldName == key) match {
+    validationRules.find(_.fieldName == fieldName) match {
       case Some(rule) =>
         rule.dependencies.map(validateDependency(answersJson: JsObject)).sequence
       case None =>
-        UnexpectedField(key).invalidNec
+        UnexpectedField(fieldName).invalidNec
     }
 
+  /** Verify that the form contains the dependency
+    * @param answersJson form in json format
+    * @param dependency dependency
+    * @return Validation result
+    */
   def validateDependency(answersJson: JsObject)(dependency: DependencyEntry): ValidationResult[Unit] =
     answersJson.getFields(dependency.fieldName) match {
       case Nil =>
@@ -112,6 +152,11 @@ object RiskAnalysisValidation {
         TooManyOccurrences(dependency.fieldName).invalidNec
     }
 
+  /** Check if a JsArray contains a specific String (JsString)
+    * @param arr JsArray
+    * @param value the string
+    * @return true if array contains the string, false otherwise
+    */
   def jsArrayContains(arr: JsArray, value: String): Boolean =
     arr.elements.collectFirst { case v: JsString if v.value == value => () }.nonEmpty
 
@@ -148,7 +193,7 @@ object ValidationRules {
   val USES_THIRD_PARTY_PERSONAL_DATA: String                       = "usesThirdPartyPersonalData"
   // End Fields names
 
-  val validationGraph: List[ValidationEntry] = List(
+  val validationRules: List[ValidationEntry] = List(
     ValidationEntry(PURPOSE, required = true, Seq.empty),
     ValidationEntry(USES_PERSONAL_DATA, required = true, Seq.empty),
     ValidationEntry(USES_THIRD_PARTY_PERSONAL_DATA, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, NO))),
