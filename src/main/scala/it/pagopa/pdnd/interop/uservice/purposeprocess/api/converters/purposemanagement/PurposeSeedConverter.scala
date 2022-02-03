@@ -10,7 +10,7 @@ object PurposeSeedConverter {
     for {
       riskAnalysisForm <- RiskAnalysisValidation
         .validate(seed.riskAnalysisForm)
-        .leftMap(err => RiskAnalysisValidationFailed(err.toString))
+        .leftMap(RiskAnalysisValidationFailed)
         .toEither
     } yield DependencyPurposeSeed(
       eserviceId = seed.eserviceId,
