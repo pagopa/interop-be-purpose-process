@@ -388,6 +388,42 @@ components:
           $ref: '#/components/schemas/FormUsesThirdPartyPersonalDataAnswers'
         usesConfidentialData:
           $ref: '#/components/schemas/FormUsesConfidentialDataAnswers'
+        securedDataAccess:
+          $ref: '#/components/schemas/FormSecuredDataAccessAnswers'
+        legalBasis:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormLegalBasisAnswers'
+        legalObligationReference:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        publicInterestReference:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        knowsAccessedDataCategories:
+          $ref: '#/components/schemas/FormKnowsAccessedDataCategoriesAnswers'
+        accessDataArt9Gdpr:
+          $ref: '#/components/schemas/FormAccessDataArt9GdprAnswers'
+        accessUnderageData:
+          $ref: '#/components/schemas/FormAccessUnderageDataAnswers'
+        knowsDataQuantity:
+          $ref: '#/components/schemas/FormKnowsDataQuantityAnswers'
+        dataQuantity:
+          $ref: '#/components/schemas/FormDataQuantityAnswers'
+        deliveryMethod:
+          $ref: '#/components/schemas/FormDeliveryMethodAnswers'
+        doneDpia:
+          $ref: '#/components/schemas/FormDoneDpiaAnswers'
+        definedDataRetentionPeriod:
+          $ref: '#/components/schemas/FormDefinedDataRetentionPeriodAnswers'
+        purposePursuit:
+          $ref: '#/components/schemas/FormPurposePursuitAnswers'
+        checkedExistenceMereCorrectnessPdndCatalogue:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers'
+        checkedAllDataNeeded:
+          $ref: '#/components/schemas/FormCheckedAllDataNeededAnswers'
+        checkedExistenceMinimalDataPdndCatalogue:
+          $ref: '#/components/schemas/FormCheckedExistenceMinimalDataPdndCatalogueAnswers'
       required:
         - purpose
         - usesPersonalData
@@ -408,6 +444,84 @@ components:
       enum:
         - usesConfidentialDataYes
         - usesConfidentialDataNo
+    FormSecuredDataAccessAnswers:
+      type: string
+      enum:
+        - securedDataAccessYes
+        - securedDataAccessNo
+    FormLegalBasisAnswers:
+      type: string
+      enum:
+        - legalBasisConsent
+        - legalBasisContract
+        - legalBasisLegalObligation
+        - legalBasisSafeguard
+        - legalBasisPublicInterest
+        - legalBasisLegitimateInterest
+    FormKnowsAccessedDataCategoriesAnswers:
+      type: string
+      enum:
+        - knowsAccessedDataCategoriesYes
+        - knowsAccessedDataCategoriesNo
+    FormAccessDataArt9GdprAnswers:
+      type: string
+      enum:
+        - accessDataArt9GdprYes
+        - accessDataArt9GdprNo
+    FormAccessUnderageDataAnswers:
+      type: string
+      enum:
+        - accessUnderageDataYes
+        - accessUnderageDataNo
+    FormKnowsDataQuantityAnswers:
+      type: string
+      enum:
+        - knowsDataQuantityYes
+        - knowsDataQuantityNo
+    FormDataQuantityAnswers:
+      type: string
+      enum:
+        - dataQuantity0To100
+        - dataQuantity101To500
+        - dataQuantity500To1000
+        - dataQuantity1001To5000
+        - dataQuantity5001Over
+    FormDeliveryMethodAnswers:
+      type: string
+      enum:
+        - deliveryMethodCleartext
+        - deliveryMethodAggregate
+        - deliveryMethodAnonymous
+        - deliveryMethodPseudoanonymous
+    FormDoneDpiaAnswers:
+      type: string
+      enum:
+        - doneDpiaYes
+        - doneDpiaNo
+    FormDefinedDataRetentionPeriodAnswers:
+      type: string
+      enum:
+        - definedDataRetentionPeriodYes
+        - definedDataRetentionPeriodNo
+    FormPurposePursuitAnswers:
+      type: string
+      enum:
+        - purposePursuitMereCorrectness
+        - purposePursuitNewPersonalData
+    FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers:
+      type: string
+      enum:
+        - checkedExistencePdndCatalogueYes
+    FormCheckedAllDataNeededAnswers:
+      type: string
+      enum:
+        - checkedAllDataNeededYes
+        - checkedAllDataNeededNo
+    FormCheckedExistenceMinimalDataPdndCatalogueAnswers:
+      type: string
+      enum:
+        - checkedExistenceMinimalDataPdndCatalogueYes
+        - checkedExistenceMinimalDataPdndCatalogueNo
     Problem:
       properties:
         type:

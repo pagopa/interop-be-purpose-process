@@ -66,8 +66,7 @@ object RiskAnalysisValidation {
   ): Seq[Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]]] = {
     answersJson.fields.map { case (key, value) =>
       validateField(answersJson, validationTree)(key).fold(
-        err =>
-          Left[ValidationResult[SingleAnswer], Nothing](err.invalid),
+        err => Left[ValidationResult[SingleAnswer], Nothing](err.invalid),
         _ =>
           value match {
             case str: JsString =>
@@ -134,7 +133,93 @@ object ValidationRules {
     ValidationEntry(
       "usesConfidentialData",
       required = true,
-      Seq(DependencyEntry("usesThirdPartyPersonalData", "usesThirdPartyPersonalDataYes"))
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataNo"),
+        DependencyEntry("usesThirdPartyPersonalData", "usesThirdPartyPersonalDataYes")
+      )
+    ),
+    ValidationEntry(
+      "securedDataAccess",
+      required = true,
+      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataNo"))
+    ),
+    ValidationEntry("legalBasis", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry(
+      "legalObligationReference",
+      required = true,
+      Seq(DependencyEntry("legalBasis", "legalBasisLegalObligation"))
+    ),
+    ValidationEntry(
+      "publicInterestReference",
+      required = true,
+      Seq(DependencyEntry("legalBasis", "legalBasisPublicInterest"))
+    ),
+    ValidationEntry(
+      "knowsAccessedDataCategories",
+      required = true,
+      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
+    ),
+    ValidationEntry(
+      "accessDataArt9Gdpr",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("knowsAccessedDataCategories", "knowsAccessedDataCategoriesYes")
+      )
+    ),
+    ValidationEntry(
+      "accessUnderageData",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("knowsAccessedDataCategories", "knowsAccessedDataCategoriesYes")
+      )
+    ),
+    ValidationEntry(
+      "knowsDataQuantity",
+      required = true,
+      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
+    ),
+    ValidationEntry(
+      "dataQuantity",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("knowsDataQuantity", "knowsDataQuantityYes")
+      )
+    ),
+    ValidationEntry("deliveryMethod", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry("doneDpia", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry(
+      "definedDataRetentionPeriod",
+      required = true,
+      Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))
+    ),
+    ValidationEntry("purposePursuit", required = true, Seq(DependencyEntry("usesPersonalData", "usesPersonalDataYes"))),
+    ValidationEntry(
+      "checkedExistenceMereCorrectnessPdndCatalogue",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("purposePursuit", "purposePursuitMereCorrectness")
+      )
+    ),
+    ValidationEntry(
+      "checkedAllDataNeeded",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("purposePursuit", "purposePursuitNewPersonalData")
+      )
+    ),
+    ValidationEntry(
+      "checkedExistenceMinimalDataPdndCatalogue",
+      required = true,
+      Seq(
+        DependencyEntry("usesPersonalData", "usesPersonalDataYes"),
+        DependencyEntry("purposePursuit", "purposePursuitNewPersonalData"),
+        DependencyEntry("checkedAllDataNeeded", "checkedAllDataNeededNo")
+      )
     )
   )
 }

@@ -4,6 +4,16 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => Catalo
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
+  FormAccessDataArt9GdprAnswers,
+  FormAccessUnderageDataAnswers,
+  FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers,
+  FormDefinedDataRetentionPeriodAnswers,
+  FormDeliveryMethodAnswers,
+  FormDoneDpiaAnswers,
+  FormKnowsAccessedDataCategoriesAnswers,
+  FormKnowsDataQuantityAnswers,
+  FormLegalBasisAnswers,
+  FormPurposePursuitAnswers,
   FormUsesPersonalDataAnswers,
   RiskAnalysisForm,
   RiskAnalysisFormAnswers
@@ -75,7 +85,25 @@ object SpecData {
       purpose = "purpose",
       usesPersonalData = FormUsesPersonalDataAnswers.usesPersonalDataYes,
       usesThirdPartyPersonalData = None,
-      usesConfidentialData = None
+      usesConfidentialData = None,
+      securedDataAccess = None,
+      legalBasis =
+        Some(Seq(FormLegalBasisAnswers.legalBasisLegalObligation, FormLegalBasisAnswers.legalBasisPublicInterest)),
+      legalObligationReference = Some("something"),
+      publicInterestReference = Some("something"),
+      knowsAccessedDataCategories = Some(FormKnowsAccessedDataCategoriesAnswers.knowsAccessedDataCategoriesYes),
+      accessDataArt9Gdpr = Some(FormAccessDataArt9GdprAnswers.accessDataArt9GdprNo),
+      accessUnderageData = Some(FormAccessUnderageDataAnswers.accessUnderageDataNo),
+      knowsDataQuantity = Some(FormKnowsDataQuantityAnswers.knowsDataQuantityNo),
+      dataQuantity = None,
+      deliveryMethod = Some(FormDeliveryMethodAnswers.deliveryMethodAnonymous),
+      doneDpia = Some(FormDoneDpiaAnswers.doneDpiaNo),
+      definedDataRetentionPeriod = Some(FormDefinedDataRetentionPeriodAnswers.definedDataRetentionPeriodNo),
+      purposePursuit = Some(FormPurposePursuitAnswers.purposePursuitMereCorrectness),
+      checkedExistenceMereCorrectnessPdndCatalogue =
+        Some(Seq(FormCheckedExistenceMereCorrectnessPdndCatalogueAnswers.checkedExistencePdndCatalogueYes)),
+      checkedAllDataNeeded = None,
+      checkedExistenceMinimalDataPdndCatalogue = None
     )
   )
 

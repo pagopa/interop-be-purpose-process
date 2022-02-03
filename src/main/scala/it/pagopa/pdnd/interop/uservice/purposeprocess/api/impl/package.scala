@@ -21,7 +21,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   final val defaultProblemType: String     = "about:blank"
 
   implicit def riskAnalysisFormAnswersFormat: RootJsonFormat[RiskAnalysisFormAnswers] =
-    jsonFormat4(RiskAnalysisFormAnswers)
+    jsonFormat20(RiskAnalysisFormAnswers)
   implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm] = jsonFormat2(RiskAnalysisForm)
   implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
     jsonFormat3(PurposeVersionDocument)
