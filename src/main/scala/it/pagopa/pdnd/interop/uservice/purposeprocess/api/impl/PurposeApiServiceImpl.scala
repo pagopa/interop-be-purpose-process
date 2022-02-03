@@ -65,9 +65,10 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       _           <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
       _           <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
-      clientSeed = PurposeSeedConverter.apiToDependency(purposeSeed)
-      purpose <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      clientSeed  <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
+      purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
+      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
@@ -91,7 +92,8 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       uuid        <- id.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
     onComplete(result) {
@@ -117,7 +119,8 @@ final case class PurposeApiServiceImpl(
       consumerUUID <- consumerId.traverse(_.toFutureUUID)
       states       <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
       purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
-    } yield PurposesConverter.dependencyToApi(purposes)
+      result       <- PurposesConverter.dependencyToApi(purposes).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
     onComplete(result) {

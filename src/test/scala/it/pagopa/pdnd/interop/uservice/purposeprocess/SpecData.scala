@@ -2,7 +2,9 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -50,21 +52,6 @@ object SpecData {
       )
     )
 
-  val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
-    id = UUID.randomUUID(),
-    eserviceId = UUID.randomUUID(),
-    consumerId = UUID.randomUUID(),
-    versions = Seq.empty,
-    suspendedByConsumer = None,
-    suspendedByProducer = None,
-    title = "A title",
-    description = Some("A description"),
-    createdAt = timestamp,
-    updatedAt = None
-  )
-
-  val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
-
   val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
     answers = RiskAnalysisFormAnswers(
@@ -90,6 +77,25 @@ object SpecData {
       checkedExistenceMinimalDataInteropCatalogue = None
     )
   )
+
+  val validManagementRiskAnalysis: client.model.RiskAnalysisForm =
+    RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
+
+  val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "A title",
+    description = Some("A description"),
+    riskAnalysisForm = validManagementRiskAnalysis,
+    createdAt = timestamp,
+    updatedAt = None
+  )
+
+  val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
 
   val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(
     `type` = "something",

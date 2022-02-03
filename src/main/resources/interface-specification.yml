@@ -272,6 +272,8 @@ components:
           type: boolean
         title:
           type: string
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
         description:
           type: string
         createdAt:
@@ -286,6 +288,7 @@ components:
         - consumerId
         - versions
         - title
+        - riskAnalysisForm
         - createdAt
       description: business representation of a purpose
     Purposes:
