@@ -125,71 +125,94 @@ object ValidationRules {
   val YES: String = RiskAnalysisFormYesNoAnswer.YES.toString
   val NO: String  = RiskAnalysisFormYesNoAnswer.NO.toString
 
+  // Fields names
+  val PURPOSE: String                                              = "purpose"
+  val ACCESS_DATA_ART9_GDPR: String                                = "accessDataArt9Gdpr"
+  val ACCESS_UNDERAGE_DATA: String                                 = "accessUnderageData"
+  val CHECKED_ALL_DATA_NEEDED: String                              = "checkedAllDataNeeded"
+  val CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE: String = "checkedExistenceMereCorrectnessInteropCatalogue"
+  val CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE: String     = "checkedExistenceMinimalDataInteropCatalogue"
+  val DATA_QUANTITY: String                                        = "dataQuantity"
+  val DEFINED_DATA_RETENTION_PERIOD: String                        = "definedDataRetentionPeriod"
+  val DELIVERY_METHOD: String                                      = "deliveryMethod"
+  val DONE_DPIA: String                                            = "doneDpia"
+  val KNOWS_ACCESSED_DATA_CATEGORIES: String                       = "knowsAccessedDataCategories"
+  val KNOWS_DATA_QUANTITY: String                                  = "knowsDataQuantity"
+  val LEGAL_BASIS: String                                          = "legalBasis"
+  val LEGAL_OBLIGATION_REFERENCE: String                           = "legalObligationReference"
+  val PUBLIC_INTEREST_REFERENCE: String                            = "publicInterestReference"
+  val PURPOSE_PURSUIT: String                                      = "purposePursuit"
+  val SECURED_DATA_ACCESS: String                                  = "securedDataAccess"
+  val USES_CONFIDENTIAL_DATA: String                               = "usesConfidentialData"
+  val USES_PERSONAL_DATA: String                                   = "usesPersonalData"
+  val USES_THIRD_PARTY_PERSONAL_DATA: String                       = "usesThirdPartyPersonalData"
+  // End Fields names
+
   val validationGraph: List[ValidationEntry] = List(
-    ValidationEntry("purpose", required = true, Seq.empty),
-    ValidationEntry("usesPersonalData", required = true, Seq.empty),
-    ValidationEntry("usesThirdPartyPersonalData", required = true, Seq(DependencyEntry("usesPersonalData", NO))),
+    ValidationEntry(PURPOSE, required = true, Seq.empty),
+    ValidationEntry(USES_PERSONAL_DATA, required = true, Seq.empty),
+    ValidationEntry(USES_THIRD_PARTY_PERSONAL_DATA, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, NO))),
     ValidationEntry(
-      "usesConfidentialData",
+      USES_CONFIDENTIAL_DATA,
       required = true,
-      Seq(DependencyEntry("usesPersonalData", NO), DependencyEntry("usesThirdPartyPersonalData", YES))
+      Seq(DependencyEntry(USES_PERSONAL_DATA, NO), DependencyEntry(USES_THIRD_PARTY_PERSONAL_DATA, YES))
     ),
-    ValidationEntry("securedDataAccess", required = true, Seq(DependencyEntry("usesPersonalData", NO))),
-    ValidationEntry("legalBasis", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
+    ValidationEntry(SECURED_DATA_ACCESS, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, NO))),
+    ValidationEntry(LEGAL_BASIS, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
     ValidationEntry(
-      "legalObligationReference",
+      LEGAL_OBLIGATION_REFERENCE,
       required = true,
-      Seq(DependencyEntry("legalBasis", FormLegalBasisAnswers.LEGAL_OBLIGATION.toString))
-    ),
-    ValidationEntry(
-      "publicInterestReference",
-      required = true,
-      Seq(DependencyEntry("legalBasis", FormLegalBasisAnswers.PUBLIC_INTEREST.toString))
-    ),
-    ValidationEntry("knowsAccessedDataCategories", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
-    ValidationEntry(
-      "accessDataArt9Gdpr",
-      required = true,
-      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsAccessedDataCategories", YES))
+      Seq(DependencyEntry(LEGAL_BASIS, FormLegalBasisAnswers.LEGAL_OBLIGATION.toString))
     ),
     ValidationEntry(
-      "accessUnderageData",
+      PUBLIC_INTEREST_REFERENCE,
       required = true,
-      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsAccessedDataCategories", YES))
+      Seq(DependencyEntry(LEGAL_BASIS, FormLegalBasisAnswers.PUBLIC_INTEREST.toString))
     ),
-    ValidationEntry("knowsDataQuantity", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
+    ValidationEntry(KNOWS_ACCESSED_DATA_CATEGORIES, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
     ValidationEntry(
-      "dataQuantity",
+      ACCESS_DATA_ART9_GDPR,
       required = true,
-      Seq(DependencyEntry("usesPersonalData", YES), DependencyEntry("knowsDataQuantity", YES))
+      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES))
     ),
-    ValidationEntry("deliveryMethod", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
-    ValidationEntry("doneDpia", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
-    ValidationEntry("definedDataRetentionPeriod", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
-    ValidationEntry("purposePursuit", required = true, Seq(DependencyEntry("usesPersonalData", YES))),
     ValidationEntry(
-      "checkedExistenceMereCorrectnessInteropCatalogue",
+      ACCESS_UNDERAGE_DATA,
+      required = true,
+      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES))
+    ),
+    ValidationEntry(KNOWS_DATA_QUANTITY, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
+    ValidationEntry(
+      DATA_QUANTITY,
+      required = true,
+      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_DATA_QUANTITY, YES))
+    ),
+    ValidationEntry(DELIVERY_METHOD, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
+    ValidationEntry(DONE_DPIA, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
+    ValidationEntry(DEFINED_DATA_RETENTION_PERIOD, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
+    ValidationEntry(PURPOSE_PURSUIT, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
+    ValidationEntry(
+      CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE,
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", YES),
-        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.MERE_CORRECTNESS.toString)
+        DependencyEntry(USES_PERSONAL_DATA, YES),
+        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.MERE_CORRECTNESS.toString)
       )
     ),
     ValidationEntry(
-      "checkedAllDataNeeded",
+      CHECKED_ALL_DATA_NEEDED,
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", YES),
-        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString)
+        DependencyEntry(USES_PERSONAL_DATA, YES),
+        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString)
       )
     ),
     ValidationEntry(
-      "checkedExistenceMinimalDataInteropCatalogue",
+      CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE,
       required = true,
       Seq(
-        DependencyEntry("usesPersonalData", YES),
-        DependencyEntry("purposePursuit", FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString),
-        DependencyEntry("checkedAllDataNeeded", NO)
+        DependencyEntry(USES_PERSONAL_DATA, YES),
+        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString),
+        DependencyEntry(CHECKED_ALL_DATA_NEEDED, NO)
       )
     )
   )
