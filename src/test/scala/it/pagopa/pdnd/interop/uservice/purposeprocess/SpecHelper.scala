@@ -17,7 +17,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
 }
 import org.scalamock.handlers.{CallHandler2, CallHandler3}
 import org.scalamock.scalatest.MockFactory
-import spray.json.DefaultJsonProtocol
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -84,4 +84,15 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     sprayJsonUnmarshaller[Purposes]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
     sprayJsonUnmarshaller[Problem]
+
+  implicit def catalogProblemErrorFormat: RootJsonFormat[CatalogManagement.ProblemError] =
+    jsonFormat2(CatalogManagement.ProblemError)
+  implicit def catalogProblemFormat: RootJsonFormat[CatalogManagement.Problem] = jsonFormat5(CatalogManagement.Problem)
+  implicit def partyProblemErrorFormat: RootJsonFormat[PartyManagement.ProblemError] =
+    jsonFormat2(PartyManagement.ProblemError)
+  implicit def partyProblemFormat: RootJsonFormat[PartyManagement.Problem] = jsonFormat5(PartyManagement.Problem)
+  implicit def purposeProblemErrorFormat: RootJsonFormat[PurposeManagement.ProblemError] =
+    jsonFormat2(PurposeManagement.ProblemError)
+  implicit def purposeProblemFormat: RootJsonFormat[PurposeManagement.Problem] = jsonFormat5(PurposeManagement.Problem)
+
 }

@@ -10,6 +10,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshal
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Problem
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import spray.json._
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -56,16 +57,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+      val apiError =
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
         .expects(bearerToken, purposeId)
         .once()
-        .returns(
-          Future.failed(
-            PurposeApiError[PurposeManagement.Problem](purposeProblem.status, "Some error", Some(purposeProblem))
-          )
-        )
+        .returns(Future.failed(apiError))
 
       Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -132,16 +131,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+      val apiError =
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
         .expects(bearerToken, purposeId)
         .once()
-        .returns(
-          Future.failed(
-            PurposeApiError[PurposeManagement.Problem](purposeProblem.status, "Some error", Some(purposeProblem))
-          )
-        )
+        .returns(Future.failed(apiError))
 
       Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
@@ -240,16 +237,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+      val apiError =
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
         .expects(bearerToken, purposeId)
         .once()
-        .returns(
-          Future.failed(
-            PurposeApiError[PurposeManagement.Problem](purposeProblem.status, "Some error", Some(purposeProblem))
-          )
-        )
+        .returns(Future.failed(apiError))
 
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
