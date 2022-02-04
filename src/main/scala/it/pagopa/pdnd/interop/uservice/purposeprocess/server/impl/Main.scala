@@ -88,7 +88,7 @@ object Main
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
       var publicKeyset: Map[KID, SerializedKey] = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
-        getClaimsVerifier() // TODO Enhance this
+        getClaimsVerifier(audiences = ApplicationConfiguration.jwtAudience)
     }
   } yield jwtValidator
 
