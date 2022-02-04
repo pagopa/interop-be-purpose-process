@@ -86,7 +86,7 @@ object Main
   val dependenciesLoaded: Future[JWTReader] = for {
     keyset <- JWTConfiguration.jwtReader.loadKeyset().toFuture
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
-      var publicKeyset: Map[KID, SerializedKey]                                        = keyset
+      var publicKeyset: Map[KID, SerializedKey] = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
         getClaimsVerifier(audiences = ApplicationConfiguration.jwtAudience)
     }
