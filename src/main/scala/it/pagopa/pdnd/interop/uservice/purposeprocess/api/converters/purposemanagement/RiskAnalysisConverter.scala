@@ -112,5 +112,5 @@ object RiskAnalysisConverter {
   ): Either[Throwable, Option[Seq[T]]] =
     multiAnswers
       .find(_.key == fieldName)
-      .traverse(_.value.traverse(f))
+      .traverse(_.values.traverse(f))
 }

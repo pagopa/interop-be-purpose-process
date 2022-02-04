@@ -3,9 +3,9 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import cats.data.NonEmptyChain
 import cats.kernel.Eq
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
-  RiskAnalysisForm => DepRiskAnalysisForm,
-  RiskAnalysisMultiAnswer => MultiAnswer,
-  RiskAnalysisSingleAnswer => SingleAnswer
+  RiskAnalysisFormSeed => RiskAnalysisFormSeed,
+  RiskAnalysisMultiAnswerSeed => MultiAnswerSeed,
+  RiskAnalysisSingleAnswerSeed => SingleAnswerSeed
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation.ValidationResult
@@ -23,29 +23,29 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
       val riskAnalysis = SpecData.validRiskAnalysis
 
-      val expected = DepRiskAnalysisForm(
+      val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswer("purpose", Some(riskAnalysis.answers.purpose)),
-          SingleAnswer("usesPersonalData", Some("YES")),
-          SingleAnswer("legalObligationReference", riskAnalysis.answers.legalObligationReference),
-          SingleAnswer("publicInterestReference", riskAnalysis.answers.publicInterestReference),
-          SingleAnswer("knowsAccessedDataCategories", Some("YES")),
-          SingleAnswer("accessDataArt9Gdpr", Some("NO")),
-          SingleAnswer("accessUnderageData", Some("NO")),
-          SingleAnswer("knowsDataQuantity", Some("NO")),
-          SingleAnswer("deliveryMethod", Some("ANONYMOUS")),
-          SingleAnswer("doneDpia", Some("NO")),
-          SingleAnswer("definedDataRetentionPeriod", Some("NO")),
-          SingleAnswer("purposePursuit", Some("MERE_CORRECTNESS"))
+          SingleAnswerSeed("purpose", Some(riskAnalysis.answers.purpose)),
+          SingleAnswerSeed("usesPersonalData", Some("YES")),
+          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers.legalObligationReference),
+          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers.publicInterestReference),
+          SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
+          SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
+          SingleAnswerSeed("accessUnderageData", Some("NO")),
+          SingleAnswerSeed("knowsDataQuantity", Some("NO")),
+          SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
+          SingleAnswerSeed("doneDpia", Some("NO")),
+          SingleAnswerSeed("definedDataRetentionPeriod", Some("NO")),
+          SingleAnswerSeed("purposePursuit", Some("MERE_CORRECTNESS"))
         ),
         multiAnswers = Seq(
-          MultiAnswer("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")),
-          MultiAnswer("checkedExistenceMereCorrectnessInteropCatalogue", Seq("YES"))
+          MultiAnswerSeed("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")),
+          MultiAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Seq("YES"))
         )
       )
 
-      val result: ValidationResult[DepRiskAnalysisForm] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
       verifyValidationFormResult(result, expected)
 
@@ -62,7 +62,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[DepRiskAnalysisForm] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
       verifyValidationFailure(result, _.contains(DependencyNotFound("usesThirdPartyPersonalData")) shouldBe true)
     }
@@ -78,7 +78,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[DepRiskAnalysisForm] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
       verifyValidationFailure(result, _.contains(UnexpectedFieldValue("usesThirdPartyPersonalData")) shouldBe true)
     }
@@ -95,7 +95,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[DepRiskAnalysisForm] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
       verifyValidationFailure(
         result,
@@ -112,8 +112,8 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   }
 
   def verifyValidationFormResult(
-    result: ValidationResult[DepRiskAnalysisForm],
-    expected: DepRiskAnalysisForm
+    result: ValidationResult[RiskAnalysisFormSeed],
+    expected: RiskAnalysisFormSeed
   ): Assertion = {
     result.fold(
       err => fail(s"Unexpected validation failure: ${err.toString}"),
@@ -126,7 +126,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   }
 
   def verifyValidationFailure(
-    result: ValidationResult[DepRiskAnalysisForm],
+    result: ValidationResult[RiskAnalysisFormSeed],
     errorAssertion: NonEmptyChain[RiskAnalysisValidationError] => Assertion
   ): Assertion =
     result.fold(errorAssertion, result => fail(s"Unexpected validation success $result"))

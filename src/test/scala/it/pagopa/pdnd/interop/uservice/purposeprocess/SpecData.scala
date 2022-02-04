@@ -78,8 +78,20 @@ object SpecData {
     )
   )
 
-  val validManagementRiskAnalysis: client.model.RiskAnalysisForm =
+  val validManagementRiskAnalysisSeed: client.model.RiskAnalysisFormSeed =
     RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
+
+  val validManagementRiskAnalysis: client.model.RiskAnalysisForm =
+    client.model.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validManagementRiskAnalysisSeed.version,
+      singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        client.model.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        client.model.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
 
   val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
     id = UUID.randomUUID(),

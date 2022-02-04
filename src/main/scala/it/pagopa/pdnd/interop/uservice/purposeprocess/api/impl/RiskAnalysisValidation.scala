@@ -3,9 +3,9 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl
 import cats.data._
 import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
-  RiskAnalysisForm => DepRiskAnalysisForm,
-  RiskAnalysisMultiAnswer => MultiAnswer,
-  RiskAnalysisSingleAnswer => SingleAnswer
+  RiskAnalysisFormSeed => RiskAnalysisFormSeed,
+  RiskAnalysisMultiAnswerSeed => MultiAnswerSeed,
+  RiskAnalysisSingleAnswerSeed => SingleAnswerSeed
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
@@ -20,17 +20,17 @@ object RiskAnalysisValidation {
     * @param form Risk Analysis Form
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm): ValidationResult[DepRiskAnalysisForm] = {
+  def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
     val answersJson: JsObject = form.answers.toJson.asJsObject
 
     val validations = validateForm(answersJson, validationRules)
 
-    val singleAnswers: ValidationResult[Seq[SingleAnswer]] = validations.collect { case Left(s) => s }.sequence
-    val multiAnswers: ValidationResult[Seq[MultiAnswer]]   = validations.collect { case Right(m) => m }.sequence
-    val expectedFields: ValidationResult[List[Unit]]       = validateExpectedFields(answersJson, validationRules)
+    val singleAnswers: ValidationResult[Seq[SingleAnswerSeed]] = validations.collect { case Left(s) => s }.sequence
+    val multiAnswers: ValidationResult[Seq[MultiAnswerSeed]]   = validations.collect { case Right(m) => m }.sequence
+    val expectedFields: ValidationResult[List[Unit]]           = validateExpectedFields(answersJson, validationRules)
 
     (singleAnswers, multiAnswers, expectedFields).mapN((l1, l2, _) =>
-      DepRiskAnalysisForm(version = form.version, singleAnswers = l1, multiAnswers = l2)
+      RiskAnalysisFormSeed(version = form.version, singleAnswers = l1, multiAnswers = l2)
     )
   }
 
@@ -81,10 +81,10 @@ object RiskAnalysisValidation {
   def validateForm(
     answersJson: JsObject,
     validationRules: List[ValidationEntry]
-  ): Seq[Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]]] = {
+  ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
     answersJson.fields.map { case (key, value) =>
       validateField(answersJson, validationRules)(key).fold(
-        err => Left[ValidationResult[SingleAnswer], Nothing](err.invalid),
+        err => Left[ValidationResult[SingleAnswerSeed], Nothing](err.invalid),
         _ => answerToDependency(key, value)
       )
     }.toSeq
@@ -98,10 +98,10 @@ object RiskAnalysisValidation {
   def answerToDependency(
     fieldName: String,
     value: JsValue
-  ): Either[ValidationResult[SingleAnswer], ValidationResult[MultiAnswer]] =
+  ): Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]] =
     value match {
       case str: JsString =>
-        Left(SingleAnswer(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
+        Left(SingleAnswerSeed(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
       case arr: JsArray =>
         val values: Seq[ValidationResult[String]] = {
           arr.elements.map {
@@ -109,7 +109,7 @@ object RiskAnalysisValidation {
             case _             => UnexpectedFieldFormat(fieldName).invalidNec
           }
         }
-        Right(values.sequence.map(MultiAnswer(fieldName, _)))
+        Right(values.sequence.map(MultiAnswerSeed(fieldName, _)))
       case _ =>
         Left(UnexpectedFieldFormat(fieldName).invalidNec)
     }

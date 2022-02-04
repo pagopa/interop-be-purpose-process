@@ -7,7 +7,6 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   PurposeVersionState => DependencyPurposeVersionState
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.PurposeConverter
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
   Purpose,
   PurposeVersion,
@@ -49,7 +48,7 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
         suspendedByProducer = Some(false),
         title = "A title",
         description = Some("A description"),
-        riskAnalysisForm = RiskAnalysisValidation.validate(SpecData.validRiskAnalysis).toOption.get,
+        riskAnalysisForm = SpecData.validManagementRiskAnalysis,
         createdAt = OffsetDateTime.now(),
         updatedAt = Some(OffsetDateTime.now())
       )
