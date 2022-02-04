@@ -11,7 +11,5 @@ object InternalErrors {
   final case class UserNotAllowed(userId: UUID)       extends Throwable(s"User $userId not allowed")
 
   final case class RiskAnalysisValidationFailed(failures: NonEmptyChain[RiskAnalysisValidationError])
-      extends Throwable(
-        s"Risk analysis validation failed. ${failures.foldLeft("Reasons:")((acc, err) => s"$acc, ${err.message}")}"
-      )
+      extends Throwable(failures.map(_.message).distinct.iterator.mkString("Reasons: ", ", ", ""))
 }

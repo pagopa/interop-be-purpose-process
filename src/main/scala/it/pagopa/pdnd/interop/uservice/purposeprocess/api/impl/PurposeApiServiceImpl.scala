@@ -26,6 +26,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemana
   PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
+  RiskAnalysisValidationFailed,
   UserIdNotInContext,
   UserIsNotTheConsumer,
   UserIsNotTheProducer,
@@ -72,8 +73,12 @@ final case class PurposeApiServiceImpl(
       handleApiError(defaultProblem) orElse {
         case Success(purpose) =>
           createPurpose201(purpose)
+        case Failure(ex: RiskAnalysisValidationFailed) =>
+          logger.error("Error creating purpose - Risk Analysis Validation failed {}", purposeSeed, ex)
+          val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
+          createPurpose400(problem)
         case Failure(ex) =>
-          logger.error("Error while creating purpose {}", purposeSeed, ex)
+          logger.error("Error creating purpose {}", purposeSeed, ex)
           createPurpose400(defaultProblem)
       }
     }
