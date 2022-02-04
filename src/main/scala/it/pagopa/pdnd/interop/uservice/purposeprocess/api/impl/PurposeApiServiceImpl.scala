@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
+import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
@@ -23,17 +23,25 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
   PurposeConverter,
   PurposeSeedConverter,
+  PurposeVersionConverter,
+  PurposeVersionSeedConverter,
   PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   RiskAnalysisValidationFailed,
-  UserIdNotInContext,
   UserIsNotTheConsumer,
   UserIsNotTheProducer,
   UserNotAllowed
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeSeed, Purposes}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
+  Problem,
+  Purpose,
+  PurposeSeed,
+  PurposeVersion,
+  PurposeVersionSeed,
+  Purposes
+}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
   PartyManagementService,
@@ -80,6 +88,35 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error creating purpose {}", purposeSeed, ex)
           createPurpose400(defaultProblem)
+      }
+    }
+  }
+
+  override def createPurposeVersion(purposeId: String, seed: PurposeVersionSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Creating Purpose Version {}", seed)
+    val result: Future[PurposeVersion] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purposeUUID <- purposeId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
+      version <- purposeManagementService.createPurposeVersion(bearerToken)(purposeUUID, depSeed)
+    } yield PurposeVersionConverter.dependencyToApi(version)
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeVersionBadRequest(purposeId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse {
+        case Success(purpose) =>
+          createPurposeVersion201(purpose)
+        case Failure(ex) =>
+          logger.error("Error creating purpose version {}", seed, ex)
+          createPurposeVersion400(defaultProblem)
       }
     }
   }
@@ -151,12 +188,10 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
-      userId <- contexts
-        .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(UserIdNotInContext)
-      userUUID <- userId._2.toFutureUUID
-      purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      userType <- userType(userUUID, purpose)(bearerToken)
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      userType    <- userType(userUUID, purpose)(bearerToken)
       stateChangeDetails = PurposeManagementDependency.StateChangeDetails(userType)
       _ <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
     } yield ()
@@ -182,12 +217,10 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
-      userId <- contexts
-        .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(UserIdNotInContext)
-      userUUID <- userId._2.toFutureUUID
-      purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _        <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
       stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
       _ <- purposeManagementService.waitForApprovalPurposeVersion(bearerToken)(
         purposeUUID,
@@ -218,12 +251,10 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
-      userId <- contexts
-        .find(_._1 == it.pagopa.pdnd.interop.commons.utils.UID)
-        .toFuture(UserIdNotInContext)
-      userUUID <- userId._2.toFutureUUID
-      purpose  <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _        <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
       stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
       _ <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
     } yield ()

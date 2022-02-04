@@ -123,6 +123,30 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    post:
+      tags:
+        - purpose
+      operationId: createPurposeVersion
+      description: Creates a draft Purpose Version
+      responses:
+        '201':
+          description: Purpose created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeVersionSeed'
+        required: true
   /status:
     get:
       tags:
@@ -370,6 +394,17 @@ components:
         - consumerId
         - riskAnalysisForm
         - title
+    PurposeVersionSeed:
+      type: object
+      description: contains the expected payload for purpose version creation.
+      required:
+        - dailyCalls
+      properties:
+        dailyCalls:
+          description: 'maximum number of daily calls that this version can perform.'
+          type: integer
+          format: int32
+          minimum: 0
     RiskAnalysisForm:
       type: object
       properties:
