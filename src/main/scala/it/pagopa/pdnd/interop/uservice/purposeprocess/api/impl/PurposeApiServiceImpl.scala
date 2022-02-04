@@ -11,13 +11,10 @@ import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   ChangedBy,
-  Problem => PurposeProblem,
   PurposeVersionState => DepPurposeVersionState
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
@@ -270,21 +267,21 @@ final case class PurposeApiServiceImpl(
 
   def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: CatalogProblem => catalogmanagement.ProblemConverter.dependencyToApi(problem)
-        case _                       => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => catalogmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PartyApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: PartyProblem => partymanagement.ProblemConverter.dependencyToApi(problem)
-        case _                     => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => partymanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PurposeApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: PurposeProblem => purposemanagement.ProblemConverter.dependencyToApi(problem)
-        case _                       => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => purposemanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
   }
