@@ -11,13 +11,10 @@ import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.getBearer
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   ChangedBy,
-  Problem => PurposeProblem,
   PurposeVersionState => DepPurposeVersionState
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
@@ -29,6 +26,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemana
   PurposesConverter
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
+  RiskAnalysisValidationFailed,
   UserIdNotInContext,
   UserIsNotTheConsumer,
   UserIsNotTheProducer,
@@ -65,17 +63,22 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       _           <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
       _           <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
-      clientSeed = PurposeSeedConverter.apiToDependency(purposeSeed)
-      purpose <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      clientSeed  <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
+      purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
+      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
       handleApiError(defaultProblem) orElse {
         case Success(purpose) =>
           createPurpose201(purpose)
+        case Failure(ex: RiskAnalysisValidationFailed) =>
+          logger.error("Error creating purpose - Risk Analysis Validation failed {}", purposeSeed, ex)
+          val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
+          createPurpose400(problem)
         case Failure(ex) =>
-          logger.error("Error while creating purpose {}", purposeSeed, ex)
+          logger.error("Error creating purpose {}", purposeSeed, ex)
           createPurpose400(defaultProblem)
       }
     }
@@ -91,7 +94,8 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       uuid        <- id.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
     onComplete(result) {
@@ -117,7 +121,8 @@ final case class PurposeApiServiceImpl(
       consumerUUID <- consumerId.traverse(_.toFutureUUID)
       states       <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
       purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
-    } yield PurposesConverter.dependencyToApi(purposes)
+      result       <- PurposesConverter.dependencyToApi(purposes).toFuture
+    } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
     onComplete(result) {
@@ -267,21 +272,21 @@ final case class PurposeApiServiceImpl(
 
   def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: CatalogProblem => catalogmanagement.ProblemConverter.dependencyToApi(problem)
-        case _                       => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => catalogmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PartyApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: PartyProblem => partymanagement.ProblemConverter.dependencyToApi(problem)
-        case _                     => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => partymanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PurposeApiError[_]) =>
-      val problem = err.responseContent.fold(defaultProblem) {
-        case problem: PurposeProblem => purposemanagement.ProblemConverter.dependencyToApi(problem)
-        case _                       => defaultProblem
+      val problem = err.responseContent match {
+        case Some(body: String) => purposemanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
       }
       complete(problem.status, problem)
   }

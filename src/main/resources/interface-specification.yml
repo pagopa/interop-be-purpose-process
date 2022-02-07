@@ -272,6 +272,8 @@ components:
           type: boolean
         title:
           type: string
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
         description:
           type: string
         createdAt:
@@ -286,6 +288,7 @@ components:
         - consumerId
         - versions
         - title
+        - riskAnalysisForm
         - createdAt
       description: business representation of a purpose
     Purposes:
@@ -356,6 +359,8 @@ components:
         consumerId:
           type: string
           format: uuid
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
         title:
           type: string
         description:
@@ -363,7 +368,108 @@ components:
       required:
         - eserviceId
         - consumerId
+        - riskAnalysisForm
         - title
+    RiskAnalysisForm:
+      type: object
+      properties:
+        version:
+          type: string
+        answers:
+          $ref: '#/components/schemas/RiskAnalysisFormAnswers'
+      required:
+        - version
+        - answers
+    RiskAnalysisFormAnswers:
+      type: object
+      properties:
+        purpose:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        usesPersonalData:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        usesThirdPartyPersonalData:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        usesConfidentialData:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        securedDataAccess:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        legalBasis:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormLegalBasisAnswers'
+        legalObligationReference:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        publicInterestReference:
+          $ref: '#/components/schemas/RiskAnalysisFormTextAnswer'
+        knowsAccessedDataCategories:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        accessDataArt9Gdpr:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        accessUnderageData:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        knowsDataQuantity:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        dataQuantity:
+          $ref: '#/components/schemas/FormDataQuantityAnswers'
+        deliveryMethod:
+          $ref: '#/components/schemas/FormDeliveryMethodAnswers'
+        doneDpia:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        definedDataRetentionPeriod:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        purposePursuit:
+          $ref: '#/components/schemas/FormPurposePursuitAnswers'
+        checkedExistenceMereCorrectnessInteropCatalogue:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskAnalysisFormYesAnswer'
+        checkedAllDataNeeded:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+        checkedExistenceMinimalDataInteropCatalogue:
+          $ref: '#/components/schemas/RiskAnalysisFormYesNoAnswer'
+      required:
+        - purpose
+        - usesPersonalData
+    RiskAnalysisFormTextAnswer:
+      type: string
+    RiskAnalysisFormYesNoAnswer:
+      type: string
+      enum:
+        - 'YES'
+        - 'NO'
+    RiskAnalysisFormYesAnswer:
+      type: string
+      enum:
+        - 'YES'
+    FormLegalBasisAnswers:
+      type: string
+      enum:
+        - CONSENT
+        - CONTRACT
+        - LEGAL_OBLIGATION
+        - SAFEGUARD
+        - PUBLIC_INTEREST
+        - LEGITIMATE_INTEREST
+    FormDataQuantityAnswers:
+      type: string
+      enum:
+        - QUANTITY_0_TO_100
+        - QUANTITY_101_TO_500
+        - QUANTITY_500_TO_1000
+        - QUANTITY_1001_TO_5000
+        - QUANTITY_5001_OVER
+    FormDeliveryMethodAnswers:
+      type: string
+      enum:
+        - CLEARTEXT
+        - AGGREGATE
+        - ANONYMOUS
+        - PSEUDOANONYMOUS
+    FormPurposePursuitAnswers:
+      type: string
+      enum:
+        - MERE_CORRECTNESS
+        - NEW_PERSONAL_DATA
     Problem:
       properties:
         type:

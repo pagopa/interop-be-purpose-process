@@ -4,8 +4,10 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Purpose =
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Purpose
 
 object PurposeConverter {
-  def dependencyToApi(purpose: DependencyPurpose): Purpose =
-    Purpose(
+  def dependencyToApi(purpose: DependencyPurpose): Either[Throwable, Purpose] = {
+    for {
+      riskAnalysisForm <- RiskAnalysisConverter.dependencyToApi(purpose.riskAnalysisForm)
+    } yield Purpose(
       id = purpose.id,
       eserviceId = purpose.eserviceId,
       consumerId = purpose.consumerId,
@@ -13,8 +15,10 @@ object PurposeConverter {
       suspendedByConsumer = purpose.suspendedByConsumer,
       suspendedByProducer = purpose.suspendedByProducer,
       title = purpose.title,
+      riskAnalysisForm = riskAnalysisForm,
       description = purpose.description,
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt
     )
+  }
 }

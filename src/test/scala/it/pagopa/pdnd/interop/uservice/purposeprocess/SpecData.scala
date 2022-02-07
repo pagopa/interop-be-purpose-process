@@ -2,7 +2,10 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -49,6 +52,47 @@ object SpecData {
       )
     )
 
+  val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = RiskAnalysisFormAnswers(
+      purpose = "purpose",
+      usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
+      usesThirdPartyPersonalData = None,
+      usesConfidentialData = None,
+      securedDataAccess = None,
+      legalBasis = Some(Seq(FormLegalBasisAnswers.LEGAL_OBLIGATION, FormLegalBasisAnswers.PUBLIC_INTEREST)),
+      legalObligationReference = Some("something"),
+      publicInterestReference = Some("something"),
+      knowsAccessedDataCategories = Some(RiskAnalysisFormYesNoAnswer.YES),
+      accessDataArt9Gdpr = Some(RiskAnalysisFormYesNoAnswer.NO),
+      accessUnderageData = Some(RiskAnalysisFormYesNoAnswer.NO),
+      knowsDataQuantity = Some(RiskAnalysisFormYesNoAnswer.NO),
+      dataQuantity = None,
+      deliveryMethod = Some(FormDeliveryMethodAnswers.ANONYMOUS),
+      doneDpia = Some(RiskAnalysisFormYesNoAnswer.NO),
+      definedDataRetentionPeriod = Some(RiskAnalysisFormYesNoAnswer.NO),
+      purposePursuit = Some(FormPurposePursuitAnswers.MERE_CORRECTNESS),
+      checkedExistenceMereCorrectnessInteropCatalogue = Some(Seq(RiskAnalysisFormYesAnswer.YES)),
+      checkedAllDataNeeded = None,
+      checkedExistenceMinimalDataInteropCatalogue = None
+    )
+  )
+
+  val validManagementRiskAnalysisSeed: client.model.RiskAnalysisFormSeed =
+    RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
+
+  val validManagementRiskAnalysis: client.model.RiskAnalysisForm =
+    client.model.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validManagementRiskAnalysisSeed.version,
+      singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        client.model.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        client.model.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
+
   val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
     id = UUID.randomUUID(),
     eserviceId = UUID.randomUUID(),
@@ -58,6 +102,7 @@ object SpecData {
     suspendedByProducer = None,
     title = "A title",
     description = Some("A description"),
+    riskAnalysisForm = validManagementRiskAnalysis,
     createdAt = timestamp,
     updatedAt = None
   )

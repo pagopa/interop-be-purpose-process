@@ -33,6 +33,7 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
             createdAt = OffsetDateTime.now(),
             updatedAt = Some(OffsetDateTime.now()),
             expectedApprovalDate = Some(OffsetDateTime.now()),
+            dailyCalls = 100,
             riskAnalysis = Some(
               DependencyPurposeVersionDocument(
                 id = UUID.randomUUID(),
@@ -47,6 +48,7 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
         suspendedByProducer = Some(false),
         title = "A title",
         description = Some("A description"),
+        riskAnalysisForm = SpecData.validManagementRiskAnalysis,
         createdAt = OffsetDateTime.now(),
         updatedAt = Some(OffsetDateTime.now())
       )
@@ -75,13 +77,14 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
         suspendedByProducer = Some(false),
         title = "A title",
         description = Some("A description"),
+        riskAnalysisForm = SpecData.validRiskAnalysis,
         createdAt = dependencyPurpose.createdAt,
         updatedAt = dependencyPurpose.updatedAt
       )
 
       val purpose = PurposeConverter.dependencyToApi(dependencyPurpose)
 
-      purpose shouldBe expectedPurpose
+      purpose shouldBe Right(expectedPurpose)
     }
   }
 }

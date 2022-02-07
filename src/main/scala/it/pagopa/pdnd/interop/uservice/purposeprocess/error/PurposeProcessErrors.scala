@@ -22,4 +22,6 @@ object PurposeProcessErrors {
       extends ComponentError("0008", s"Only the Producer is allowed to perform this operation")
   object UserNotAllowedError extends ComponentError("0009", s"User is not allowed to perform this operation")
 
+  final case class RiskAnalysisFormError(errorMessage: String)
+      extends ComponentError("0010", s"Risk analysis validation failed. $errorMessage")
 }
