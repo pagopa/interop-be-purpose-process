@@ -3,6 +3,8 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.service
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   Purpose,
   PurposeSeed,
+  PurposeVersion,
+  PurposeVersionSeed,
   PurposeVersionState,
   Purposes,
   StateChangeDetails
@@ -13,6 +15,7 @@ import scala.concurrent.Future
 
 trait PurposeManagementService {
   def createPurpose(bearerToken: String)(seed: PurposeSeed): Future[Purpose]
+  def createPurposeVersion(bearerToken: String)(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion]
   def getPurpose(bearerToken: String)(id: UUID): Future[Purpose]
   def getPurposes(
     bearerToken: String

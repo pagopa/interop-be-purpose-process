@@ -24,4 +24,8 @@ object PurposeProcessErrors {
 
   final case class RiskAnalysisFormError(errorMessage: String)
       extends ComponentError("0010", s"Risk analysis validation failed. $errorMessage")
+
+  final case class CreatePurposeVersionBadRequest(purposeId: String)
+      extends ComponentError("0011", s"Error creating version for purpose $purposeId")
+
 }
