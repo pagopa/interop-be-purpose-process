@@ -3,6 +3,9 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
+import com.typesafe.config.{Config, ConfigFactory}
+import it.pagopa.pdnd.interop.commons.files.service.FileManager
+import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
@@ -12,6 +15,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   CatalogManagementService,
+  PDFCreator,
   PartyManagementService,
   PurposeManagementService
 }
@@ -29,14 +33,30 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken)
 
+  val config: Config = ConfigFactory
+    .parseResourcesAnySyntax("application-test")
+    .resolve()
+  val fileManagerType: String  = config.getString("pdnd-interop-commons.storage.type")
+  val fileManager: FileManager = FileManager.getConcreteImplementation(fileManagerType).get
+
   val mockPartyManagementService: PartyManagementService     = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService = mock[PurposeManagementService]
   val mockCatalogManagementService: CatalogManagementService = mock[CatalogManagementService]
 
+  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
+
   val service: PurposeApiService =
-    PurposeApiServiceImpl(mockCatalogManagementService, mockPartyManagementService, mockPurposeManagementService)(
-      ExecutionContext.global
-    )
+    PurposeApiServiceImpl(
+      mockCatalogManagementService,
+      mockPartyManagementService,
+      mockPurposeManagementService,
+      fileManager,
+      mockPdfCreator,
+      mockUUIDSupplier,
+      mockDateTimeSupplier
+    )(ExecutionContext.global)
 
   def mockSubject(uuid: String): Try[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 

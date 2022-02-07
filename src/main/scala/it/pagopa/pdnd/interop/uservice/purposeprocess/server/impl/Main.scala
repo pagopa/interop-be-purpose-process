@@ -8,12 +8,15 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
+import it.pagopa.pdnd.interop.commons.files.StorageConfiguration
+import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.jwt.service.JWTReader
 import it.pagopa.pdnd.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.pdnd.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.PassThroughAuthenticator
-import it.pagopa.pdnd.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.pdnd.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
+import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.pdnd.interop.commons.utils.service.impl.{OffsetDateTimeSupplierImpl, UUIDSupplierImpl}
 import it.pagopa.pdnd.interop.commons.utils.{CORSSupport, OpenapiUtils}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
@@ -32,6 +35,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl.{
   CatalogManagementServiceImpl,
+  PDFCreatorImpl,
   PartyManagementServiceImpl,
   PurposeManagementServiceImpl
 }
@@ -39,7 +43,7 @@ import kamon.Kamon
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 trait CatalogManagementDependency {
   private final val catalogManagementInvoker: CatalogManagementInvoker = CatalogManagementInvoker()
@@ -83,28 +87,40 @@ object Main
 
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  val dependenciesLoaded: Future[JWTReader] = for {
-    keyset <- JWTConfiguration.jwtReader.loadKeyset().toFuture
+  val dependenciesLoaded: Try[(JWTReader, FileManager)] = for {
+    fileManager <- FileManager.getConcreteImplementation(StorageConfiguration.runtimeFileManager)
+    keyset      <- JWTConfiguration.jwtReader.loadKeyset()
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
       var publicKeyset: Map[KID, SerializedKey] = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
         getClaimsVerifier(audiences = ApplicationConfiguration.jwtAudience)
     }
-  } yield jwtValidator
+  } yield (jwtValidator, fileManager)
 
-  dependenciesLoaded.transformWith {
-    case Success(jwtValidator) => launchApp(jwtValidator)
+  dependenciesLoaded match {
+    case Success((jwtValidator, fileManager)) => launchApp(jwtValidator, fileManager)
     case Failure(ex) =>
       logger.error("Startup error", ex)
       logger.error(ex.getStackTrace.mkString("\n"))
       CoordinatedShutdown(classicActorSystem).run(StartupErrorShutdown)
   }
 
-  private def launchApp(jwtReader: JWTReader): Future[Http.ServerBinding] = {
+  private def launchApp(jwtReader: JWTReader, fileManager: FileManager): Future[Http.ServerBinding] = {
     Kamon.init()
 
+    val UUIDSupplier: UUIDSupplier               = new UUIDSupplierImpl()
+    val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
+
     val purposeApi: PurposeApi = new PurposeApi(
-      PurposeApiServiceImpl(catalogManagement, partyManagement, purposeManagement),
+      PurposeApiServiceImpl(
+        catalogManagement,
+        partyManagement,
+        purposeManagement,
+        fileManager,
+        PDFCreatorImpl,
+        UUIDSupplier,
+        dateTimeSupplier
+      ),
       PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )

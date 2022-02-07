@@ -181,8 +181,12 @@ paths:
       summary: Activate Purpose Version
       operationId: activatePurposeVersion
       responses:
-        '204':
+        '200':
           description: Purpose Version Activated
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ActivatePurposeVersionResult'
         '400':
           description: Bad Request
           content:
@@ -311,6 +315,13 @@ paths:
       description: archives the purpose version by id
 components:
   schemas:
+    ActivatePurposeVersionResult:
+      type: object
+      properties:
+        newState:
+          $ref: '#/components/schemas/PurposeVersionState'
+      required:
+        - newState
     Purpose:
       type: object
       properties:

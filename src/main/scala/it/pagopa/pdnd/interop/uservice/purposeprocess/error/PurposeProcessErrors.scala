@@ -28,4 +28,7 @@ object PurposeProcessErrors {
   final case class CreatePurposeVersionBadRequest(purposeId: String)
       extends ComponentError("0011", s"Error creating version for purpose $purposeId")
 
+  final case class ActivatePurposeBadRequest(purposeId: String, versionId: String)
+      extends ComponentError("0012", s"Error activating version $versionId for purpose $purposeId")
+
 }
