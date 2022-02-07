@@ -111,7 +111,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeVersionBadRequest(purposeId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(purpose) =>
           createPurposeVersion201(purpose)
         case Failure(ex) =>
