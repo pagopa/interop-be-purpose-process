@@ -92,7 +92,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
       val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
       val apiError =
-        CatalogApiError[String](SpecData.catalogProblem.status, "Some error", Some(catalogProblem.toJson.prettyPrint))
+        CatalogApiError[String](catalogProblem.status, "Some error", Some(catalogProblem.toJson.prettyPrint))
 
       (mockCatalogManagementService
         .getEServiceById(_: String)(_: UUID))
@@ -121,7 +121,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyProblem: PartyProblem = SpecData.partyProblem.copy(status = 404)
       val expectedProblem: Problem   = partymanagement.ProblemConverter.dependencyToApi(partyProblem)
       val apiError =
-        PartyApiError[String](SpecData.partyProblem.status, "Some error", Some(partyProblem.toJson.prettyPrint))
+        PartyApiError[String](partyProblem.status, "Some error", Some(partyProblem.toJson.prettyPrint))
 
       mockEServiceRetrieve(eServiceId)
 
@@ -152,7 +152,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
       val apiError =
-        PurposeApiError[String](SpecData.purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockEServiceRetrieve(eServiceId)
       mockOrganizationRetrieve(consumerId)
@@ -195,7 +195,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
       val apiError =
-        PurposeApiError[String](SpecData.purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
@@ -242,7 +242,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
       val apiError =
-        PurposeApiError[String](SpecData.purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
         .getPurposes(_: String)(
@@ -300,35 +300,30 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-//    "fail if Purpose does not exist" in {
-//      val eServiceId = UUID.randomUUID()
-//      val consumerId = UUID.randomUUID()
-//
-//      val seed: PurposeSeed = PurposeSeed(
-//        eserviceId = eServiceId,
-//        consumerId = consumerId,
-//        title = "A title",
-//        description = Some("A description"),
-//        riskAnalysisForm = SpecData.validRiskAnalysis
-//      )
-//
-//      val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
-//      val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
-//
-//      (mockCatalogManagementService
-//        .getEServiceById(_: String)(_: UUID))
-//        .expects(bearerToken, eServiceId)
-//        .once()
-//        .returns(
-//          Future
-//            .failed(CatalogApiError[CatalogProblem](SpecData.catalogProblem.status, "Some error", Some(catalogProblem)))
-//        )
-//
-//      Get() ~> service.createPurpose(seed) ~> check {
-//        status shouldEqual StatusCodes.NotFound
-//        responseAs[Problem] shouldEqual expectedProblem
-//      }
-//    }
+    "fail if Purpose does not exist" in {
+      val userId    = UUID.randomUUID()
+      val purposeId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
+
+      val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
+      val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+      val apiError =
+        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(Future.failed(apiError))
+
+      Get() ~> service.createPurposeVersion(purposeId.toString, seed) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual expectedProblem
+      }
+    }
 //
 //    "fail if User is not a Consumer" in {
 //      val eServiceId = UUID.randomUUID()
