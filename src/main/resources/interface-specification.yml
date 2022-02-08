@@ -222,8 +222,12 @@ paths:
       summary: Suspend Purpose Version
       operationId: suspendPurposeVersion
       responses:
-        '204':
+        '200':
           description: Purpose Version Suspended
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
         '400':
           description: Bad Request
           content:
@@ -259,8 +263,12 @@ paths:
       summary: Archive Purpose Version
       operationId: archivePurposeVersion
       responses:
-        '204':
+        '200':
           description: Purpose Version Archived
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
         '400':
           description: Bad Request
           content:

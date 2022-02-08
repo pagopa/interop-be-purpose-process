@@ -320,10 +320,11 @@ final case class PurposeApiServiceImpl(
 
   override def suspendPurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Suspending Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
+    val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
@@ -331,15 +332,15 @@ final case class PurposeApiServiceImpl(
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       userType    <- userType(userUUID, purpose)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(userType)
-      _ <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
-    } yield ()
+      stateDetails = PurposeManagementDependency.StateChangeDetails(userType)
+      response <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+    } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          suspendPurposeVersion204
+        case Success(r) =>
+          suspendPurposeVersion200(r)
         case Failure(ex) =>
           logger.error("Error while suspending Version {} of Purpose {}", versionId, purposeId, ex)
           suspendPurposeVersion400(defaultProblem)
@@ -349,10 +350,11 @@ final case class PurposeApiServiceImpl(
 
   override def archivePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Archiving for Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
+    val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
@@ -360,15 +362,15 @@ final case class PurposeApiServiceImpl(
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
-      _ <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
-    } yield ()
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
+      response <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+    } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          archivePurposeVersion204
+        case Success(r) =>
+          archivePurposeVersion200(r)
         case Failure(ex) =>
           logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
           archivePurposeVersion400(defaultProblem)
