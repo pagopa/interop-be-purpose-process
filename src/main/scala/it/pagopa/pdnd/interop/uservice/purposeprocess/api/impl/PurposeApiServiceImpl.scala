@@ -179,30 +179,28 @@ final case class PurposeApiServiceImpl(
 
   override def activatePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerActivatePurposeVersionResult: ToEntityMarshaller[ActivatePurposeVersionResult]
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[PurposeManagementDependency.PurposeVersionState] = for {
-      bearerToken <- getBearer(contexts).toFuture
-      purposeUUID <- purposeId.toFutureUUID
-      versionUUID <- versionId.toFutureUUID
-      userId      <- getUidFuture(contexts)
-      userUUID    <- userId.toFutureUUID
-      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      version     <- purpose.versions.find(_.id == versionUUID).toFuture(new RuntimeException("Version not found"))
-      userType    <- userType(userUUID, purpose)(bearerToken)
-      eService    <- catalogManagementService.getEServiceById(bearerToken)(purposeUUID)
-      newState    <- activateOrWaitForApproval(bearerToken)(eService, purpose, version, userType, userUUID)
-    } yield newState
+    val result: Future[PurposeVersion] = for {
+      bearerToken    <- getBearer(contexts).toFuture
+      purposeUUID    <- purposeId.toFutureUUID
+      versionUUID    <- versionId.toFutureUUID
+      userId         <- getUidFuture(contexts)
+      userUUID       <- userId.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      version        <- purpose.versions.find(_.id == versionUUID).toFuture(new RuntimeException("Version not found")) // TODO
+      userType       <- userType(userUUID, purpose)(bearerToken)
+      eService       <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
+      updatedVersion <- activateOrWaitForApproval(bearerToken)(eService, purpose, version, userType, userUUID)
+    } yield PurposeVersionConverter.dependencyToApi(updatedVersion)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ActivatePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(result) =>
-          activatePurposeVersion200(
-            ActivatePurposeVersionResult(newState = PurposeVersionStateConverter.dependencyToApi(result))
-          )
+          activatePurposeVersion200(result)
         case Failure(ex) =>
           logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
           activatePurposeVersion400(defaultProblem)
@@ -217,23 +215,21 @@ final case class PurposeApiServiceImpl(
     version: PurposeManagementDependency.PurposeVersion,
     userType: PurposeManagementDependency.ChangedBy,
     userId: UUID
-  ): Future[PurposeManagementDependency.PurposeVersionState] = {
+  ): Future[PurposeManagementDependency.PurposeVersion] = {
     import PurposeManagementDependency.ChangedBy._
     import PurposeManagementDependency.PurposeVersionState._
-    import PurposeManagementDependency.{ActivatePurposeVersionPayload, PurposeVersionState, StateChangeDetails}
+    import PurposeManagementDependency.{ActivatePurposeVersionPayload, StateChangeDetails}
 
     val changeDetails = StateChangeDetails(changedBy = userType)
 
-    def waitForApproval(): Future[PurposeVersionState] =
+    def waitForApproval(): Future[PurposeManagementDependency.PurposeVersion] =
       purposeManagementService
         .waitForApprovalPurposeVersion(bearerToken)(purpose.id, version.id, changeDetails)
-        .as(WAITING_FOR_APPROVAL)
-    def activate(): Future[PurposeVersionState] = {
+    def activate(): Future[PurposeManagementDependency.PurposeVersion] = {
       val payload =
         ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
       purposeManagementService
         .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-        .as(ACTIVE)
     }
 
     (version.state, userType) match {
@@ -241,14 +237,14 @@ final case class PurposeApiServiceImpl(
         for {
           isAllowed <- isLoadAllowed(bearerToken)(eService, purpose)
           result <-
-            if (isAllowed) firstVersionActivation(bearerToken)(purpose, version, changeDetails).as(ACTIVE)
+            if (isAllowed) firstVersionActivation(bearerToken)(purpose, version, changeDetails)
             else waitForApproval()
         } yield result
       case (DRAFT, PRODUCER) => Future.failed(UserIsNotTheConsumer(userId))
 
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
       case (WAITING_FOR_APPROVAL, PRODUCER) =>
-        firstVersionActivation(bearerToken)(purpose, version, changeDetails).as(ACTIVE)
+        firstVersionActivation(bearerToken)(purpose, version, changeDetails)
 
       case (SUSPENDED, CONSUMER) =>
         for {
@@ -287,7 +283,7 @@ final case class PurposeApiServiceImpl(
     purpose: PurposeManagementDependency.Purpose,
     version: PurposeManagementDependency.PurposeVersion,
     stateChangeDetails: PurposeManagementDependency.StateChangeDetails
-  ): Future[Unit] = {
+  ): Future[PurposeManagementDependency.PurposeVersion] = {
     val documentId: UUID = UUIDSupplier.get
     for {
       path <- createRiskAnalysisDocument(documentId, purpose, version)
@@ -302,8 +298,8 @@ final case class PurposeApiServiceImpl(
         ),
         stateChangeDetails = stateChangeDetails
       )
-      _ <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-    } yield ()
+      updatedVersion <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
+    } yield updatedVersion
   }
 
   def createRiskAnalysisDocument(
@@ -347,40 +343,6 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error while suspending Version {} of Purpose {}", versionId, purposeId, ex)
           suspendPurposeVersion400(defaultProblem)
-      }
-    }
-  }
-
-  override def waitForApprovalPurposeVersion(purposeId: String, versionId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    logger.info("Wait for Approval for Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
-      bearerToken <- getBearer(contexts).toFuture
-      purposeUUID <- purposeId.toFutureUUID
-      versionUUID <- versionId.toFutureUUID
-      userId      <- getUidFuture(contexts)
-      userUUID    <- userId.toFutureUUID
-      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
-      _ <- purposeManagementService.waitForApprovalPurposeVersion(bearerToken)(
-        purposeUUID,
-        versionUUID,
-        stateChangeDetails
-      )
-    } yield ()
-
-    val defaultProblem: Problem =
-      problemOf(StatusCodes.BadRequest, WaitForApprovalPurposeBadRequest(purposeId, versionId))
-    onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          waitForApprovalPurposeVersion204
-        case Failure(ex) =>
-          logger.error("Error while waiting for approval for Version {} of Purpose {}", versionId, purposeId, ex)
-          waitForApprovalPurposeVersion400(defaultProblem)
       }
     }
   }

@@ -21,6 +21,7 @@ object SpecData {
     technology = CatalogManagement.EServiceTechnology.REST,
     attributes = CatalogManagement.Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq.empty
+//    dailyCalls = 10000 // TODO
   )
 
   val organization: PartyManagement.Organization = PartyManagement.Organization(
@@ -105,6 +106,16 @@ object SpecData {
     riskAnalysisForm = validManagementRiskAnalysis,
     createdAt = timestamp,
     updatedAt = None
+  )
+
+  val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.DRAFT,
+    createdAt = timestamp,
+    updatedAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None
   )
 
   val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))

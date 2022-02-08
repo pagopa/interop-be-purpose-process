@@ -6,8 +6,9 @@ import it.pagopa.pdnd.interop.commons.utils.UID
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Problem
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, PurposeVersion}
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import spray.json._
@@ -28,6 +29,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
+      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ARCHIVED)
+
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
 
@@ -40,7 +43,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
         )
         .once()
-        .returns(Future.successful(()))
+        .returns(Future.successful(updatedVersion))
 
       Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -93,79 +96,79 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
   }
 
-  "Purpose version wait for approval" should {
-    "succeed" in {
-      val userId     = UUID.randomUUID()
-      val consumerId = UUID.randomUUID()
-      val purposeId  = UUID.randomUUID()
-      val versionId  = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
-
-      (mockPurposeManagementService
-        .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
-        .expects(
-          bearerToken,
-          purposeId,
-          versionId,
-          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
-        )
-        .once()
-        .returns(Future.successful(()))
-
-      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
-        status shouldEqual StatusCodes.NoContent
-        responseAs[Option[String]] shouldEqual Some("")
-      }
-    }
-
-    "fail if Purpose does not exist" in {
-      val userId    = UUID.randomUUID()
-      val purposeId = UUID.randomUUID()
-      val versionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
-
-      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
-      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
-      val apiError =
-        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
-
-      (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purposeId)
-        .once()
-        .returns(Future.failed(apiError))
-
-      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem] shouldEqual expectedProblem
-      }
-    }
-
-    "fail if User is not a Consumer" in {
-      val userId     = UUID.randomUUID()
-      val purposeId  = UUID.randomUUID()
-      val consumerId = UUID.randomUUID()
-      val versionId  = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
-
-      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0007"
-      }
-    }
-
-  }
+//  "Purpose version wait for approval" should {
+//    "succeed" in {
+//      val userId     = UUID.randomUUID()
+//      val consumerId = UUID.randomUUID()
+//      val purposeId  = UUID.randomUUID()
+//      val versionId  = UUID.randomUUID()
+//
+//      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+//
+//      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+//      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+//
+//      (mockPurposeManagementService
+//        .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+//        .expects(
+//          bearerToken,
+//          purposeId,
+//          versionId,
+//          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+//        )
+//        .once()
+//        .returns(Future.successful(()))
+//
+//      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+//        status shouldEqual StatusCodes.NoContent
+//        responseAs[Option[String]] shouldEqual Some("")
+//      }
+//    }
+//
+//    "fail if Purpose does not exist" in {
+//      val userId    = UUID.randomUUID()
+//      val purposeId = UUID.randomUUID()
+//      val versionId = UUID.randomUUID()
+//
+//      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+//
+//      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
+//      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
+//      val apiError =
+//        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+//
+//      (mockPurposeManagementService
+//        .getPurpose(_: String)(_: UUID))
+//        .expects(bearerToken, purposeId)
+//        .once()
+//        .returns(Future.failed(apiError))
+//
+//      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+//        status shouldEqual StatusCodes.NotFound
+//        responseAs[Problem] shouldEqual expectedProblem
+//      }
+//    }
+//
+//    "fail if User is not a Consumer" in {
+//      val userId     = UUID.randomUUID()
+//      val purposeId  = UUID.randomUUID()
+//      val consumerId = UUID.randomUUID()
+//      val versionId  = UUID.randomUUID()
+//
+//      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+//
+//      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+//      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+//
+//      Get() ~> service.waitForApprovalPurposeVersion(purposeId.toString, versionId.toString) ~> check {
+//        status shouldEqual StatusCodes.Forbidden
+//        val problem = responseAs[Problem]
+//        problem.status shouldBe StatusCodes.Forbidden.intValue
+//        problem.errors.head.code shouldBe "012-0007"
+//      }
+//    }
+//
+//  }
 
   "Purpose version suspend" should {
     "succeed if user is a Consumer" in {
@@ -175,6 +178,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId  = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
@@ -188,7 +193,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
         )
         .once()
-        .returns(Future.successful(()))
+        .returns(Future.successful(updatedVersion))
 
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -206,6 +211,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
+      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
+
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
       mockEServiceRetrieve(eServiceId, SpecData.eService.copy(producerId = producerId))
@@ -220,7 +227,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER)
         )
         .once()
-        .returns(Future.successful(()))
+        .returns(Future.successful(updatedVersion))
 
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -280,4 +287,108 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
   }
 
+  "Purpose version activate" should {
+    "succeed from Draft when requested by Consumer if load not exceeded" in {
+//      val userId     = UUID.randomUUID()
+//      val consumerId = UUID.randomUUID()
+//      val purposeId  = UUID.randomUUID()
+//      val versionId  = UUID.randomUUID()
+//      val eServiceId = UUID.randomUUID()
+//
+//      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+//
+//      val eService = SpecData.eService.copy(id = eServiceId /*, dailyCalls = 10000*/ ) // TODO
+//      val version  = SpecData.purposeVersion.copy(id = versionId)
+//      val purpose  = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+//
+//      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+//      val payload = PurposeManagement.ActivatePurposeVersionPayload(
+//        riskAnalysis = None,
+//        stateChangeDetails = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+//      )
+//      mockPurposeRetrieve(purposeId, purpose)
+//      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+//      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+//
+//      (mockPurposeManagementService
+//        .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
+//        .expects(bearerToken, purposeId, versionId, payload)
+//        .once()
+//        .returns(Future.successful(updatedVersion))
+//
+//      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+//        status shouldEqual StatusCodes.OK
+//        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+//      }
+    }
+
+    "fail from Draft when requested by Producer" in {}
+
+    "succeed from Draft to Waiting For Approval if load exceeded" in {
+      val userId     = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val eService = SpecData.eService.copy(id = eServiceId /*, dailyCalls = 10000*/ ) // TODO
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+      val inactiveVersion = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        dailyCalls = 1000000
+      )
+      val inactivePurpose =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(inactiveVersion))
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, inactivePurpose))
+
+      val updatedVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
+      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+      mockPurposesRetrieve(
+        eServiceId = Some(purpose.eserviceId),
+        consumerId = Some(purpose.consumerId),
+        states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+        result = purposes
+      )
+
+      (mockPurposeManagementService
+        .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .expects(bearerToken, purposeId, versionId, payload)
+        .once()
+        .returns(Future.successful(updatedVersion))
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
+    "succeed from Suspend when requested by Consumer if load not exceeded" in {}
+    "succeed from Suspend to Waiting for Approval when requested by Consumer if load exceeded" in {}
+
+    "succeed from Suspend when requested by Producer if load not exceeded" in {}
+    "succeed from Suspend when requested by Producer if load exceeded" in {}
+
+    "fail from Waiting for Approval when requested by Consumer" in {}
+    "succeed from Waiting for Approval when requested by Producer" in {}
+    "succeed from Waiting for Approval to Waiting For Approval if load exceeded" in {}
+
+    "fail from Archive when requested by Consumer" in {}
+    "fail from Archive when requested by Producer" in {}
+
+    "fail from Active when requested by Consumer" in {}
+    "fail from Active when requested by Producer" in {}
+  }
 }

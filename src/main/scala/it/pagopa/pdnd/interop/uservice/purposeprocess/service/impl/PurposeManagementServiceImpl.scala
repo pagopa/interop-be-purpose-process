@@ -52,8 +52,8 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def activatePurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[Unit] = {
-    val request: ApiRequest[Unit] =
+  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
       api.activatePurposeVersion(purposeId, versionId, payload)(BearerToken(bearerToken))
     invoker.invoke(
       request,
@@ -63,16 +63,16 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def suspendPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
-    val request: ApiRequest[Unit] =
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
       api.suspendPurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
     invoker.invoke(request, s"Suspending Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }
 
   override def waitForApprovalPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
-    val request: ApiRequest[Unit] =
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
       api.waitForApprovalPurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
     invoker.invoke(
       request,
@@ -82,8 +82,8 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def archivePurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit] = {
-    val request: ApiRequest[Unit] =
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
       api.archivePurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
     invoker.invoke(request, s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }

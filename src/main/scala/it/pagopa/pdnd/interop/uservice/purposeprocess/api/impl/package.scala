@@ -30,11 +30,8 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def purposesFormat: RootJsonFormat[Purposes]                     = jsonFormat1(Purposes)
   implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]               = jsonFormat5(PurposeSeed)
   implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed] = jsonFormat1(PurposeVersionSeed)
-  implicit def activateVersionResultFormat: RootJsonFormat[ActivatePurposeVersionResult] =
-    jsonFormat1(ActivatePurposeVersionResult)
-
-  implicit def problemErrorFormat: RootJsonFormat[ProblemError] = jsonFormat2(ProblemError)
-  implicit def problemFormat: RootJsonFormat[Problem]           = jsonFormat5(Problem)
+  implicit def problemErrorFormat: RootJsonFormat[ProblemError]             = jsonFormat2(ProblemError)
+  implicit def problemFormat: RootJsonFormat[Problem]                       = jsonFormat5(Problem)
 
   def problemOf(httpError: StatusCode, error: ComponentError, defaultMessage: String = "Unknown error"): Problem =
     Problem(

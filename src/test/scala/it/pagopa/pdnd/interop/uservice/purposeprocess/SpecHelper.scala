@@ -9,6 +9,8 @@ import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUI
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.PurposeVersionState
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl._
@@ -19,7 +21,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PartyManagementService,
   PurposeManagementService
 }
-import org.scalamock.handlers.{CallHandler2, CallHandler3}
+import org.scalamock.handlers.{CallHandler2, CallHandler3, CallHandler4}
 import org.scalamock.scalatest.MockFactory
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
@@ -86,6 +88,18 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(bearerToken, purposeId)
       .once()
       .returns(Future.successful(result.copy(id = purposeId)))
+
+  def mockPurposesRetrieve(
+    eServiceId: Option[UUID] = None,
+    consumerId: Option[UUID] = None,
+    states: Seq[PurposeManagement.PurposeVersionState] = Seq.empty,
+    result: PurposeManagement.Purposes = SpecData.purposes
+  ): CallHandler4[String, Option[UUID], Option[UUID], Seq[PurposeVersionState], Future[client.model.Purposes]] =
+    (mockPurposeManagementService
+      .getPurposes(_: String)(_: Option[UUID], _: Option[UUID], _: Seq[PurposeManagement.PurposeVersionState]))
+      .expects(bearerToken, eServiceId, consumerId, states)
+      .once()
+      .returns(Future.successful(result))
 
   def mockRelationshipsRetrieve(
     from: UUID,

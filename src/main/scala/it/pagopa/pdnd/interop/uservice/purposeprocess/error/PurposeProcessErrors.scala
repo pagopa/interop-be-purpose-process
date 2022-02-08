@@ -11,8 +11,6 @@ object PurposeProcessErrors {
 
   final case class SuspendPurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0004", s"Error suspending version $versionId of purpose $purposeId")
-  final case class WaitForApprovalPurposeBadRequest(purposeId: String, versionId: String)
-      extends ComponentError("0005", s"Error waiting for approval for version $versionId of purpose $purposeId")
   final case class ArchivePurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0006", s"Error archiving version $versionId of purpose $purposeId")
 

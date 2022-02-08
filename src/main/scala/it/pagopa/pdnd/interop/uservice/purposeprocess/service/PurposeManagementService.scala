@@ -24,17 +24,17 @@ trait PurposeManagementService {
 
   def activatePurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion]
 
   def suspendPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def waitForApprovalPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def archivePurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 }
