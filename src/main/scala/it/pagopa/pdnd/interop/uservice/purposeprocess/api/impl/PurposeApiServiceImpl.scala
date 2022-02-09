@@ -15,7 +15,7 @@ import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
+//import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
@@ -70,11 +70,12 @@ final case class PurposeApiServiceImpl(
     logger.info("Creating Purpose {}", purposeSeed)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
-      _           <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
-      _           <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
-      clientSeed  <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
-      purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
-      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+      // TODO Verify only agreement existence
+      _          <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
+      _          <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
+      clientSeed <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
+      purpose    <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
+      result     <- PurposeConverter.dependencyToApi(purpose).toFuture
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
@@ -187,13 +188,15 @@ final case class PurposeApiServiceImpl(
   ): Route = {
     logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
-      bearerToken    <- getBearer(contexts).toFuture
-      purposeUUID    <- purposeId.toFutureUUID
-      versionUUID    <- versionId.toFutureUUID
-      userId         <- getUidFuture(contexts)
-      userUUID       <- userId.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      version        <- purpose.versions.find(_.id == versionUUID).toFuture(new RuntimeException("Version not found")) // TODO
+      bearerToken <- getBearer(contexts).toFuture
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      version <- purpose.versions
+        .find(_.id == versionUUID)
+        .toFuture(ActivatePurposeVersionNotFound(purposeId, versionId))
       userType       <- userType(userUUID, purpose)(bearerToken)
       eService       <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
       updatedVersion <- activateOrWaitForApproval(bearerToken)(eService, purpose, version, userType, userUUID)
@@ -204,6 +207,18 @@ final case class PurposeApiServiceImpl(
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(result) =>
           activatePurposeVersion200(result)
+        case Failure(ex: ActivatePurposeVersionNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          val problem = problemOf(StatusCodes.NotFound, ex)
+          activatePurposeVersion404(problem)
+        case Failure(ex: AgreementNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          val problem = problemOf(StatusCodes.BadRequest, ex)
+          activatePurposeVersion400(problem)
+        case Failure(ex: DescriptorNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          val problem = problemOf(StatusCodes.BadRequest, ex)
+          activatePurposeVersion400(problem)
         case Failure(ex) =>
           logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
           activatePurposeVersion400(defaultProblem)
@@ -262,7 +277,6 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  // TODO Rename
   def isLoadAllowed(bearerToken: String)(
     eService: CatalogManagementDependency.EService,
     purpose: PurposeManagementDependency.Purpose,
@@ -279,15 +293,14 @@ final case class PurposeApiServiceImpl(
       )
       agreements <- agreementManagementService.getAgreements(bearerToken)(
         eServiceId = purpose.eserviceId,
-        consumerId = purpose.consumerId,
-        state = AgreementManagementDependency.AgreementState.ACTIVE
+        consumerId = purpose.consumerId
       )
-      agreement <- agreements.headOption.toFuture(new RuntimeException("Agreement not found")) // TODO
+      agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
       loadRequestsSum = activeVersions.map(_.dailyCalls).sum
       maxDailyCalls <- eService.descriptors
         .find(_.id == agreement.descriptorId)
         .map(_.dailyCallsMaxNumber)
-        .toFuture(new RuntimeException("Descriptor not found")) // TODO
+        .toFuture(DescriptorNotFound(eService.id.toString, agreement.descriptorId.toString))
     } yield loadRequestsSum + version.dailyCalls <= maxDailyCalls
 
   }

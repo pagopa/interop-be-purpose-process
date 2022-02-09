@@ -28,5 +28,11 @@ object PurposeProcessErrors {
 
   final case class ActivatePurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0012", s"Error activating version $versionId for purpose $purposeId")
+  final case class ActivatePurposeVersionNotFound(purposeId: String, versionId: String)
+      extends ComponentError("0013", s"Version $versionId of Purpose $purposeId not found")
+  final case class AgreementNotFound(eServiceId: String, consumerId: String)
+      extends ComponentError("0014", s"No Agreement found for EService $eServiceId and Consumer $consumerId")
+  final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
+      extends ComponentError("0015", s"Descriptor $descriptorId not found for EService $eServiceId")
 
 }

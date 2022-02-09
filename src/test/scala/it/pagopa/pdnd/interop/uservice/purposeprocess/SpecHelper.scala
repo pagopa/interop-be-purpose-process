@@ -6,7 +6,7 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
 import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementState}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
@@ -109,12 +109,11 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   def mockAgreementsRetrieve(
     eServiceId: UUID,
     consumerId: UUID,
-    state: AgreementManagement.AgreementState,
     result: Seq[AgreementManagement.Agreement] = Seq(SpecData.agreement)
-  ): CallHandler4[String, UUID, UUID, AgreementState, Future[Seq[Agreement]]] =
+  ): CallHandler3[String, UUID, UUID, Future[Seq[Agreement]]] =
     (mockAgreementManagementService
-      .getAgreements(_: String)(_: UUID, _: UUID, _: AgreementManagement.AgreementState))
-      .expects(bearerToken, eServiceId, consumerId, state)
+      .getAgreements(_: String)(_: UUID, _: UUID))
+      .expects(bearerToken, eServiceId, consumerId)
       .once()
       .returns(Future.successful(result))
 
@@ -162,7 +161,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     activatingPurpose: PurposeManagement.Purpose,
     existingPurposes: PurposeManagement.Purposes,
     descriptorId: UUID
-  ): CallHandler4[String, UUID, UUID, AgreementState, Future[Seq[Agreement]]] = {
+  ): CallHandler3[String, UUID, UUID, Future[Seq[Agreement]]] = {
     val producerId = UUID.randomUUID()
     mockPurposesRetrieve(
       eServiceId = Some(activatingPurpose.eserviceId),
@@ -174,7 +173,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementsRetrieve(
       activatingPurpose.eserviceId,
       activatingPurpose.consumerId,
-      AgreementManagement.AgreementState.ACTIVE,
       Seq(
         SpecData.agreement.copy(
           consumerId = activatingPurpose.consumerId,
