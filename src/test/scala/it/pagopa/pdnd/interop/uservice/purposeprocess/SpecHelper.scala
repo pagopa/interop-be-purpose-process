@@ -12,7 +12,12 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => Catalo
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.PurposeVersionState
+import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  ActivatePurposeVersionPayload,
+  PurposeVersionState,
+  RiskAnalysisForm,
+  StateChangeDetails
+}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl._
@@ -22,6 +27,7 @@ import org.scalamock.handlers.{CallHandler2, CallHandler3, CallHandler4}
 import org.scalamock.scalatest.MockFactory
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
+import java.io.File
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
@@ -122,6 +128,104 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(bearerToken, from, to)
       .once()
       .returns(Future.successful(result))
+
+  def mockRiskAnalysisPdfCreation(): CallHandler3[String, RiskAnalysisForm, Int, Future[File]] = {
+    val documentId = UUID.randomUUID()
+    val tempFile   = File.createTempFile(UUID.randomUUID().toString, UUID.randomUUID().toString)
+    tempFile.deleteOnExit()
+
+    (() => mockUUIDSupplier.get).expects().returning(documentId).once()
+    (mockPdfCreator
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int))
+      .expects(*, *, *)
+      .returning(Future.successful(tempFile))
+      .once()
+  }
+
+  def mockVersionFirstActivation(
+    purposeId: UUID,
+    versionId: UUID,
+    result: PurposeManagement.PurposeVersion
+  ): CallHandler4[String, UUID, UUID, ActivatePurposeVersionPayload, Future[client.model.PurposeVersion]] = {
+    mockRiskAnalysisPdfCreation()
+
+    (() => mockDateTimeSupplier.get).expects().returning(SpecData.timestamp).once()
+
+    (mockPurposeManagementService
+      .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
+      .expects(bearerToken, purposeId, versionId, *)
+      .once()
+      .returns(Future.successful(result))
+  }
+
+  def mockVersionLoadValidation(
+    activatingPurpose: PurposeManagement.Purpose,
+    existingPurposes: PurposeManagement.Purposes,
+    descriptorId: UUID
+  ): CallHandler4[String, UUID, UUID, AgreementState, Future[Seq[Agreement]]] = {
+    val producerId = UUID.randomUUID()
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = Some(activatingPurpose.consumerId),
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
+
+    mockAgreementsRetrieve(
+      activatingPurpose.eserviceId,
+      activatingPurpose.consumerId,
+      AgreementManagement.AgreementState.ACTIVE,
+      Seq(
+        SpecData.agreement.copy(
+          consumerId = activatingPurpose.consumerId,
+          eserviceId = activatingPurpose.eserviceId,
+          descriptorId = descriptorId,
+          producerId = producerId
+        )
+      )
+    )
+  }
+
+  def mockVersionWaitForApproval(
+    purposeId: UUID,
+    versionId: UUID,
+    stateChangeDetails: PurposeManagement.StateChangeDetails,
+    result: PurposeManagement.PurposeVersion
+  ): CallHandler4[String, UUID, UUID, StateChangeDetails, Future[client.model.PurposeVersion]] =
+    (mockPurposeManagementService
+      .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+      .expects(bearerToken, purposeId, versionId, stateChangeDetails)
+      .once()
+      .returns(Future.successful(result))
+
+  def mockVersionActivate(
+    purposeId: UUID,
+    versionId: UUID,
+    result: PurposeManagement.PurposeVersion
+  ): CallHandler4[String, UUID, UUID, ActivatePurposeVersionPayload, Future[client.model.PurposeVersion]] =
+    (mockPurposeManagementService
+      .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
+      .expects(bearerToken, purposeId, versionId, *)
+      .once()
+      .returns(Future.successful(result))
+
+  def mockAssertUserConsumer(
+    userId: UUID,
+    consumerId: UUID,
+    result: PartyManagement.Relationships
+  ): CallHandler3[String, UUID, UUID, Future[Relationships]] =
+    mockRelationshipsRetrieve(userId, consumerId, result)
+
+  def mockAssertUserProducer(
+    userId: UUID,
+    consumerId: UUID,
+    eService: CatalogManagement.EService,
+    relationships: PartyManagement.Relationships
+  ): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
+    mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+    mockEServiceRetrieve(eService.id, eService)
+    mockRelationshipsRetrieve(userId, eService.producerId, relationships)
+  }
 
   implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
     sprayJsonUnmarshaller[Purpose]
