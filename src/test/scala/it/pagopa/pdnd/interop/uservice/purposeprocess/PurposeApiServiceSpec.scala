@@ -24,9 +24,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose creation" should {
     "succeed" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -50,6 +53,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
@@ -67,8 +71,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if Agreement does not exist" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -78,6 +85,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId, Seq.empty)
 
       Get() ~> service.createPurpose(seed) ~> check {
@@ -89,8 +97,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on Purpose Management error" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -105,6 +116,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val apiError =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
