@@ -300,31 +300,29 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
-      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
       val version = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.DRAFT,
         dailyCalls = 1000
       )
       val purpose = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
-      val otherVersion1 = SpecData.purposeVersion.copy(
-        id = versionId,
+
+      val version2_1 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 2000
       )
-      val otherVersion2 = SpecData.purposeVersion.copy(
-        id = versionId,
+      val version2_2 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 10000000
       )
-      val otherPurpose =
-        SpecData.purpose.copy(
-          eserviceId = eServiceId,
-          consumerId = consumerId,
-          versions = Seq(otherVersion1, otherVersion2)
-        )
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, otherPurpose))
+      val purpose2 =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
@@ -353,37 +351,39 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
-      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
       val version = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.DRAFT,
         dailyCalls = 4000
       )
-      val otherVersion = SpecData.purposeVersion.copy(
+      val version1_2 = SpecData.purposeVersion.copy(
         id = UUID.randomUUID(),
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose =
-        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, otherVersion))
-      val otherVersion2 = SpecData.purposeVersion.copy(
+      val purpose1 =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
+
+      val version2_1 = SpecData.purposeVersion.copy(
         id = UUID.randomUUID(),
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val otherPurpose =
-        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(otherVersion2))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, otherPurpose))
+      val purpose2 =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
 
-      mockPurposeRetrieve(purposeId, purpose)
+      mockPurposeRetrieve(purposeId, purpose1)
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
-      mockLoadValidation(purpose, purposes, descriptorId)
+      mockLoadValidation(purpose1, purposes, descriptorId)
       mockWaitForApproval(purposeId, versionId, payload, updatedVersion)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
