@@ -80,7 +80,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(purpose) =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
@@ -343,7 +343,7 @@ final case class PurposeApiServiceImpl(
       complete(problem.status, problem)
   }
 
-  def handleUserTypeError[T]: PartialFunction[Try[T], StandardRoute] = {
+  val handleUserTypeError: PartialFunction[Try[_], StandardRoute] = {
     case Failure(_: UserIsNotTheConsumer) =>
       val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
       complete(problem.status, problem)

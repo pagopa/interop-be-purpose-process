@@ -38,12 +38,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   }
 
   // TODO This implementation depends on the template (to be defined)
-  private def setupData(riskAnalysisForm: RiskAnalysisForm, dailyCalls: Int): Map[String, String] = {
+  private def setupData(riskAnalysisForm: RiskAnalysisForm, dailyCalls: Int): Map[String, String] =
     Map("dailyCalls" -> dailyCalls.toString) ++
       riskAnalysisForm.singleAnswers.map(answer => answer.key -> answer.value.getOrElse("")).toMap ++
       riskAnalysisForm.multiAnswers
         .flatMap(answer => answer.values.map(value => s"${answer.key}_$value" -> value))
         .toMap
-  }
 
 }
