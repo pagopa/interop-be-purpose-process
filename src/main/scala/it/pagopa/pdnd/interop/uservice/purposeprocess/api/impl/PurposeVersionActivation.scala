@@ -32,6 +32,11 @@ final case class PurposeVersionActivation(
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext) {
 
+  private[this] val riskAnalysisTemplate = Source
+    .fromResource("riskAnalysisTemplate.html")
+    .getLines()
+    .mkString(System.lineSeparator())
+
   def activateOrWaitForApproval(bearerToken: String)(
     eService: EService,
     purpose: Purpose,
@@ -67,7 +72,7 @@ final case class PurposeVersionActivation(
       case (SUSPENDED, CONSUMER) =>
         isLoadAllowed(bearerToken)(eService, purpose, version).ifM(activate(), waitForApproval())
       case (SUSPENDED, PRODUCER) =>
-        activate() // TODO Can we consider this active?
+        activate()
 
       case _ =>
         Future.failed(UserNotAllowed(userId))
@@ -124,12 +129,8 @@ final case class PurposeVersionActivation(
     purpose: Purpose,
     version: PurposeVersion
   ): Future[StorageFilePath] = {
-    val template = Source
-      .fromResource("riskAnalysisTemplate.html")
-      .getLines()
-      .mkString(System.lineSeparator()) // TODO This can be loaded on startup
     for {
-      document <- pdfCreator.createDocument(template, purpose.riskAnalysisForm, version.dailyCalls)
+      document <- pdfCreator.createDocument(riskAnalysisTemplate, purpose.riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,
