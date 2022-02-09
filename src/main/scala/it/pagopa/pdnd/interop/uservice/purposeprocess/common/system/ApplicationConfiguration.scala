@@ -7,8 +7,8 @@ import scala.jdk.CollectionConverters._
 object ApplicationConfiguration {
   lazy val config: Config = ConfigFactory.load()
 
-  lazy val serverPort: Int     = config.getInt("purpose-process.port")
-  def jwtAudience: Set[String] = config.getStringList("purpose-process.jwt.audience").asScala.toSet
+  lazy val serverPort: Int          = config.getInt("purpose-process.port")
+  lazy val jwtAudience: Set[String] = config.getStringList("purpose-process.jwt.audience").asScala.toSet
 
   lazy val agreementManagementURL: String = config.getString("purpose-process.services.agreement-management")
   lazy val catalogManagementURL: String   = config.getString("purpose-process.services.catalog-management")
