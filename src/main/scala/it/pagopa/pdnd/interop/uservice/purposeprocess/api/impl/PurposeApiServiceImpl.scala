@@ -1,21 +1,18 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.{MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
-import akka.http.scaladsl.server.directives.FileInfo
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
-import it.pagopa.pdnd.interop.commons.files.service.{FileManager, StorageFilePath}
+import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
-//import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
@@ -26,7 +23,6 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => Purpos
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   RiskAnalysisValidationFailed,
   UserIsNotTheConsumer,
@@ -35,18 +31,11 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
-  AgreementManagementService,
-  CatalogManagementService,
-  PDFCreator,
-  PartyManagementService,
-  PurposeManagementService
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 final case class PurposeApiServiceImpl(
@@ -61,6 +50,15 @@ final case class PurposeApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
   private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+
+  private[this] val purposeVersionActivation = PurposeVersionActivation(
+    agreementManagementService,
+    purposeManagementService,
+    fileManager,
+    pdfCreator,
+    UUIDSupplier,
+    dateTimeSupplier
+  )
 
   override def createPurpose(purposeSeed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
@@ -197,9 +195,15 @@ final case class PurposeApiServiceImpl(
       version <- purpose.versions
         .find(_.id == versionUUID)
         .toFuture(ActivatePurposeVersionNotFound(purposeId, versionId))
-      userType       <- userType(userUUID, purpose)(bearerToken)
-      eService       <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
-      updatedVersion <- activateOrWaitForApproval(bearerToken)(eService, purpose, version, userType, userUUID)
+      userType <- userType(userUUID, purpose)(bearerToken)
+      eService <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
+      updatedVersion <- purposeVersionActivation.activateOrWaitForApproval(bearerToken)(
+        eService,
+        purpose,
+        version,
+        userType,
+        userUUID
+      )
     } yield PurposeVersionConverter.dependencyToApi(updatedVersion)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ActivatePurposeBadRequest(purposeId, versionId))
@@ -224,127 +228,6 @@ final case class PurposeApiServiceImpl(
           activatePurposeVersion400(defaultProblem)
       }
     }
-  }
-
-  // TODO Rename
-  def activateOrWaitForApproval(bearerToken: String)(
-    eService: CatalogManagementDependency.EService,
-    purpose: PurposeManagementDependency.Purpose,
-    version: PurposeManagementDependency.PurposeVersion,
-    userType: PurposeManagementDependency.ChangedBy,
-    userId: UUID
-  ): Future[PurposeManagementDependency.PurposeVersion] = {
-    import PurposeManagementDependency.ChangedBy._
-    import PurposeManagementDependency.PurposeVersionState._
-    import PurposeManagementDependency.{ActivatePurposeVersionPayload, StateChangeDetails}
-
-    val changeDetails = StateChangeDetails(changedBy = userType)
-
-    def waitForApproval(): Future[PurposeManagementDependency.PurposeVersion] =
-      purposeManagementService
-        .waitForApprovalPurposeVersion(bearerToken)(purpose.id, version.id, changeDetails)
-    def activate(): Future[PurposeManagementDependency.PurposeVersion] = {
-      val payload =
-        ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
-      purposeManagementService
-        .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-    }
-
-    (version.state, userType) match {
-      case (DRAFT, CONSUMER) =>
-        for {
-          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose, version)
-          result <-
-            if (isAllowed) firstVersionActivation(bearerToken)(purpose, version, changeDetails)
-            else waitForApproval()
-        } yield result
-      case (DRAFT, PRODUCER) => Future.failed(UserIsNotTheConsumer(userId))
-
-      case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
-      case (WAITING_FOR_APPROVAL, PRODUCER) =>
-        firstVersionActivation(bearerToken)(purpose, version, changeDetails)
-
-      case (SUSPENDED, CONSUMER) =>
-        for {
-          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose, version)
-          result <-
-            if (isAllowed) activate()
-            else waitForApproval()
-        } yield result
-      case (SUSPENDED, PRODUCER) => activate() // TODO Can we consider this active?
-
-      case _ => Future.failed(UserNotAllowed(userId))
-    }
-  }
-
-  def isLoadAllowed(bearerToken: String)(
-    eService: CatalogManagementDependency.EService,
-    purpose: PurposeManagementDependency.Purpose,
-    version: PurposeManagementDependency.PurposeVersion
-  ): Future[Boolean] = {
-    for {
-      purposes <- purposeManagementService.getPurposes(bearerToken)(
-        eserviceId = Some(purpose.eserviceId),
-        consumerId = Some(purpose.consumerId),
-        states = Seq(PurposeManagementDependency.PurposeVersionState.ACTIVE)
-      )
-      activeVersions = purposes.purposes.flatMap(
-        _.versions.filter(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE)
-      )
-      agreements <- agreementManagementService.getAgreements(bearerToken)(
-        eServiceId = purpose.eserviceId,
-        consumerId = purpose.consumerId
-      )
-      agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
-      loadRequestsSum = activeVersions.map(_.dailyCalls).sum
-      maxDailyCalls <- eService.descriptors
-        .find(_.id == agreement.descriptorId)
-        .map(_.dailyCallsMaxNumber)
-        .toFuture(DescriptorNotFound(eService.id.toString, agreement.descriptorId.toString))
-    } yield loadRequestsSum + version.dailyCalls <= maxDailyCalls
-
-  }
-
-  def firstVersionActivation(bearerToken: String)(
-    purpose: PurposeManagementDependency.Purpose,
-    version: PurposeManagementDependency.PurposeVersion,
-    stateChangeDetails: PurposeManagementDependency.StateChangeDetails
-  ): Future[PurposeManagementDependency.PurposeVersion] = {
-    val documentId: UUID = UUIDSupplier.get
-    for {
-      path <- createRiskAnalysisDocument(documentId, purpose, version)
-      payload = PurposeManagementDependency.ActivatePurposeVersionPayload(
-        riskAnalysis = Some(
-          PurposeManagementDependency.PurposeVersionDocument(
-            id = documentId,
-            contentType = MediaTypes.`application/pdf`.toString(),
-            path = path,
-            createdAt = dateTimeSupplier.get
-          )
-        ),
-        stateChangeDetails = stateChangeDetails
-      )
-      updatedVersion <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-    } yield updatedVersion
-  }
-
-  def createRiskAnalysisDocument(
-    documentId: UUID,
-    purpose: PurposeManagementDependency.Purpose,
-    version: PurposeManagementDependency.PurposeVersion
-  ): Future[StorageFilePath] = {
-    val template = Source
-      .fromResource("riskAnalysisTemplate.html")
-      .getLines()
-      .mkString(System.lineSeparator()) // TODO This can be loaded on startup
-    for {
-      document <- pdfCreator.createDocument(template, purpose.riskAnalysisForm, version.dailyCalls)
-      fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
-      path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
-        documentId,
-        (fileInfo, document)
-      )
-    } yield path
   }
 
   override def suspendPurposeVersion(purposeId: String, versionId: String)(implicit
