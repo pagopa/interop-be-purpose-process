@@ -662,8 +662,77 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "succeed from Waiting for Approval when requested by Producer" in {}
-    "succeed from Waiting for Approval to Waiting For Approval if load exceeded" in {}
+    "succeed from Waiting for Approval when requested by Producer" in {
+      val userId       = UUID.randomUUID()
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val producerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL,
+        dailyCalls = 4000
+      )
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
+
+      val updatedVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockAssertUserProducer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+      mockFirstActivation(purposeId, versionId, updatedVersion)
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
+    "succeed from Waiting for Approval to Waiting For Approval if load exceeded" in {
+      val userId       = UUID.randomUUID()
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val producerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL,
+        dailyCalls = 20000
+      )
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
+
+      val updatedVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockAssertUserProducer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+      mockFirstActivation(purposeId, versionId, updatedVersion)
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
 
     "fail from Archive when requested by Consumer" in {}
     "fail from Archive when requested by Producer" in {}
