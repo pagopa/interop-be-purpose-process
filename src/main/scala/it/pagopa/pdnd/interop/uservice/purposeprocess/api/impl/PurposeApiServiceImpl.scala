@@ -60,20 +60,19 @@ final case class PurposeApiServiceImpl(
     dateTimeSupplier
   )
 
-  override def createPurpose(purposeSeed: PurposeSeed)(implicit
+  override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    logger.info("Creating Purpose {}", purposeSeed)
+    logger.info("Creating Purpose {}", seed)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
-      // TODO Verify only agreement existence
-      _          <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
-      _          <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
-      clientSeed <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
-      purpose    <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
-      result     <- PurposeConverter.dependencyToApi(purpose).toFuture
+      agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
+      _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
+      clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
+      purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
+      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
@@ -82,11 +81,11 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
-          logger.error("Error creating purpose - Risk Analysis Validation failed {}", purposeSeed, ex)
+          logger.error("Error creating purpose - Risk Analysis Validation failed {}", seed, ex)
           val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
           createPurpose400(problem)
         case Failure(ex) =>
-          logger.error("Error creating purpose {}", purposeSeed, ex)
+          logger.error("Error creating purpose {}", seed, ex)
           createPurpose400(defaultProblem)
       }
     }
