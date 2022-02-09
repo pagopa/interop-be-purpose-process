@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.commons.utils.UID
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
@@ -13,6 +14,7 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import spray.json._
 
+import java.io.File
 import java.util.UUID
 import scala.concurrent.Future
 
@@ -215,6 +217,96 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
   "Purpose version activate" should {
     "succeed from Draft when requested by Consumer if load not exceeded" in {
+      val userId       = UUID.randomUUID()
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val producerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+      val documentId   = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+      val otherVersion1 = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.ACTIVE,
+        dailyCalls = 2000
+      )
+      val otherVersion2 = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        dailyCalls = 10000000
+      )
+      val otherPurpose =
+        SpecData.purpose.copy(
+          eserviceId = eServiceId,
+          consumerId = consumerId,
+          versions = Seq(otherVersion1, otherVersion2)
+        )
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, otherPurpose))
+
+      val updatedVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+
+//      val payload = PurposeManagement.ActivatePurposeVersionPayload(
+//        riskAnalysis = None,
+//        stateChangeDetails = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+//      )
+
+      val tempFile = File.createTempFile(UUID.randomUUID().toString, UUID.randomUUID().toString)
+      tempFile.deleteOnExit()
+
+      (() => mockUUIDSupplier.get).expects().returning(documentId).once()
+      (() => mockDateTimeSupplier.get).expects().returning(SpecData.timestamp).once()
+      (mockPdfCreator
+        .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int))
+        .expects(*, *, *)
+        .returning(Future.successful(tempFile))
+        .once()
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+      mockPurposesRetrieve(
+        eServiceId = Some(purpose.eserviceId),
+        consumerId = Some(purpose.consumerId),
+        states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+        result = purposes
+      )
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        AgreementManagement.AgreementState.ACTIVE,
+        Seq(
+          SpecData.agreement.copy(
+            consumerId = consumerId,
+            eserviceId = eServiceId,
+            descriptorId = descriptorId,
+            producerId = producerId
+          )
+        )
+      )
+
+      (mockPurposeManagementService
+        .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
+        .expects(bearerToken, purposeId, versionId, *)
+        .once()
+        .returns(Future.successful(updatedVersion))
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+
 //      val userId     = UUID.randomUUID()
 //      val consumerId = UUID.randomUUID()
 //      val purposeId  = UUID.randomUUID()
@@ -251,29 +343,32 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
     "fail from Draft when requested by Producer" in {}
 
     "succeed from Draft to Waiting For Approval if load exceeded" in {
-      val userId     = UUID.randomUUID()
-      val consumerId = UUID.randomUUID()
-      val purposeId  = UUID.randomUUID()
-      val versionId  = UUID.randomUUID()
-      val eServiceId = UUID.randomUUID()
+      val userId       = UUID.randomUUID()
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val producerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val eService = SpecData.eService.copy(id = eServiceId /*, dailyCalls = 10000*/ ) // TODO
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 1)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
       val version = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.DRAFT,
         dailyCalls = 1000
       )
       val purpose = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
-      val inactiveVersion = SpecData.purposeVersion.copy(
+      val otherVersion = SpecData.purposeVersion.copy(
         id = versionId,
-        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 1000000
       )
-      val inactivePurpose =
-        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(inactiveVersion))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, inactivePurpose))
+      val otherPurpose =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(otherVersion))
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, otherPurpose))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
@@ -287,6 +382,19 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         consumerId = Some(purpose.consumerId),
         states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
         result = purposes
+      )
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        AgreementManagement.AgreementState.ACTIVE,
+        Seq(
+          SpecData.agreement.copy(
+            consumerId = consumerId,
+            eserviceId = eServiceId,
+            descriptorId = descriptorId,
+            producerId = producerId
+          )
+        )
       )
 
       (mockPurposeManagementService

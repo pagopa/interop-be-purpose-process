@@ -15,6 +15,7 @@ import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
@@ -35,6 +36,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
+  AgreementManagementService,
   CatalogManagementService,
   PDFCreator,
   PartyManagementService,
@@ -48,6 +50,7 @@ import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 final case class PurposeApiServiceImpl(
+  agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
@@ -272,10 +275,18 @@ final case class PurposeApiServiceImpl(
       activeVersions = purposes.purposes.flatMap(
         _.versions.filter(_.state == PurposeManagementDependency.PurposeVersionState.ACTIVE)
       )
+      agreements <- agreementManagementService.getAgreements(bearerToken)(
+        eServiceId = purpose.eserviceId,
+        consumerId = purpose.consumerId,
+        state = AgreementManagementDependency.AgreementState.ACTIVE
+      )
+      agreement <- agreements.headOption.toFuture(new RuntimeException("Agreement not found")) // TODO
       loadRequestsSum = activeVersions.map(_.dailyCalls).sum
-      _               = eService // TODO Delete me
-//    } yield eService.dailyCalls <= loadRequestsSum // TODO Uncomment
-    } yield 100 <= loadRequestsSum
+      maxDailyCalls <- eService.descriptors
+        .find(_.id == agreement.descriptorId)
+        .map(_.dailyCallsMaxNumber)
+        .toFuture(new RuntimeException("Descriptor not found")) // TODO
+    } yield loadRequestsSum <= maxDailyCalls
 
   }
 
@@ -314,7 +325,10 @@ final case class PurposeApiServiceImpl(
     for {
       document <- pdfCreator.createDocument(template, purpose.riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
-      path <- fileManager.store(ApplicationConfiguration.storageContainer)(documentId, (fileInfo, document))
+      path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
+        documentId,
+        (fileInfo, document)
+      )
     } yield path
   }
 

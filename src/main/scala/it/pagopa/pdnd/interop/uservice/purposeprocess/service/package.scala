@@ -4,6 +4,9 @@ import akka.actor.ActorSystem
 import it.pagopa.pdnd.interop.uservice._
 
 package object service {
+  type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
+  type AgreementManagementApi     = agreementmanagement.client.api.AgreementApi
+
   type PurposeManagementInvoker = purposemanagement.client.invoker.ApiInvoker
   type PurposeManagementApi     = purposemanagement.client.api.PurposeApi
 
@@ -12,6 +15,15 @@ package object service {
 
   type PartyManagementInvoker = partymanagement.client.invoker.ApiInvoker
   type PartyManagementApi     = partymanagement.client.api.PartyApi
+
+  object AgreementManagementInvoker {
+    def apply()(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
+      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all)
+  }
+
+  object AgreementManagementApi {
+    def apply(baseUrl: String): AgreementManagementApi = agreementmanagement.client.api.AgreementApi(baseUrl)
+  }
 
   object PurposeManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): PurposeManagementInvoker =

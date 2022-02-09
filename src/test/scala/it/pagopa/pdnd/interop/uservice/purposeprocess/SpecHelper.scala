@@ -6,6 +6,8 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
 import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.{Agreement, AgreementState}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
@@ -15,12 +17,7 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => Purpos
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
-  CatalogManagementService,
-  PDFCreator,
-  PartyManagementService,
-  PurposeManagementService
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
 import org.scalamock.handlers.{CallHandler2, CallHandler3, CallHandler4}
 import org.scalamock.scalatest.MockFactory
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
@@ -41,9 +38,10 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val fileManagerType: String  = config.getString("pdnd-interop-commons.storage.type")
   val fileManager: FileManager = FileManager.getConcreteImplementation(fileManagerType).get
 
-  val mockPartyManagementService: PartyManagementService     = mock[PartyManagementService]
-  val mockPurposeManagementService: PurposeManagementService = mock[PurposeManagementService]
-  val mockCatalogManagementService: CatalogManagementService = mock[CatalogManagementService]
+  val mockAgreementManagementService: AgreementManagementService = mock[AgreementManagementService]
+  val mockPartyManagementService: PartyManagementService         = mock[PartyManagementService]
+  val mockPurposeManagementService: PurposeManagementService     = mock[PurposeManagementService]
+  val mockCatalogManagementService: CatalogManagementService     = mock[CatalogManagementService]
 
   val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
   val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
@@ -51,6 +49,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   val service: PurposeApiService =
     PurposeApiServiceImpl(
+      mockAgreementManagementService,
       mockCatalogManagementService,
       mockPartyManagementService,
       mockPurposeManagementService,
@@ -98,6 +97,18 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     (mockPurposeManagementService
       .getPurposes(_: String)(_: Option[UUID], _: Option[UUID], _: Seq[PurposeManagement.PurposeVersionState]))
       .expects(bearerToken, eServiceId, consumerId, states)
+      .once()
+      .returns(Future.successful(result))
+
+  def mockAgreementsRetrieve(
+    eServiceId: UUID,
+    consumerId: UUID,
+    state: AgreementManagement.AgreementState,
+    result: Seq[AgreementManagement.Agreement] = Seq(SpecData.agreement)
+  ): CallHandler4[String, UUID, UUID, AgreementState, Future[Seq[Agreement]]] =
+    (mockAgreementManagementService
+      .getAgreements(_: String)(_: UUID, _: UUID, _: AgreementManagement.AgreementState))
+      .expects(bearerToken, eServiceId, consumerId, state)
       .once()
       .returns(Future.successful(result))
 

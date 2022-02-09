@@ -34,6 +34,7 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.common.system.{
 import it.pagopa.pdnd.interop.uservice.purposeprocess.server.Controller
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl.{
+  AgreementManagementServiceImpl,
   CatalogManagementServiceImpl,
   PDFCreatorImpl,
   PartyManagementServiceImpl,
@@ -44,6 +45,16 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+
+trait AgreementManagementDependency {
+  private final val agreementManagementInvoker: AgreementManagementInvoker = AgreementManagementInvoker()
+  private final val agreementManagementApi: AgreementManagementApi = AgreementManagementApi(
+    ApplicationConfiguration.agreementManagementURL
+  )
+
+  val agreementManagement: AgreementManagementService =
+    AgreementManagementServiceImpl(agreementManagementInvoker, agreementManagementApi)
+}
 
 trait CatalogManagementDependency {
   private final val catalogManagementInvoker: CatalogManagementInvoker = CatalogManagementInvoker()
@@ -81,6 +92,7 @@ case object StartupErrorShutdown extends CoordinatedShutdown.Reason
 object Main
     extends App
     with CORSSupport
+    with AgreementManagementDependency
     with CatalogManagementDependency
     with PartyManagementDependency
     with PurposeManagementDependency {
@@ -93,7 +105,7 @@ object Main
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
       var publicKeyset: Map[KID, SerializedKey] = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
-        getClaimsVerifier(audiences = ApplicationConfiguration.jwtAudience)
+        getClaimsVerifier(audience = ApplicationConfiguration.jwtAudience)
     }
   } yield (jwtValidator, fileManager)
 
@@ -113,6 +125,7 @@ object Main
 
     val purposeApi: PurposeApi = new PurposeApi(
       PurposeApiServiceImpl(
+        agreementManagement,
         catalogManagement,
         partyManagement,
         purposeManagement,
