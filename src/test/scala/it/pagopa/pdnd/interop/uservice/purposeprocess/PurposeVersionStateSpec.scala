@@ -6,6 +6,8 @@ import it.pagopa.pdnd.interop.commons.utils.UID
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
+import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
+import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.StateChangeDetails
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
@@ -290,6 +292,20 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .returns(Future.successful(result))
     }
 
+    def mockAssertUserConsumer(userId: UUID, consumerId: UUID, result: PartyManagement.Relationships) =
+      mockRelationshipsRetrieve(userId, consumerId, result)
+
+    def mockAssertUserProducer(
+      userId: UUID,
+      consumerId: UUID,
+      eService: CatalogManagement.EService,
+      relationships: PartyManagement.Relationships
+    ) = {
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+      mockEServiceRetrieve(eService.id, eService)
+      mockRelationshipsRetrieve(userId, eService.producerId, relationships)
+    }
+
     "succeed from Draft when requested by Consumer if load not exceeded" in {
       val userId       = UUID.randomUUID()
       val eServiceId   = UUID.randomUUID()
@@ -328,7 +344,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockLoadValidation(purpose, purposes, descriptorId)
       mockFirstActivation(purposeId, versionId, updatedVersion)
@@ -339,7 +355,31 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "fail from Draft when requested by Producer" in {}
+    "fail from Draft when requested by Producer" in {
+      val userId     = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+      val producerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val version  = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.DRAFT)
+      val purpose  = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+      val eService = SpecData.eService.copy(id = eServiceId, producerId = producerId)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockAssertUserProducer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0007"
+      }
+    }
 
     "succeed from Draft to Waiting For Approval if load exceeded" in {
       val userId       = UUID.randomUUID()
@@ -381,7 +421,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
 
       mockPurposeRetrieve(purposeId, purpose1)
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockLoadValidation(purpose1, purposes, descriptorId)
       mockWaitForApproval(purposeId, versionId, payload, updatedVersion)
