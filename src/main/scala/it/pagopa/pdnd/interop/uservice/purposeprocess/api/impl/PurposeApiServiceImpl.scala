@@ -238,7 +238,7 @@ final case class PurposeApiServiceImpl(
     (version.state, userType) match {
       case (DRAFT, CONSUMER) =>
         for {
-          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose)
+          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose, version)
           result <-
             if (isAllowed) firstVersionActivation(bearerToken)(purpose, version, changeDetails)
             else waitForApproval()
@@ -251,7 +251,7 @@ final case class PurposeApiServiceImpl(
 
       case (SUSPENDED, CONSUMER) =>
         for {
-          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose)
+          isAllowed <- isLoadAllowed(bearerToken)(eService, purpose, version)
           result <-
             if (isAllowed) activate()
             else waitForApproval()
@@ -263,9 +263,11 @@ final case class PurposeApiServiceImpl(
   }
 
   // TODO Rename
-  def isLoadAllowed(
-    bearerToken: String
-  )(eService: CatalogManagementDependency.EService, purpose: PurposeManagementDependency.Purpose): Future[Boolean] = {
+  def isLoadAllowed(bearerToken: String)(
+    eService: CatalogManagementDependency.EService,
+    purpose: PurposeManagementDependency.Purpose,
+    version: PurposeManagementDependency.PurposeVersion
+  ): Future[Boolean] = {
     for {
       purposes <- purposeManagementService.getPurposes(bearerToken)(
         eserviceId = Some(purpose.eserviceId),
@@ -286,7 +288,7 @@ final case class PurposeApiServiceImpl(
         .find(_.id == agreement.descriptorId)
         .map(_.dailyCallsMaxNumber)
         .toFuture(new RuntimeException("Descriptor not found")) // TODO
-    } yield loadRequestsSum <= maxDailyCalls
+    } yield loadRequestsSum + version.dailyCalls <= maxDailyCalls
 
   }
 
