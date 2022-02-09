@@ -184,7 +184,7 @@ paths:
         '200':
           description: Purpose Version Activated
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/PurposeVersion'
         '400':
@@ -225,7 +225,7 @@ paths:
         '200':
           description: Purpose Version Suspended
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/PurposeVersion'
         '400':
@@ -266,7 +266,7 @@ paths:
         '200':
           description: Purpose Version Archived
           content:
-            application/problem+json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/PurposeVersion'
         '400':

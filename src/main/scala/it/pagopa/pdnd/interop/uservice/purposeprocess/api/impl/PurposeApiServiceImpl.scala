@@ -68,6 +68,9 @@ final case class PurposeApiServiceImpl(
     logger.info("Creating Purpose {}", seed)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      _           <- assertUserIsAConsumer(userUUID, seed.consumerId)(bearerToken)
       agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
       _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
