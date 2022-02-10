@@ -70,7 +70,7 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
-      _           <- assertUserIsAConsumer(userUUID, seed.consumerId)(bearerToken)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, seed.consumerId)
       agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
       _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
@@ -106,7 +106,7 @@ final case class PurposeApiServiceImpl(
       userUUID    <- userId.toFutureUUID
       purposeUUID <- purposeId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
       version <- purposeManagementService.createPurposeVersion(bearerToken)(purposeUUID, depSeed)
     } yield PurposeVersionConverter.dependencyToApi(version)
@@ -197,7 +197,7 @@ final case class PurposeApiServiceImpl(
       version <- purpose.versions
         .find(_.id == versionUUID)
         .toFuture(ActivatePurposeVersionNotFound(purposeId, versionId))
-      userType <- userType(userUUID, purpose)(bearerToken)
+      userType <- userType(bearerToken)(userUUID, purpose)
       eService <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
       updatedVersion <- purposeVersionActivation.activateOrWaitForApproval(bearerToken)(
         eService,
@@ -245,7 +245,7 @@ final case class PurposeApiServiceImpl(
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      userType    <- userType(userUUID, purpose)(bearerToken)
+      userType    <- userType(bearerToken)(userUUID, purpose)
       stateDetails = PurposeManagementDependency.StateChangeDetails(userType)
       response <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
     } yield PurposeVersionConverter.dependencyToApi(response)
@@ -275,7 +275,7 @@ final case class PurposeApiServiceImpl(
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       stateDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
       response <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
     } yield PurposeVersionConverter.dependencyToApi(response)
@@ -294,18 +294,18 @@ final case class PurposeApiServiceImpl(
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def userType(userId: UUID, purpose: PurposeManagementDependency.Purpose)(
+  def userType(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
-    assertUserIsAConsumer(userId, purpose.consumerId)(bearerToken)
-      .recoverWith(_ => assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken))
+  )(userId: UUID, purpose: PurposeManagementDependency.Purpose): Future[PurposeManagementDependency.ChangedBy] =
+    assertUserIsAConsumer(bearerToken)(userId, purpose.consumerId)
+      .recoverWith(_ => assertUserIsAProducer(bearerToken)(userId, purpose.eserviceId))
       .recoverWith(_ => Future.failed(UserNotAllowed(userId)))
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAConsumer(userId: UUID, consumerId: UUID)(
+  def assertUserIsAConsumer(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
+  )(userId: UUID, consumerId: UUID): Future[PurposeManagementDependency.ChangedBy] =
     for {
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, consumerId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheConsumer(userId)).toFuture
@@ -313,9 +313,9 @@ final case class PurposeApiServiceImpl(
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAProducer(userId: UUID, eServiceId: UUID)(
+  def assertUserIsAProducer(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
+  )(userId: UUID, eServiceId: UUID): Future[PurposeManagementDependency.ChangedBy] =
     for {
       eService      <- catalogManagementService.getEServiceById(bearerToken)(eServiceId)
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, eService.producerId)
