@@ -10,6 +10,7 @@ object PurposeVersionConverter {
       state = PurposeVersionStateConverter.dependencyToApi(version.state),
       createdAt = version.createdAt,
       updatedAt = version.updatedAt,
+      firstActivationAt = version.firstActivationAt,
       expectedApprovalDate = version.expectedApprovalDate,
       riskAnalysis = version.riskAnalysis.map(PurposeVersionDocumentConverter.dependencyToApi)
     )
