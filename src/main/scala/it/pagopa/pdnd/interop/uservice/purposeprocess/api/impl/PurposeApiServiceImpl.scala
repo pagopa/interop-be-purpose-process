@@ -84,7 +84,7 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
-          logger.error("Error creating purpose - Risk Analysis Validation failed {}", seed, ex)
+          logger.error("Error creating purpose - Risk Analysis Validation failed {} - {}", seed, ex.getMessage)
           val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
           createPurpose400(problem)
         case Failure(ex) =>
@@ -214,15 +214,15 @@ final case class PurposeApiServiceImpl(
         case Success(result) =>
           activatePurposeVersion200(result)
         case Failure(ex: ActivatePurposeVersionNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
           val problem = problemOf(StatusCodes.NotFound, ex)
           activatePurposeVersion404(problem)
         case Failure(ex: AgreementNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex: DescriptorNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex) =>
