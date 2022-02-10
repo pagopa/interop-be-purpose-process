@@ -11,8 +11,6 @@ object PurposeProcessErrors {
 
   final case class SuspendPurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0004", s"Error suspending version $versionId of purpose $purposeId")
-  final case class WaitForApprovalPurposeBadRequest(purposeId: String, versionId: String)
-      extends ComponentError("0005", s"Error waiting for approval for version $versionId of purpose $purposeId")
   final case class ArchivePurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0006", s"Error archiving version $versionId of purpose $purposeId")
 
@@ -27,5 +25,14 @@ object PurposeProcessErrors {
 
   final case class CreatePurposeVersionBadRequest(purposeId: String)
       extends ComponentError("0011", s"Error creating version for purpose $purposeId")
+
+  final case class ActivatePurposeBadRequest(purposeId: String, versionId: String)
+      extends ComponentError("0012", s"Error activating version $versionId for purpose $purposeId")
+  final case class ActivatePurposeVersionNotFound(purposeId: String, versionId: String)
+      extends ComponentError("0013", s"Version $versionId of Purpose $purposeId not found")
+  final case class AgreementNotFound(eServiceId: String, consumerId: String)
+      extends ComponentError("0014", s"No Agreement found for EService $eServiceId and Consumer $consumerId")
+  final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
+      extends ComponentError("0015", s"Descriptor $descriptorId not found for EService $eServiceId")
 
 }

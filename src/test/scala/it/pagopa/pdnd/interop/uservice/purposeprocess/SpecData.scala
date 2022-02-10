@@ -4,6 +4,7 @@ import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => Catalo
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 
@@ -21,6 +22,18 @@ object SpecData {
     technology = CatalogManagement.EServiceTechnology.REST,
     attributes = CatalogManagement.Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq.empty
+  )
+
+  val descriptor: CatalogManagement.EServiceDescriptor = CatalogManagement.EServiceDescriptor(
+    id = UUID.randomUUID(),
+    version = "1",
+    description = None,
+    audience = Seq.empty,
+    voucherLifespan = 1,
+    dailyCallsMaxNumber = 10000,
+    interface = None,
+    docs = Seq.empty,
+    state = CatalogManagement.EServiceDescriptorState.PUBLISHED
   )
 
   val organization: PartyManagement.Organization = PartyManagement.Organization(
@@ -107,7 +120,29 @@ object SpecData {
     updatedAt = None
   )
 
+  val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.DRAFT,
+    createdAt = timestamp,
+    updatedAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None
+  )
+
   val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
+
+  val agreement: AgreementManagement.Agreement = AgreementManagement.Agreement(
+    id = UUID.randomUUID(),
+    eserviceId = UUID.randomUUID(),
+    descriptorId = UUID.randomUUID(),
+    producerId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    state = AgreementManagement.AgreementState.ACTIVE,
+    verifiedAttributes = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None
+  )
 
   val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(
     `type` = "something",

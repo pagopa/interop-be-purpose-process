@@ -161,6 +161,47 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /purposes/{purposeId}/versions/{versionId}/activate:
+    parameters:
+      - name: purposeId
+        in: path
+        required:
+          true
+        schema:
+          type: string
+          format: uuid
+      - name: versionId
+        in: path
+        required:
+          true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Activate Purpose Version
+      operationId: activatePurposeVersion
+      responses:
+        '200':
+          description: Purpose Version Activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Purpose Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      tags:
+        - purpose
+      description: activates the purpose version by id
   /purposes/{purposeId}/versions/{versionId}/suspend:
     parameters:
       - name: purposeId
@@ -181,8 +222,12 @@ paths:
       summary: Suspend Purpose Version
       operationId: suspendPurposeVersion
       responses:
-        '204':
+        '200':
           description: Purpose Version Suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
         '400':
           description: Bad Request
           content:
@@ -198,43 +243,6 @@ paths:
       tags:
         - purpose
       description: suspends the purpose version by id
-  /purposes/{purposeId}/versions/{versionId}/waitForApproval:
-    parameters:
-      - name: purposeId
-        in: path
-        required:
-          true
-        schema:
-          type: string
-          format: uuid
-      - name: versionId
-        in: path
-        required:
-          true
-        schema:
-          type: string
-          format: uuid
-    post:
-      summary: Wait for Approval for Purpose Version
-      operationId: waitForApprovalPurposeVersion
-      responses:
-        '204':
-          description: Purpose Version In Waiting for Approval
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Purpose Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-      tags:
-        - purpose
-      description: waits for approval for the purpose version by id
   /purposes/{purposeId}/versions/{versionId}/archive:
     parameters:
       - name: purposeId
@@ -255,8 +263,12 @@ paths:
       summary: Archive Purpose Version
       operationId: archivePurposeVersion
       responses:
-        '204':
+        '200':
           description: Purpose Version Archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurposeVersion'
         '400':
           description: Bad Request
           content:
@@ -336,6 +348,9 @@ components:
           type: string
           format: date-time
         updatedAt:
+          type: string
+          format: date-time
+        firstActivationAt:
           type: string
           format: date-time
         expectedApprovalDate:

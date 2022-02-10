@@ -1,6 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.service
 
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
+  ActivatePurposeVersionPayload,
   Purpose,
   PurposeSeed,
   PurposeVersion,
@@ -21,15 +22,19 @@ trait PurposeManagementService {
     bearerToken: String
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes]
 
+  def activatePurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion]
+
   def suspendPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def waitForApprovalPurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def archivePurposeVersion(
     bearerToken: String
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[Unit]
+  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 }

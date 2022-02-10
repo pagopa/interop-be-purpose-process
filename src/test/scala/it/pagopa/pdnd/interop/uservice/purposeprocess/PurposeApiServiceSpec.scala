@@ -3,22 +3,12 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.pdnd.interop.commons.utils.UID
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
-import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.{Problem => CatalogProblem}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
-import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.{Problem => PartyProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.SpecData.timestamp
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
-  PurposeConverter,
-  PurposeSeedConverter,
-  PurposeVersionConverter,
-  PurposeVersionSeedConverter,
-  PurposesConverter
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
 import org.scalatest.matchers.should.Matchers._
@@ -34,9 +24,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose creation" should {
     "succeed" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -60,8 +53,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockEServiceRetrieve(eServiceId)
-      mockOrganizationRetrieve(consumerId)
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
+      mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
         .createPurpose(_: String)(_: PurposeManagementDependency.PurposeSeed))
@@ -77,9 +70,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if EService does not exist" in {
+    "fail if Agreement does not exist" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -89,57 +85,23 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = SpecData.validRiskAnalysis
       )
 
-      val catalogProblem: CatalogProblem = SpecData.catalogProblem.copy(status = 404)
-      val expectedProblem: Problem       = catalogmanagement.ProblemConverter.dependencyToApi(catalogProblem)
-      val apiError =
-        CatalogApiError[String](catalogProblem.status, "Some error", Some(catalogProblem.toJson.prettyPrint))
-
-      (mockCatalogManagementService
-        .getEServiceById(_: String)(_: UUID))
-        .expects(bearerToken, eServiceId)
-        .once()
-        .returns(Future.failed(apiError))
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq.empty)
 
       Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem] shouldEqual expectedProblem
-      }
-    }
-
-    "fail if Consumer does not exist" in {
-      val eServiceId = UUID.randomUUID()
-      val consumerId = UUID.randomUUID()
-
-      val seed: PurposeSeed = PurposeSeed(
-        eserviceId = eServiceId,
-        consumerId = consumerId,
-        title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validRiskAnalysis
-      )
-
-      val partyProblem: PartyProblem = SpecData.partyProblem.copy(status = 404)
-      val expectedProblem: Problem   = partymanagement.ProblemConverter.dependencyToApi(partyProblem)
-      val apiError =
-        PartyApiError[String](partyProblem.status, "Some error", Some(partyProblem.toJson.prettyPrint))
-
-      mockEServiceRetrieve(eServiceId)
-
-      (mockPartyManagementService
-        .getOrganizationById(_: String)(_: UUID))
-        .expects(bearerToken, consumerId)
-        .once()
-        .returns(Future.failed(apiError))
-
-      Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        responseAs[Problem] shouldEqual expectedProblem
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0001"
       }
     }
 
     "fail on Purpose Management error" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -154,8 +116,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val apiError =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
-      mockEServiceRetrieve(eServiceId)
-      mockOrganizationRetrieve(consumerId)
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
+      mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
         .createPurpose(_: String)(_: PurposeManagementDependency.PurposeSeed))

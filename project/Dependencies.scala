@@ -25,6 +25,8 @@ object Dependencies {
 
   private[this] object pagopa {
     lazy val namespace = "it.pagopa"
+    lazy val agreementManagementClient =
+      namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
     lazy val purposeManagementClient =
       namespace %% "pdnd-interop-uservice-purpose-management-client" % purposeManagementVersion
     lazy val catalogManagementClient =
@@ -32,8 +34,9 @@ object Dependencies {
     lazy val partyManagementClient =
       namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
 
-    lazy val commons    = namespace %% "pdnd-interop-commons-utils" % commonsVersion
-    lazy val commonsJWT = namespace %% "pdnd-interop-commons-jwt"   % commonsVersion
+    lazy val commons     = namespace %% "pdnd-interop-commons-utils"        % commonsVersion
+    lazy val fileManager = namespace %% "pdnd-interop-commons-file-manager" % commonsVersion
+    lazy val jwt         = namespace %% "pdnd-interop-commons-jwt"          % commonsVersion
   }
 
   private[this] object cats {
@@ -96,32 +99,34 @@ object Dependencies {
       // For making Java 12 happy
       "javax.annotation" % "javax.annotation-api" % "1.3.2" % "compile",
       //
-      akka.actor                     % Compile,
-      akka.actorTyped                % Compile,
-      akka.http                      % Compile,
-      akka.httpJson                  % Compile,
-      akka.management                % Compile,
-      akka.managementLogLevels       % Compile,
-      akka.persistence               % Compile,
-      akka.slf4j                     % Compile,
-      akka.stream                    % Compile,
-      cats.core                      % Compile,
-      kamon.bundle                   % Compile,
-      kamon.prometheus               % Compile,
-      logback.classic                % Compile,
-      mustache.mustache              % Compile,
-      pagopa.purposeManagementClient % Compile,
-      pagopa.catalogManagementClient % Compile,
-      pagopa.partyManagementClient   % Compile,
-      pagopa.commons                 % Compile,
-      pagopa.commonsJWT              % Compile,
-      akka.httpTestkit               % Test,
-      akka.testkit                   % Test,
-      akka.untypedTestkit            % Test,
-      mockito.core                   % Test,
-      scalamock.core                 % Test,
-      scalapact.core                 % Test,
-      scalatest.core                 % Test
+      akka.actor                       % Compile,
+      akka.actorTyped                  % Compile,
+      akka.http                        % Compile,
+      akka.httpJson                    % Compile,
+      akka.management                  % Compile,
+      akka.managementLogLevels         % Compile,
+      akka.persistence                 % Compile,
+      akka.slf4j                       % Compile,
+      akka.stream                      % Compile,
+      cats.core                        % Compile,
+      kamon.bundle                     % Compile,
+      kamon.prometheus                 % Compile,
+      logback.classic                  % Compile,
+      mustache.mustache                % Compile,
+      pagopa.agreementManagementClient % Compile,
+      pagopa.purposeManagementClient   % Compile,
+      pagopa.catalogManagementClient   % Compile,
+      pagopa.partyManagementClient     % Compile,
+      pagopa.commons                   % Compile,
+      pagopa.fileManager               % Compile,
+      pagopa.jwt                       % Compile,
+      akka.httpTestkit                 % Test,
+      akka.testkit                     % Test,
+      akka.untypedTestkit              % Test,
+      mockito.core                     % Test,
+      scalamock.core                   % Test,
+      scalapact.core                   % Test,
+      scalatest.core                   % Test
     )
     lazy val client: Seq[ModuleID] = Seq(
       akka.stream     % Compile,

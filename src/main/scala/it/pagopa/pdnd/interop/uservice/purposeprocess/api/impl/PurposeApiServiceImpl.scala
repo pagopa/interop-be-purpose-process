@@ -6,10 +6,12 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
+import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
@@ -20,13 +22,7 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement.{
-  PurposeConverter,
-  PurposeSeedConverter,
-  PurposeVersionConverter,
-  PurposeVersionSeedConverter,
-  PurposesConverter
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   RiskAnalysisValidationFailed,
   UserIsNotTheConsumer,
@@ -34,19 +30,8 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   UserNotAllowed
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.PurposeProcessErrors._
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{
-  Problem,
-  Purpose,
-  PurposeSeed,
-  PurposeVersion,
-  PurposeVersionSeed,
-  Purposes
-}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
-  CatalogManagementService,
-  PartyManagementService,
-  PurposeManagementService
-}
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model._
+import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
@@ -54,39 +39,56 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 final case class PurposeApiServiceImpl(
+  agreementManagementService: AgreementManagementService,
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
-  purposeManagementService: PurposeManagementService
+  purposeManagementService: PurposeManagementService,
+  fileManager: FileManager,
+  pdfCreator: PDFCreator,
+  uuidSupplier: UUIDSupplier,
+  dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
   private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
-  override def createPurpose(purposeSeed: PurposeSeed)(implicit
+  private[this] val purposeVersionActivation = PurposeVersionActivation(
+    agreementManagementService,
+    purposeManagementService,
+    fileManager,
+    pdfCreator,
+    uuidSupplier,
+    dateTimeSupplier
+  )
+
+  override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    logger.info("Creating Purpose {}", purposeSeed)
+    logger.info("Creating Purpose {}", seed)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
-      _           <- catalogManagementService.getEServiceById(bearerToken)(purposeSeed.eserviceId)
-      _           <- partyManagementService.getOrganizationById(bearerToken)(purposeSeed.consumerId)
-      clientSeed  <- PurposeSeedConverter.apiToDependency(purposeSeed).toFuture
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, seed.consumerId)
+      agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
+      _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
+      clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
       purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
       result      <- PurposeConverter.dependencyToApi(purpose).toFuture
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
-      handleApiError(defaultProblem) orElse {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(purpose) =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
-          logger.error("Error creating purpose - Risk Analysis Validation failed {}", purposeSeed, ex)
+          logger.error("Error creating purpose - Risk Analysis Validation failed {} - {}", seed, ex.getMessage)
           val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
           createPurpose400(problem)
         case Failure(ex) =>
-          logger.error("Error creating purpose {}", purposeSeed, ex)
+          logger.error("Error creating purpose {}", seed, ex)
           createPurpose400(defaultProblem)
       }
     }
@@ -104,7 +106,7 @@ final case class PurposeApiServiceImpl(
       userUUID    <- userId.toFutureUUID
       purposeUUID <- purposeId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
       version <- purposeManagementService.createPurposeVersion(bearerToken)(purposeUUID, depSeed)
     } yield PurposeVersionConverter.dependencyToApi(version)
@@ -179,28 +181,80 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def suspendPurposeVersion(purposeId: String, versionId: String)(implicit
+  override def activatePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
-    logger.info("Suspending Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
+    logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
+    val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      userType    <- userType(userUUID, purpose)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(userType)
-      _ <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
-    } yield ()
+      version <- purpose.versions
+        .find(_.id == versionUUID)
+        .toFuture(ActivatePurposeVersionNotFound(purposeId, versionId))
+      userType <- userType(bearerToken)(userUUID, purpose)
+      eService <- catalogManagementService.getEServiceById(bearerToken)(purpose.eserviceId)
+      updatedVersion <- purposeVersionActivation.activateOrWaitForApproval(bearerToken)(
+        eService,
+        purpose,
+        version,
+        userType,
+        userUUID
+      )
+    } yield PurposeVersionConverter.dependencyToApi(updatedVersion)
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ActivatePurposeBadRequest(purposeId, versionId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(result) =>
+          activatePurposeVersion200(result)
+        case Failure(ex: ActivatePurposeVersionNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          val problem = problemOf(StatusCodes.NotFound, ex)
+          activatePurposeVersion404(problem)
+        case Failure(ex: AgreementNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          val problem = problemOf(StatusCodes.BadRequest, ex)
+          activatePurposeVersion400(problem)
+        case Failure(ex: DescriptorNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          val problem = problemOf(StatusCodes.BadRequest, ex)
+          activatePurposeVersion400(problem)
+        case Failure(ex) =>
+          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          activatePurposeVersion400(defaultProblem)
+      }
+    }
+  }
+
+  override def suspendPurposeVersion(purposeId: String, versionId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Suspending Version {} of Purpose {}", versionId, purposeId)
+    val result: Future[PurposeVersion] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      userType    <- userType(bearerToken)(userUUID, purpose)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(userType)
+      response <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+    } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          suspendPurposeVersion204
+        case Success(r) =>
+          suspendPurposeVersion200(r)
         case Failure(ex) =>
           logger.error("Error while suspending Version {} of Purpose {}", versionId, purposeId, ex)
           suspendPurposeVersion400(defaultProblem)
@@ -208,62 +262,29 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def waitForApprovalPurposeVersion(purposeId: String, versionId: String)(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
-    logger.info("Wait for Approval for Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
-      bearerToken <- getBearer(contexts).toFuture
-      purposeUUID <- purposeId.toFutureUUID
-      versionUUID <- versionId.toFutureUUID
-      userId      <- getUidFuture(contexts)
-      userUUID    <- userId.toFutureUUID
-      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
-      _ <- purposeManagementService.waitForApprovalPurposeVersion(bearerToken)(
-        purposeUUID,
-        versionUUID,
-        stateChangeDetails
-      )
-    } yield ()
-
-    val defaultProblem: Problem =
-      problemOf(StatusCodes.BadRequest, WaitForApprovalPurposeBadRequest(purposeId, versionId))
-    onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          waitForApprovalPurposeVersion204
-        case Failure(ex) =>
-          logger.error("Error while waiting for approval for Version {} of Purpose {}", versionId, purposeId, ex)
-          waitForApprovalPurposeVersion400(defaultProblem)
-      }
-    }
-  }
-
   override def archivePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = {
     logger.info("Archiving for Version {} of Purpose {}", versionId, purposeId)
-    val result: Future[Unit] = for {
+    val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
       versionUUID <- versionId.toFutureUUID
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
-      _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)(bearerToken)
-      stateChangeDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
-      _ <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateChangeDetails)
-    } yield ()
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
+      response <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+    } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_) =>
-          archivePurposeVersion204
+        case Success(r) =>
+          archivePurposeVersion200(r)
         case Failure(ex) =>
           logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
           archivePurposeVersion400(defaultProblem)
@@ -273,18 +294,18 @@ final case class PurposeApiServiceImpl(
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def userType(userId: UUID, purpose: PurposeManagementDependency.Purpose)(
+  def userType(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
-    assertUserIsAConsumer(userId, purpose.consumerId)(bearerToken)
-      .recoverWith(_ => assertUserIsAProducer(userId, purpose.eserviceId)(bearerToken))
+  )(userId: UUID, purpose: PurposeManagementDependency.Purpose): Future[PurposeManagementDependency.ChangedBy] =
+    assertUserIsAConsumer(bearerToken)(userId, purpose.consumerId)
+      .recoverWith(_ => assertUserIsAProducer(bearerToken)(userId, purpose.eserviceId))
       .recoverWith(_ => Future.failed(UserNotAllowed(userId)))
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAConsumer(userId: UUID, consumerId: UUID)(
+  def assertUserIsAConsumer(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
+  )(userId: UUID, consumerId: UUID): Future[PurposeManagementDependency.ChangedBy] =
     for {
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, consumerId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheConsumer(userId)).toFuture
@@ -292,29 +313,34 @@ final case class PurposeApiServiceImpl(
 
   // TODO This may not work as expected if the user has an active relationship with
   //      both producer and consumer
-  def assertUserIsAProducer(userId: UUID, eServiceId: UUID)(
+  def assertUserIsAProducer(
     bearerToken: String
-  ): Future[PurposeManagementDependency.ChangedBy] =
+  )(userId: UUID, eServiceId: UUID): Future[PurposeManagementDependency.ChangedBy] =
     for {
       eService      <- catalogManagementService.getEServiceById(bearerToken)(eServiceId)
       relationships <- partyManagementService.getActiveRelationships(bearerToken)(userId, eService.producerId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
     } yield PurposeManagementDependency.ChangedBy.PRODUCER
 
-  def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
+  def handleApiError(
+    defaultProblem: Problem
+  )(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>
+      logger.error("Error received from Catalog Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => catalogmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PartyApiError[_]) =>
+      logger.error("Error received from Party Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => partymanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PurposeApiError[_]) =>
+      logger.error("Error received from Purpose Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => purposemanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
@@ -322,14 +348,17 @@ final case class PurposeApiServiceImpl(
       complete(problem.status, problem)
   }
 
-  val handleUserTypeError: PartialFunction[Try[_], StandardRoute] = {
-    case Failure(_: UserIsNotTheConsumer) =>
+  def handleUserTypeError(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
+    case Failure(err: UserIsNotTheConsumer) =>
+      logger.error("The action can be performed only by a Consumer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
       complete(problem.status, problem)
-    case Failure(_: UserIsNotTheProducer) =>
+    case Failure(err: UserIsNotTheProducer) =>
+      logger.error("The action can be performed only by a Producer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyProducerAllowedError)
       complete(problem.status, problem)
-    case Failure(_: UserNotAllowed) =>
+    case Failure(err: UserNotAllowed) =>
+      logger.error("User is neither a Consumer or a Producer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, UserNotAllowedError)
       complete(problem.status, problem)
   }
