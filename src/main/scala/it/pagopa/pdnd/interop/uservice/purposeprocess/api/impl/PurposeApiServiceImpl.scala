@@ -322,20 +322,25 @@ final case class PurposeApiServiceImpl(
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
     } yield PurposeManagementDependency.ChangedBy.PRODUCER
 
-  def handleApiError(defaultProblem: Problem): PartialFunction[Try[_], StandardRoute] = {
+  def handleApiError(
+    defaultProblem: Problem
+  )(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>
+      logger.error("Error received from Catalog Management- {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => catalogmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PartyApiError[_]) =>
+      logger.error("Error received from Party Management- {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => partymanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PurposeApiError[_]) =>
+      logger.error("Error received from Purpose Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => purposemanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
@@ -343,14 +348,17 @@ final case class PurposeApiServiceImpl(
       complete(problem.status, problem)
   }
 
-  val handleUserTypeError: PartialFunction[Try[_], StandardRoute] = {
-    case Failure(_: UserIsNotTheConsumer) =>
+  def handleUserTypeError(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
+    case Failure(err: UserIsNotTheConsumer) =>
+      logger.error("The action can be performed only by a Consumer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
       complete(problem.status, problem)
-    case Failure(_: UserIsNotTheProducer) =>
+    case Failure(err: UserIsNotTheProducer) =>
+      logger.error("The action can be performed only by a Producer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyProducerAllowedError)
       complete(problem.status, problem)
-    case Failure(_: UserNotAllowed) =>
+    case Failure(err: UserNotAllowed) =>
+      logger.error("User is neither a Consumer or a Producer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, UserNotAllowedError)
       complete(problem.status, problem)
   }
