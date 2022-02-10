@@ -120,7 +120,7 @@ object Main
   private def launchApp(jwtReader: JWTReader, fileManager: FileManager): Future[Http.ServerBinding] = {
     Kamon.init()
 
-    val UUIDSupplier: UUIDSupplier               = new UUIDSupplierImpl()
+    val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
     val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
 
     val purposeApi: PurposeApi = new PurposeApi(
@@ -131,7 +131,7 @@ object Main
         purposeManagement,
         fileManager,
         PDFCreatorImpl,
-        UUIDSupplier,
+        uuidSupplier,
         dateTimeSupplier
       ),
       PurposeApiMarshallerImpl,

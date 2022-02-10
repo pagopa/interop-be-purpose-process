@@ -28,7 +28,7 @@ final case class PurposeVersionActivation(
   purposeManagementService: PurposeManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
-  UUIDSupplier: UUIDSupplier,
+  uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext) {
 
@@ -106,7 +106,7 @@ final case class PurposeVersionActivation(
   def firstVersionActivation(
     bearerToken: String
   )(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
-    val documentId: UUID = UUIDSupplier.get
+    val documentId: UUID = uuidSupplier.get
     for {
       path <- createRiskAnalysisDocument(documentId, purpose, version)
       payload = ActivatePurposeVersionPayload(

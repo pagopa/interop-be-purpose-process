@@ -45,7 +45,7 @@ final case class PurposeApiServiceImpl(
   purposeManagementService: PurposeManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
-  UUIDSupplier: UUIDSupplier,
+  uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
@@ -56,7 +56,7 @@ final case class PurposeApiServiceImpl(
     purposeManagementService,
     fileManager,
     pdfCreator,
-    UUIDSupplier,
+    uuidSupplier,
     dateTimeSupplier
   )
 
