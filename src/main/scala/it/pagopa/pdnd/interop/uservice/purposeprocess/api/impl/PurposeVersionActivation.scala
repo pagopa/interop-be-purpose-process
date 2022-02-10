@@ -37,6 +37,30 @@ final case class PurposeVersionActivation(
     .getLines()
     .mkString(System.lineSeparator())
 
+  /**
+    * Activate or Wait for Approval for the given version based on current status and requester relationships.
+    *
+    * Validations
+    * <table>
+    *   <tr><th>Version State</th><th>Requester is a</th><th>Load exceeded</th><th>Result</th></tr>
+    *   <tr><td>DRAFT</td><td>CONSUMER</td><td>No</td><td>Activate</td></tr>
+    *   <tr><td>DRAFT</td><td>CONSUMER</td><td>Yes</td><td>Wait for Approval</td></tr>
+    *   <tr><td>DRAFT</td><td>PRODUCER</td><td>-</td><td>Error: Unauthorized</td></tr>
+    *   <tr><td>WAITING_FOR_APPROVAL</td><td>CONSUMER</td><td>-</td><td>Error: Unauthorized</td></tr>
+    *   <tr><td>WAITING_FOR_APPROVAL</td><td>PRODUCER</td><td>-</td><td>Activate</td></tr>
+    *   <tr><td>SUSPENDED</td><td>CONSUMER</td><td>No</td><td>Activate</td></tr>
+    *   <tr><td>SUSPENDED</td><td>CONSUMER</td><td>Yes</td><td>Wait for Approval</td></tr>
+    *   <tr><td>SUSPENDED</td><td>PRODUCER</td><td>-</td><td>Activate</td></tr>
+    *   <tr><td><i>other</i></td><td>-</td><td>-</td><td>Error: Unauthorized</td></tr>
+    * </table>
+    * @param bearerToken Bearer token
+    * @param eService EService of the Agreement related to the Purpose
+    * @param purpose Purpose of the Version
+    * @param version Version to activate
+    * @param userType Indicates the relationship of user with the Consumer or the Producer
+    * @param userId User ID
+    * @return the updated Version
+    */
   def activateOrWaitForApproval(bearerToken: String)(
     eService: EService,
     purpose: Purpose,
@@ -79,6 +103,15 @@ final case class PurposeVersionActivation(
     }
   }
 
+  /**
+    * Calculate if the load of the Version to activate will exceed the maximum load allowed by the EService,
+    * considering all Purposes already activated for the Agreement
+    * @param bearerToken Bearer token
+    * @param eService EService of the Agreement related to the Purpose
+    * @param purpose Purpose of the Version
+    * @param version Version to activate
+    * @return True if it will exceed, False otherwise
+    */
   def isLoadAllowed(
     bearerToken: String
   )(eService: EService, purpose: Purpose, version: PurposeVersion): Future[Boolean] = {
@@ -103,6 +136,16 @@ final case class PurposeVersionActivation(
 
   }
 
+  /**
+    * Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
+    * The first activation generates also the risk analysis document.
+    *
+    * @param bearerToken Beare token
+    * @param purpose Purpose of the Version
+    * @param version Version to activate
+    * @param stateChangeDetails Details on the user that is performing the action
+    * @return The updated Version
+    */
   def firstVersionActivation(
     bearerToken: String
   )(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
@@ -124,6 +167,13 @@ final case class PurposeVersionActivation(
     } yield updatedVersion
   }
 
+  /**
+    * Creates and store the Risk Analysis document based on document template and Purpose and Version information
+    * @param documentId Document unique ID
+    * @param purpose Purpose of the Version
+    * @param version Version to activate
+    * @return The path of the new document
+    */
   def createRiskAnalysisDocument(
     documentId: UUID,
     purpose: Purpose,
