@@ -326,14 +326,14 @@ final case class PurposeApiServiceImpl(
     defaultProblem: Problem
   )(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: CatalogApiError[_]) =>
-      logger.error("Error received from Catalog Management- {}", err.responseContent)
+      logger.error("Error received from Catalog Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => catalogmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
       }
       complete(problem.status, problem)
     case Failure(err: PartyApiError[_]) =>
-      logger.error("Error received from Party Management- {}", err.responseContent)
+      logger.error("Error received from Party Management - {}", err.responseContent)
       val problem = err.responseContent match {
         case Some(body: String) => partymanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
         case _                  => defaultProblem
