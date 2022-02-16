@@ -7,6 +7,7 @@ import it.pagopa.pdnd.interop.commons.files.service.{FileManager, StorageFilePat
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientComponentState
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.ChangedBy._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model._
@@ -25,6 +26,7 @@ import scala.io.Source
 
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
+  authorizationManagementService: AuthorizationManagementService,
   purposeManagementService: PurposeManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
@@ -76,8 +78,16 @@ final case class PurposeVersionActivation(
     def activate(): Future[PurposeVersion] = {
       val payload =
         ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
-      purposeManagementService
-        .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
+
+      for {
+        version <- purposeManagementService
+          .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
+        _ <- authorizationManagementService.updateStateOnClients(bearerToken)(
+          purposeId = purpose.id,
+          state = ClientComponentState.ACTIVE
+        )
+      } yield version
+
     }
 
     (version.state, userType) match {
@@ -161,6 +171,8 @@ final case class PurposeVersionActivation(
         stateChangeDetails = stateChangeDetails
       )
       updatedVersion <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
+      _ <- authorizationManagementService
+        .updateStateOnClients(bearerToken)(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
     } yield updatedVersion
   }
 

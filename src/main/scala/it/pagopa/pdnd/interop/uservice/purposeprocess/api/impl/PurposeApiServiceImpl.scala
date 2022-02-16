@@ -20,6 +20,7 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   PurposeVersionState => DepPurposeVersionState
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement._
@@ -40,6 +41,7 @@ import scala.util.{Failure, Success, Try}
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
+  authorizationManagementService: AuthorizationManagementService,
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
@@ -53,6 +55,7 @@ final case class PurposeApiServiceImpl(
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
+    authorizationManagementService,
     purposeManagementService,
     fileManager,
     pdfCreator,
@@ -248,6 +251,10 @@ final case class PurposeApiServiceImpl(
       userType    <- userType(bearerToken)(userUUID, purpose)
       stateDetails = PurposeManagementDependency.StateChangeDetails(userType)
       response <- purposeManagementService.suspendPurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+      _ <- authorizationManagementService.updateStateOnClients(bearerToken)(
+        purposeId = purposeUUID,
+        state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      )
     } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
@@ -278,6 +285,10 @@ final case class PurposeApiServiceImpl(
       _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       stateDetails = PurposeManagementDependency.StateChangeDetails(ChangedBy.CONSUMER)
       response <- purposeManagementService.archivePurposeVersion(bearerToken)(purposeUUID, versionUUID, stateDetails)
+      _ <- authorizationManagementService.updateStateOnClients(bearerToken)(
+        purposeId = purposeUUID,
+        state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
+      )
     } yield PurposeVersionConverter.dependencyToApi(response)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
