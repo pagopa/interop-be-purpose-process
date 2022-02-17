@@ -47,8 +47,8 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
         suspendedByConsumer = Some(true),
         suspendedByProducer = Some(false),
         title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validManagementRiskAnalysis,
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
         createdAt = OffsetDateTime.now(),
         updatedAt = Some(OffsetDateTime.now())
       )
@@ -76,8 +76,8 @@ class PurposeConversionsSpec extends AnyWordSpecLike {
         suspendedByConsumer = Some(true),
         suspendedByProducer = Some(false),
         title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validRiskAnalysis,
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis),
         createdAt = dependencyPurpose.createdAt,
         updatedAt = dependencyPurpose.updatedAt
       )

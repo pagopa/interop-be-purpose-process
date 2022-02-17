@@ -25,13 +25,14 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm] = jsonFormat2(RiskAnalysisForm)
   implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
     jsonFormat3(PurposeVersionDocument)
-  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]         = jsonFormat7(PurposeVersion)
-  implicit def purposeFormat: RootJsonFormat[Purpose]                       = jsonFormat11(Purpose)
-  implicit def purposesFormat: RootJsonFormat[Purposes]                     = jsonFormat1(Purposes)
-  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]               = jsonFormat5(PurposeSeed)
-  implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed] = jsonFormat1(PurposeVersionSeed)
-  implicit def problemErrorFormat: RootJsonFormat[ProblemError]             = jsonFormat2(ProblemError)
-  implicit def problemFormat: RootJsonFormat[Problem]                       = jsonFormat5(Problem)
+  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]             = jsonFormat7(PurposeVersion)
+  implicit def purposeFormat: RootJsonFormat[Purpose]                           = jsonFormat11(Purpose)
+  implicit def purposesFormat: RootJsonFormat[Purposes]                         = jsonFormat1(Purposes)
+  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                   = jsonFormat5(PurposeSeed)
+  implicit def purposeUpdateContentFormat: RootJsonFormat[PurposeUpdateContent] = jsonFormat3(PurposeUpdateContent)
+  implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed]     = jsonFormat1(PurposeVersionSeed)
+  implicit def problemErrorFormat: RootJsonFormat[ProblemError]                 = jsonFormat2(ProblemError)
+  implicit def problemFormat: RootJsonFormat[Problem]                           = jsonFormat5(Problem)
 
   def problemOf(httpError: StatusCode, error: ComponentError, defaultMessage: String = "Unknown error"): Problem =
     Problem(

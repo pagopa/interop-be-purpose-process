@@ -736,5 +736,48 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         problem.errors.head.code shouldBe "012-0009"
       }
     }
+
+    "fail on missing Risk Analysis Form" in {
+      val userId       = UUID.randomUUID()
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+      val documentId   = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(
+        riskAnalysisForm = None,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(version)
+      )
+
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
+      mockVersionLoadValidation(purpose, purposes, descriptorId)
+      (() => mockUUIDSupplier.get).expects().returning(documentId).once()
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0016"
+      }
+    }
+
   }
 }

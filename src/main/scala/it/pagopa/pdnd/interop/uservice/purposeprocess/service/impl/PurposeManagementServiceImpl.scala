@@ -5,6 +5,7 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   ActivatePurposeVersionPayload,
   Purpose,
   PurposeSeed,
+  PurposeUpdateContent,
   PurposeVersion,
   PurposeVersionSeed,
   PurposeVersionState,
@@ -36,6 +37,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion] = {
     val request: ApiRequest[PurposeVersion] = api.createPurposeVersion(purposeId, seed)(BearerToken(bearerToken))
     invoker.invoke(request, s"Creating purpose version for Purpose $purposeId")
+  }
+
+  override def updatePurpose(
+    bearerToken: String
+  )(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent): Future[Purpose] = {
+    val request: ApiRequest[Purpose] = api.updatePurpose(purposeId, purposeUpdateContent)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Updating Purpose $purposeId")
   }
 
   override def getPurpose(bearerToken: String)(id: UUID): Future[Purpose] = {

@@ -23,7 +23,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   import PurposeApiMarshallerImpl._
 
   "Purpose creation" should {
-    "succeed" in {
+    "succeed without risk analysis" in {
       val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
@@ -35,8 +35,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validRiskAnalysis
+        description = "A description",
+//        riskAnalysisForm = SpecData.validRiskAnalysis
+        riskAnalysisForm = None
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -48,7 +49,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = seed.title,
         description = seed.description,
-        riskAnalysisForm = SpecData.validManagementRiskAnalysis,
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -70,6 +71,81 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "succeed with valid risk analysis" in {
+      val userId     = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis)
+      )
+
+      val managementResponse = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
+      mockAgreementsRetrieve(eServiceId, consumerId)
+
+      (mockPurposeManagementService
+        .createPurpose(_: String)(_: PurposeManagementDependency.PurposeSeed))
+        .expects(bearerToken, PurposeSeedConverter.apiToDependency(seed).toOption.get)
+        .once()
+        .returns(Future.successful(managementResponse))
+
+      val expected: Purpose = PurposeConverter.dependencyToApi(managementResponse).toOption.get
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[Purpose] shouldEqual expected
+      }
+    }
+
+    "fail on incorrect risk analysis" in {
+      val userId     = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val incorrectRiskAnalysis = RiskAnalysisForm(
+        version = "1.0",
+        answers = RiskAnalysisFormAnswers(purpose = "purpose", usesPersonalData = RiskAnalysisFormYesNoAnswer.YES)
+      )
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(incorrectRiskAnalysis)
+      )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0010"
+      }
+    }
+
     "fail if Agreement does not exist" in {
       val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
@@ -81,8 +157,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validRiskAnalysis
+        description = "A description",
+        //        riskAnalysisForm = SpecData.validRiskAnalysis
+        riskAnalysisForm = None
       )
 
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
@@ -107,8 +184,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = eServiceId,
         consumerId = consumerId,
         title = "A title",
-        description = Some("A description"),
-        riskAnalysisForm = SpecData.validRiskAnalysis
+        description = "A description",
+        riskAnalysisForm = None
       )
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)

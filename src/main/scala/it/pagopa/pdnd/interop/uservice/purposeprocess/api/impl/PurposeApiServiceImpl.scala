@@ -73,10 +73,10 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       userId      <- getUidFuture(contexts)
       userUUID    <- userId.toFutureUUID
+      clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
       _           <- assertUserIsAConsumer(bearerToken)(userUUID, seed.consumerId)
       agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
       _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      clientSeed  <- PurposeSeedConverter.apiToDependency(seed).toFuture
       purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
       result      <- PurposeConverter.dependencyToApi(purpose).toFuture
     } yield result
@@ -122,6 +122,36 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error creating purpose version {}", seed, ex)
           createPurposeVersion400(defaultProblem)
+      }
+    }
+  }
+
+  override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info("Updating Purpose {}", purposeId)
+    val result: Future[Purpose] = for {
+      bearerToken    <- getBearer(contexts).toFuture
+      userId         <- getUidFuture(contexts)
+      userUUID       <- userId.toFutureUUID
+      purposeUUID    <- purposeId.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _              <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
+      updatedPurpose <- purposeManagementService.updatePurpose(bearerToken)(purposeUUID, depPayload)
+      r              <- PurposeConverter.dependencyToApi(updatedPurpose).toFuture
+    } yield r
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, UpdatePurposeBadRequest(purposeId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(purpose) =>
+          updatePurpose200(purpose)
+        case Failure(ex) =>
+          logger.error("Error updating Purpose {}", purposeId, ex)
+          updatePurpose400(defaultProblem)
       }
     }
   }
@@ -225,6 +255,10 @@ final case class PurposeApiServiceImpl(
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex: DescriptorNotFound) =>
+          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          val problem = problemOf(StatusCodes.BadRequest, ex)
+          activatePurposeVersion400(problem)
+        case Failure(ex: MissingRiskAnalysis) =>
           logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
