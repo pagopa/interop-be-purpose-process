@@ -41,8 +41,10 @@ object SpecData {
     institutionId = UUID.randomUUID().toString,
     description = "Organization description",
     digitalAddress = "address",
+    address = "address",
     taxCode = "taxCode",
-    attributes = Seq.empty
+    attributes = Seq.empty,
+    zipCode = "00000"
   )
 
   def relationships(from: UUID = UUID.randomUUID(), to: UUID = UUID.randomUUID()): PartyManagement.Relationships =

@@ -7,6 +7,9 @@ package object service {
   type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
   type AgreementManagementApi     = agreementmanagement.client.api.AgreementApi
 
+  type AuthorizationManagementInvoker    = keymanagement.client.invoker.ApiInvoker
+  type AuthorizationManagementPurposeApi = keymanagement.client.api.PurposeApi
+
   type PurposeManagementInvoker = purposemanagement.client.invoker.ApiInvoker
   type PurposeManagementApi     = purposemanagement.client.api.PurposeApi
 
@@ -23,6 +26,15 @@ package object service {
 
   object AgreementManagementApi {
     def apply(baseUrl: String): AgreementManagementApi = agreementmanagement.client.api.AgreementApi(baseUrl)
+  }
+
+  object AuthorizationManagementInvoker {
+    def apply()(implicit actorSystem: ActorSystem): AuthorizationManagementInvoker =
+      keymanagement.client.invoker.ApiInvoker(keymanagement.client.api.EnumsSerializers.all)
+  }
+
+  object AuthorizationManagementApi {
+    def apply(baseUrl: String): AuthorizationManagementPurposeApi = keymanagement.client.api.PurposeApi(baseUrl)
   }
 
   object PurposeManagementInvoker {

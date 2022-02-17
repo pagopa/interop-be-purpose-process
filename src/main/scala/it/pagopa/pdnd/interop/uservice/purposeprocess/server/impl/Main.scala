@@ -32,9 +32,10 @@ import it.pagopa.pdnd.interop.uservice.purposeprocess.common.system.{
   executionContext
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.server.Controller
-import it.pagopa.pdnd.interop.uservice.purposeprocess.service._
+import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{AuthorizationManagementPurposeApi, _}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl.{
   AgreementManagementServiceImpl,
+  AuthorizationManagementServiceImpl,
   CatalogManagementServiceImpl,
   PDFCreatorImpl,
   PartyManagementServiceImpl,
@@ -54,6 +55,16 @@ trait AgreementManagementDependency {
 
   val agreementManagement: AgreementManagementService =
     AgreementManagementServiceImpl(agreementManagementInvoker, agreementManagementApi)
+}
+
+trait AuthorizationManagementDependency {
+  private final val authorizationManagementInvoker: AuthorizationManagementInvoker = AuthorizationManagementInvoker()
+  private final val authorizationManagementApi: AuthorizationManagementPurposeApi = AuthorizationManagementApi(
+    ApplicationConfiguration.authorizationManagementURL
+  )
+
+  val authorizationManagement: AuthorizationManagementService =
+    AuthorizationManagementServiceImpl(authorizationManagementInvoker, authorizationManagementApi)
 }
 
 trait CatalogManagementDependency {
@@ -93,6 +104,7 @@ object Main
     extends App
     with CORSSupport
     with AgreementManagementDependency
+    with AuthorizationManagementDependency
     with CatalogManagementDependency
     with PartyManagementDependency
     with PurposeManagementDependency {
@@ -126,6 +138,7 @@ object Main
     val purposeApi: PurposeApi = new PurposeApi(
       PurposeApiServiceImpl(
         agreementManagement,
+        authorizationManagement,
         catalogManagement,
         partyManagement,
         purposeManagement,
