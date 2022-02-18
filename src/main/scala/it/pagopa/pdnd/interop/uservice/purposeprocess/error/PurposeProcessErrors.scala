@@ -40,4 +40,7 @@ object PurposeProcessErrors {
   final case class UpdatePurposeBadRequest(purposeId: String)
       extends ComponentError("0017", s"Error updating Purpose $purposeId")
 
+  final case class UndeletableVersionError(purposeId: String)
+      extends ComponentError("0018", s"Purpose $purposeId versions are not drafts or are more than one")
+
 }

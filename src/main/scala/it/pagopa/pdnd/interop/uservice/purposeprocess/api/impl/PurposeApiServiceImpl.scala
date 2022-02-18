@@ -214,6 +214,40 @@ final case class PurposeApiServiceImpl(
     }
   }
 
+  override def deletePurpose(
+    id: String
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
+    logger.info("Attempting to delete purpose {}", id)
+
+    def isDeletable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+      val states = purpose.versions.map(_.state)
+      states.isEmpty || states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+    }
+
+    val result: Future[Unit] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purposeUUID <- id.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+      _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
+    } yield ()
+
+    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(_) => deletePurpose204
+        case Failure(ex: UndeletableVersionError) =>
+          logger.error("Error while deleting purpose {}: {}", id, ex.getMessage)
+          deletePurpose403(problemOf(StatusCodes.Forbidden, ex))
+        case Failure(ex) =>
+          logger.error("Error while deleting purpose {}: {}", id, ex)
+          deletePurpose400(defaultProblem)
+      }
+    }
+  }
+
   override def activatePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
