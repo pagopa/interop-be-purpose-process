@@ -188,7 +188,10 @@ final case class PurposeVersionActivation(
     version: PurposeVersion
   ): Future[StorageFilePath] = {
     for {
-      document <- pdfCreator.createDocument(riskAnalysisTemplate, purpose.riskAnalysisForm, version.dailyCalls)
+      riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
+        MissingRiskAnalysis(purpose.id.toString, version.id.toString)
+      )
+      document <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,

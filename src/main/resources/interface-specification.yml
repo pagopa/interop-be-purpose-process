@@ -126,6 +126,39 @@ paths:
     post:
       tags:
         - purpose
+      operationId: updatePurpose
+      description: Updates a Purpose if not yet activated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeUpdateContent'
+        required: true
+      responses:
+        '200':
+          description: Purpose updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /purposes/{purposeId}/versions:
+    parameters:
+      - name: purposeId
+        in: path
+        description: the purpose id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags:
+        - purpose
       operationId: createPurposeVersion
       description: Creates a draft Purpose Version
       responses:
@@ -324,7 +357,7 @@ components:
         - consumerId
         - versions
         - title
-        - riskAnalysisForm
+        - description
         - createdAt
       description: business representation of a purpose
     Purposes:
@@ -336,6 +369,19 @@ components:
             $ref: '#/components/schemas/Purpose'
       required:
         - purposes
+    PurposeUpdateContent:
+      type: object
+      description: contains the expected payload for purpose update.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
+      required:
+        - title
+        - description
     PurposeVersion:
       type: object
       properties:
@@ -407,8 +453,8 @@ components:
       required:
         - eserviceId
         - consumerId
-        - riskAnalysisForm
         - title
+        - description
     PurposeVersionSeed:
       type: object
       description: contains the expected payload for purpose version creation.

@@ -35,4 +35,9 @@ object PurposeProcessErrors {
   final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
       extends ComponentError("0015", s"Descriptor $descriptorId not found for EService $eServiceId")
 
+  final case class MissingRiskAnalysis(purposeId: String, versionId: String)
+      extends ComponentError("0016", s"Version $versionId of Purpose $purposeId must contain a valid risk analysis")
+  final case class UpdatePurposeBadRequest(purposeId: String)
+      extends ComponentError("0017", s"Error updating Purpose $purposeId")
+
 }

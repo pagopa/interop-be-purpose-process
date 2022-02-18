@@ -1,12 +1,13 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement
 
+import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Purpose => DependencyPurpose}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Purpose
 
 object PurposeConverter {
   def dependencyToApi(purpose: DependencyPurpose): Either[Throwable, Purpose] = {
     for {
-      riskAnalysisForm <- RiskAnalysisConverter.dependencyToApi(purpose.riskAnalysisForm)
+      riskAnalysisForm <- purpose.riskAnalysisForm.traverse(RiskAnalysisConverter.dependencyToApi)
     } yield Purpose(
       id = purpose.id,
       eserviceId = purpose.eserviceId,

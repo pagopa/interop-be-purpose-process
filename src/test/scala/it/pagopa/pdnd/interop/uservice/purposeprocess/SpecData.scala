@@ -116,8 +116,8 @@ object SpecData {
     suspendedByConsumer = None,
     suspendedByProducer = None,
     title = "A title",
-    description = Some("A description"),
-    riskAnalysisForm = validManagementRiskAnalysis,
+    description = "A description",
+    riskAnalysisForm = Some(validManagementRiskAnalysis),
     createdAt = timestamp,
     updatedAt = None
   )
