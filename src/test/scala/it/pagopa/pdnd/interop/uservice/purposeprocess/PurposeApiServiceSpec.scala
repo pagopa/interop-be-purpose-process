@@ -301,6 +301,151 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   }
 
+  "Purpose deletion" should {
+    import PurposeManagementDependency.PurposeVersionState._
+
+    "succeed if there are no versions" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val managementResponse =
+        SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldBe empty
+      }
+    }
+
+    "succeed if there is just one version in draft" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeDraftVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeDraftVersion)
+        )
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldBe empty
+      }
+    }
+
+    "fail if the user is not a consumer" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeVersion)
+        )
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].status shouldBe 403
+        responseAs[Problem].errors.head.code shouldBe "012-0007"
+      }
+    }
+
+    "fail if there is more than one version despite the state" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeDraftVersion    = SpecData.purposeVersion.copy(state = DRAFT)
+      val purposeNonDraftVersion = SpecData.purposeVersion.copy(state = ACTIVE)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeDraftVersion, purposeNonDraftVersion)
+        )
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].status shouldBe 403
+        responseAs[Problem].errors.head.code shouldBe "012-0018"
+      }
+    }
+
+    "fail if there is one version in a state different from draft" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeVersion)
+        )
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].status shouldBe 403
+        responseAs[Problem].errors.head.code shouldBe "012-0018"
+      }
+    }
+  }
+
   "Purpose version creation" should {
     "succeed" in {
       val userId           = UUID.randomUUID()
