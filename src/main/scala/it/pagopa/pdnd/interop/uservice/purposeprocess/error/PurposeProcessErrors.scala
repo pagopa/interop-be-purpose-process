@@ -42,5 +42,6 @@ object PurposeProcessErrors {
 
   final case class UndeletableVersionError(purposeId: String)
       extends ComponentError("0018", s"Purpose $purposeId versions are not drafts or are more than one")
+  object DeletePurposeBadRequest extends ComponentError("0019", s"Error deleting purpose")
 
 }

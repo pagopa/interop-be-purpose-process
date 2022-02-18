@@ -302,6 +302,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose deletion" should {
+    import PurposeManagementDependency.PurposeVersionState._
+
     "succeed if there are no versions" in {
       val userId     = UUID.randomUUID()
       val eserviceId = UUID.randomUUID()
@@ -353,8 +355,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[String] shouldBe empty
       }
     }
-
-    import PurposeManagementDependency.PurposeVersionState._
 
     "fail if the user is not a consumer" in {
       val userId     = UUID.randomUUID()
@@ -415,7 +415,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if there is more one version in a state different from draft" in {
+    "fail if there is one version in a state different from draft" in {
       val userId     = UUID.randomUUID()
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()

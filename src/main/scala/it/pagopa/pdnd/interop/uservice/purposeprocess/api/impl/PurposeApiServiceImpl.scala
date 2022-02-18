@@ -234,7 +234,8 @@ final case class PurposeApiServiceImpl(
       _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
     } yield ()
 
-    val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
+    val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)
+
     onComplete(result) {
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(_) => deletePurpose204
@@ -243,7 +244,7 @@ final case class PurposeApiServiceImpl(
           deletePurpose403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex) =>
           logger.error("Error while deleting purpose {}: {}", id, ex)
-          deletePurpose400(defaultProblem)
+          complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
   }
