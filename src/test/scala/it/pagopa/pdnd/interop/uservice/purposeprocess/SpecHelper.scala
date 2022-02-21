@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
+import it.pagopa.interop.authorizationmanagement.client.model.Client
 import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
@@ -237,6 +238,28 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(bearerToken, purposeId, state)
       .returning(Future.successful(()))
       .once()
+
+  def mockClientsRetrieve(
+    purposeId: Option[UUID],
+    result: Seq[AuthorizationManagement.Client] = Seq(SpecData.client)
+  ): CallHandler2[String, Option[UUID], Future[Seq[Client]]] =
+    (mockAuthorizationManagementService
+      .getClients(_: String)(_: Option[UUID]))
+      .expects(bearerToken, purposeId)
+      .returning(Future.successful(result))
+      .once()
+
+  def mockPurposeEnhancement(
+    purpose: PurposeManagement.Purpose
+  ): CallHandler2[String, Option[UUID], Future[Seq[Client]]] = {
+    val agreement  = SpecData.agreement
+    val descriptor = SpecData.descriptor.copy(id = agreement.descriptorId)
+    val eService   = SpecData.eService.copy(descriptors = Seq(descriptor))
+    mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
+    mockEServiceRetrieve(purpose.eserviceId, eService)
+    mockOrganizationRetrieve(eService.producerId)
+    mockClientsRetrieve(Some(purpose.id))
+  }
 
   implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
     sprayJsonUnmarshaller[Purpose]

@@ -339,18 +339,115 @@ paths:
       description: archives the purpose version by id
 components:
   schemas:
+    Agreement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        state:
+          $ref: '#/components/schemas/AgreementState'
+      required:
+        - id
+        - state
+    AgreementState:
+      type: string
+      description: Agreement State
+      enum:
+        - ACTIVE
+        - PENDING
+        - SUSPENDED
+        - INACTIVE
+    Client:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - id
+        - name
+    Clients:
+      type: object
+      properties:
+        clients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Client'
+      required:
+        - clients
+    EService:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        producer:
+          $ref: '#/components/schemas/Organization'
+        descriptor:
+          $ref: '#/components/schemas/EServiceDescriptor'
+      required:
+        - id
+        - name
+        - producer
+        - descriptor
+    EServiceDescriptor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        dailyCalls:
+          type: integer
+          format: int32
+        state:
+          $ref: '#/components/schemas/EServiceDescriptorState'
+      required:
+        - id
+        - version
+        - dailyCalls
+        - state
+    EServiceDescriptorState:
+      type: string
+      description: EService Descriptor State
+      enum:
+        - DRAFT
+        - PUBLISHED
+        - DEPRECATED
+        - SUSPENDED
+        - ARCHIVED
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - id
+        - name
     Purpose:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        eserviceId:
-          type: string
-          format: uuid
+        agreement:
+          $ref: '#/components/schemas/Agreement'
+        eservice:
+          $ref: '#/components/schemas/EService'
         consumerId:
           type: string
           format: uuid
+        clients:
+          $ref: '#/components/schemas/Clients'
         versions:
           type: array
           items:
@@ -373,7 +470,9 @@ components:
           format: date-time
       required:
         - id
-        - eserviceId
+        - agreement
+        - eservice
+        - clients
         - consumerId
         - versions
         - title

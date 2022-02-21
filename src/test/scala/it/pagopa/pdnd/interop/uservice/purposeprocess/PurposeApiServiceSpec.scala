@@ -36,7 +36,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-//        riskAnalysisForm = SpecData.validRiskAnalysis
         riskAnalysisForm = None
       )
 
@@ -63,11 +62,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(managementResponse).toOption.get
+      mockPurposeEnhancement(managementResponse)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose] shouldEqual expected
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -110,11 +109,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(managementResponse).toOption.get
+      mockPurposeEnhancement(managementResponse)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose] shouldEqual expected
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -158,7 +157,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        //        riskAnalysisForm = SpecData.validRiskAnalysis
         riskAnalysisForm = None
       )
 
@@ -220,11 +218,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(SpecData.purpose).toOption.get
+      mockPurposeEnhancement(SpecData.purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Purpose] shouldEqual expected
+        responseAs[Purpose].id shouldEqual SpecData.purpose.id
       }
     }
 
@@ -269,11 +267,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purposes))
 
-      val expected: Purposes = PurposesConverter.dependencyToApi(SpecData.purposes).toOption.get
+      SpecData.purposes.purposes.map(mockPurposeEnhancement)
 
       Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Purposes] shouldEqual expected
+        responseAs[Purposes].purposes.map(_.id) should contain theSameElementsAs SpecData.purposes.purposes.map(_.id)
       }
     }
 

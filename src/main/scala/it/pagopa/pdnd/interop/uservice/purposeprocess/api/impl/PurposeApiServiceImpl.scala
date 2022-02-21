@@ -6,12 +6,15 @@ import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationApiError}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.pdnd.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.pdnd.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.invoker.{ApiError => AgreementApiError}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.invoker.{ApiError => PurposeApiError}
@@ -20,9 +23,12 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   PurposeVersionState => DepPurposeVersionState
 }
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.PurposeApiService
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters._
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.agreementmanagement.AgreementConverter
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.authorizationmanagement.ClientConverter
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.catalogmanagement.EServiceConverter
+import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.partymanagement.OrganizationConverter
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.pdnd.interop.uservice.purposeprocess.error.InternalErrors.{
   RiskAnalysisValidationFailed,
@@ -78,7 +84,7 @@ final case class PurposeApiServiceImpl(
       agreements  <- agreementManagementService.getAgreements(bearerToken)(seed.eserviceId, seed.consumerId)
       _           <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose     <- purposeManagementService.createPurpose(bearerToken)(clientSeed)
-      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+      result      <- enhancePurpose(bearerToken)(purpose)
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
@@ -141,7 +147,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(bearerToken)(purposeUUID, depPayload)
-      r              <- PurposeConverter.dependencyToApi(updatedPurpose).toFuture
+      r              <- enhancePurpose(bearerToken)(updatedPurpose)
     } yield r
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, UpdatePurposeBadRequest(purposeId))
@@ -166,7 +172,7 @@ final case class PurposeApiServiceImpl(
       bearerToken <- getBearer(contexts).toFuture
       uuid        <- id.toFutureUUID
       purpose     <- purposeManagementService.getPurpose(bearerToken)(uuid)
-      result      <- PurposeConverter.dependencyToApi(purpose).toFuture
+      result      <- enhancePurpose(bearerToken)(purpose)
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
@@ -188,13 +194,13 @@ final case class PurposeApiServiceImpl(
   ): Route = {
     logger.info("Retrieving Purposes for EService {}, Consumer {} and States {}", eserviceId, consumerId, states)
     val result: Future[Purposes] = for {
-      bearerToken  <- getBearer(contexts).toFuture
-      eServiceUUID <- eserviceId.traverse(_.toFutureUUID)
-      consumerUUID <- consumerId.traverse(_.toFutureUUID)
-      states       <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
-      purposes     <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
-      result       <- PurposesConverter.dependencyToApi(purposes).toFuture
-    } yield result
+      bearerToken       <- getBearer(contexts).toFuture
+      eServiceUUID      <- eserviceId.traverse(_.toFutureUUID)
+      consumerUUID      <- consumerId.traverse(_.toFutureUUID)
+      states            <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
+      purposes          <- purposeManagementService.getPurposes(bearerToken)(eServiceUUID, consumerUUID, states)
+      convertedPurposes <- purposes.purposes.traverse(enhancePurpose(bearerToken))
+    } yield Purposes(purposes = convertedPurposes)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
     onComplete(result) {
@@ -402,9 +408,45 @@ final case class PurposeApiServiceImpl(
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
     } yield PurposeManagementDependency.ChangedBy.PRODUCER
 
+  def enhancePurpose(bearerToken: String)(depPurpose: PurposeManagementDependency.Purpose): Future[Purpose] =
+    for {
+      depAgreements <- agreementManagementService.getAgreements(bearerToken)(
+        depPurpose.eserviceId,
+        depPurpose.consumerId
+      )
+      depAgreement <- depAgreements
+        .sortBy(_.createdAt)
+        .lastOption
+        .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
+      depEService <- catalogManagementService.getEServiceById(bearerToken)(depPurpose.eserviceId)
+      depProducer <- partyManagementService.getOrganizationById(bearerToken)(depEService.producerId)
+      depClients  <- authorizationManagementService.getClients(bearerToken)(purposeId = Some(depPurpose.id))
+      agreement = AgreementConverter.dependencyToApi(depAgreement)
+      clients   = Clients(clients = depClients.map(ClientConverter.dependencyToApi))
+      producer  = OrganizationConverter.dependencyToApi(depProducer)
+      eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
+      purpose <- PurposeConverter
+        .dependencyToApi(purpose = depPurpose, eService = eService, agreement = agreement, clients = clients)
+        .toFuture
+    } yield purpose
+
   def handleApiError(
     defaultProblem: Problem
   )(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
+    case Failure(err: AgreementApiError[_]) =>
+      logger.error("Error received from Agreement Management - {}", err.responseContent)
+      val problem = err.responseContent match {
+        case Some(body: String) => agreementmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
+      }
+      complete(problem.status, problem)
+    case Failure(err: AuthorizationApiError[_]) =>
+      logger.error("Error received from Authorization Management - {}", err.responseContent)
+      val problem = err.responseContent match {
+        case Some(body: String) => authorizationmanagement.ProblemConverter.fromString(body).getOrElse(defaultProblem)
+        case _                  => defaultProblem
+      }
+      complete(problem.status, problem)
     case Failure(err: CatalogApiError[_]) =>
       logger.error("Error received from Catalog Management - {}", err.responseContent)
       val problem = err.responseContent match {

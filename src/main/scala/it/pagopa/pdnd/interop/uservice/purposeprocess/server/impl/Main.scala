@@ -59,12 +59,17 @@ trait AgreementManagementDependency {
 
 trait AuthorizationManagementDependency {
   private final val authorizationManagementInvoker: AuthorizationManagementInvoker = AuthorizationManagementInvoker()
-  private final val authorizationManagementApi: AuthorizationManagementPurposeApi = AuthorizationManagementApi(
-    ApplicationConfiguration.authorizationManagementURL
-  )
+  private final val authorizationManagementPurposeApi: AuthorizationManagementPurposeApi =
+    AuthorizationManagementPurposeApi(ApplicationConfiguration.authorizationManagementURL)
+  private final val authorizationManagementClientApi: AuthorizationManagementClientApi =
+    AuthorizationManagementClientApi(ApplicationConfiguration.authorizationManagementURL)
 
   val authorizationManagement: AuthorizationManagementService =
-    AuthorizationManagementServiceImpl(authorizationManagementInvoker, authorizationManagementApi)
+    AuthorizationManagementServiceImpl(
+      authorizationManagementInvoker,
+      authorizationManagementPurposeApi,
+      authorizationManagementClientApi
+    )
 }
 
 trait CatalogManagementDependency {

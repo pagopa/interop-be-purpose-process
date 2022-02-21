@@ -2,15 +2,22 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess.api.converters.purposeman
 
 import cats.implicits._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{Purpose => DependencyPurpose}
-import it.pagopa.pdnd.interop.uservice.purposeprocess.model.Purpose
+import it.pagopa.pdnd.interop.uservice.purposeprocess.model.{Agreement, Clients, EService, Purpose}
 
 object PurposeConverter {
-  def dependencyToApi(purpose: DependencyPurpose): Either[Throwable, Purpose] = {
+  def dependencyToApi(
+    purpose: DependencyPurpose,
+    eService: EService,
+    agreement: Agreement,
+    clients: Clients
+  ): Either[Throwable, Purpose] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.traverse(RiskAnalysisConverter.dependencyToApi)
     } yield Purpose(
       id = purpose.id,
-      eserviceId = purpose.eserviceId,
+      agreement = agreement,
+      eservice = eService,
+      clients = clients,
       consumerId = purpose.consumerId,
       versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
       suspendedByConsumer = purpose.suspendedByConsumer,
