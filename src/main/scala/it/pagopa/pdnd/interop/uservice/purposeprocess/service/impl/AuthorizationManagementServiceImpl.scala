@@ -1,7 +1,7 @@
 package it.pagopa.pdnd.interop.uservice.purposeprocess.service.impl
 
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.{ClientComponentState, ClientPurposeDetailsUpdate}
+import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiRequest, BearerToken}
+import it.pagopa.interop.authorizationmanagement.client.model.{ClientComponentState, ClientPurposeDetailsUpdate}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   AuthorizationManagementInvoker,
   AuthorizationManagementPurposeApi,

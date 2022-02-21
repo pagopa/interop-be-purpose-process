@@ -7,7 +7,7 @@ import it.pagopa.pdnd.interop.commons.files.service.{FileManager, StorageFilePat
 import it.pagopa.pdnd.interop.commons.utils.TypeConversions._
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.model.EService
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientComponentState
+import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.ChangedBy._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model._

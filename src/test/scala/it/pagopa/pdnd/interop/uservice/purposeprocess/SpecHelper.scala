@@ -9,10 +9,9 @@ import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUI
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientComponentState
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagement}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   ActivatePurposeVersionPayload,
@@ -232,7 +231,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   def mockClientStateUpdate(
     purposeId: UUID,
     state: AuthorizationManagement.ClientComponentState
-  ): CallHandler3[String, UUID, ClientComponentState, Future[Unit]] =
+  ): CallHandler3[String, UUID, AuthorizationManagement.ClientComponentState, Future[Unit]] =
     (mockAuthorizationManagementService
       .updateStateOnClients(_: String)(_: UUID, _: AuthorizationManagement.ClientComponentState))
       .expects(bearerToken, purposeId, state)

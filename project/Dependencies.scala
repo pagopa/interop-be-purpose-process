@@ -28,7 +28,7 @@ object Dependencies {
     lazy val agreementManagementClient =
       namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
     lazy val authorizationManagementClient =
-      namespace %% "pdnd-interop-uservice-key-management-client" % authorizationManagementVersion
+      namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val purposeManagementClient =
       namespace %% "pdnd-interop-uservice-purpose-management-client" % purposeManagementVersion
     lazy val catalogManagementClient =
