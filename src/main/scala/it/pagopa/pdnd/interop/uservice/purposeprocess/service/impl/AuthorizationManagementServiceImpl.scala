@@ -35,10 +35,9 @@ final case class AuthorizationManagementServiceImpl(
       } // Do not fail because this service should not be blocked by this update
   }
 
-//  override def getClients(bearerToken: String)(purposeId: Option[UUID]): Future[Seq[Client]] = {
-//    val request: ApiRequest[Seq[Client]] =
-//      clientApi.listClients(purposeId = purposeId.map(_.toString))(BearerToken(bearerToken))
-//    invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
-//  }
-  override def getClients(bearerToken: String)(purposeId: Option[UUID]): Future[Seq[Client]] = ???
+  override def getClients(bearerToken: String)(purposeId: Option[UUID]): Future[Seq[Client]] = {
+    val request: ApiRequest[Seq[Client]] =
+      clientApi.listClients(purposeId = purposeId)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
+  }
 }

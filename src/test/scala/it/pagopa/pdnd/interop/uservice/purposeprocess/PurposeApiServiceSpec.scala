@@ -361,28 +361,22 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeAsProducerId   = UUID.randomUUID()
       val unauthorizedPurposeId = UUID.randomUUID()
 
-      val otherConsumerId = UUID.randomUUID()
-      val otherEServiceId = UUID.randomUUID()
-      val otherProducerId = UUID.randomUUID()
+      val otherConsumerId1 = UUID.randomUUID()
+      val otherConsumerId2 = UUID.randomUUID()
+      val otherEServiceId1 = UUID.randomUUID()
+      val otherEServiceId2 = UUID.randomUUID()
+      val otherProducerId  = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      println(s"userId $userId")
-      println(s"own eServiceId $ownEServiceId")
-      println(s"own consumerId $ownConsumerId")
-      println(s"own producerId $ownProducerId")
-      println(s"other eServiceId $otherEServiceId")
-      println(s"other consumerId $otherConsumerId")
-      println(s"other ProducerId $otherProducerId")
-
-      val ownEService   = SpecData.eService.copy(id = ownEServiceId, producerId = ownProducerId)
-      val otherEService = SpecData.eService.copy(id = otherEServiceId, producerId = otherProducerId)
+      val ownEService    = SpecData.eService.copy(id = ownEServiceId, producerId = ownProducerId)
+      val otherEService1 = SpecData.eService.copy(id = otherEServiceId1, producerId = otherProducerId)
       val purposeAsConsumer =
-        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownConsumerId, eserviceId = otherEServiceId)
+        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownConsumerId, eserviceId = otherEServiceId2)
       val purposeAsProducer =
-        SpecData.purpose.copy(id = purposeAsProducerId, consumerId = otherConsumerId, eserviceId = ownEServiceId)
+        SpecData.purpose.copy(id = purposeAsProducerId, consumerId = otherConsumerId2, eserviceId = ownEServiceId)
       val purposeUnauthorized =
-        SpecData.purpose.copy(id = unauthorizedPurposeId, consumerId = otherConsumerId, eserviceId = otherEServiceId)
+        SpecData.purpose.copy(id = unauthorizedPurposeId, consumerId = otherConsumerId1, eserviceId = otherEServiceId1)
 
       val purposes: PurposeManagementDependency.Purposes =
         PurposeManagementDependency.Purposes(Seq(purposeAsConsumer, purposeAsProducer, purposeUnauthorized))
@@ -401,10 +395,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAssertUserConsumer(userId, ownConsumerId, SpecData.relationships(userId, ownConsumerId))
       mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
       // Producer Purpose
-      mockAssertUserProducer(userId, otherConsumerId, ownEService, SpecData.relationships(userId, ownProducerId))
+      mockAssertUserProducer(userId, otherConsumerId2, ownEService, SpecData.relationships(userId, ownProducerId))
       mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
       // Purpose not allowed
-      mockAssertUserProducer(userId, otherConsumerId, otherEService, SpecData.relationships().copy(items = Seq.empty))
+      mockAssertUserProducer(userId, otherConsumerId1, otherEService1, SpecData.relationships().copy(items = Seq.empty))
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
         status shouldEqual StatusCodes.OK
