@@ -2,7 +2,10 @@
 void sbtAction(String task) {
   echo "Executing ${task} on SBT"
   sh '''
-      echo "realm=Sonatype Nexus Repository Manager\nhost=${NEXUS}\nuser=${NEXUS_CREDENTIALS_USR}\npassword=${NEXUS_CREDENTIALS_PSW}" > ~/.sbt/.credentials
+      echo "realm=Sonatype Nexus Repository Manager" > ~/.sbt/.credentials
+      echo "host=${NEXUS}" >> ~/.sbt/.credentials
+      echo "user=${NEXUS_CREDENTIALS_USR}" >> ~/.sbt/.credentials
+      echo "password=${NEXUS_CREDENTIALS_PSW}" >> ~/.sbt/.credentials
      '''
   //using both interpolation and string concatenation to avoid Jenkins security warnings
   sh 'sbt -Dsbt.log.noformat=true -Djavax.net.ssl.trustStore=./PDNDTrustStore -Djavax.net.ssl.trustStorePassword=${PDND_TRUST_STORE_PSW} generateCode "project root" ' + "${task}"
