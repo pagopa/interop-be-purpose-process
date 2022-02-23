@@ -1,5 +1,5 @@
 import Versions._
-import PDNDVersions._
+import PagopaVersions._
 import sbt._
 
 object Dependencies {
@@ -26,19 +26,19 @@ object Dependencies {
   private[this] object pagopa {
     lazy val namespace = "it.pagopa"
     lazy val agreementManagementClient =
-      namespace %% "pdnd-interop-uservice-agreement-management-client" % agreementManagementVersion
+      namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
     lazy val authorizationManagementClient =
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val purposeManagementClient =
-      namespace %% "pdnd-interop-uservice-purpose-management-client" % purposeManagementVersion
+      namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
     lazy val catalogManagementClient =
-      namespace %% "pdnd-interop-uservice-catalog-management-client" % catalogManagementVersion
+      namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
     lazy val partyManagementClient =
-      namespace %% "pdnd-interop-uservice-party-management-client" % partyManagementVersion
+      namespace %% "interop-be-party-management-client" % partyManagementVersion
 
-    lazy val commons     = namespace %% "pdnd-interop-commons-utils"        % commonsVersion
-    lazy val fileManager = namespace %% "pdnd-interop-commons-file-manager" % commonsVersion
-    lazy val jwt         = namespace %% "pdnd-interop-commons-jwt"          % commonsVersion
+    lazy val commons     = namespace %% "interop-commons-utils"        % commonsVersion
+    lazy val fileManager = namespace %% "interop-commons-file-manager" % commonsVersion
+    lazy val jwt         = namespace %% "interop-commons-jwt"          % commonsVersion
   }
 
   private[this] object cats {
