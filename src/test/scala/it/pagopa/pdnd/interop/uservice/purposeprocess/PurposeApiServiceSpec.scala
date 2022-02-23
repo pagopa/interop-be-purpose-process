@@ -36,7 +36,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-//        riskAnalysisForm = SpecData.validRiskAnalysis
         riskAnalysisForm = None
       )
 
@@ -63,11 +62,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(managementResponse).toOption.get
+      mockPurposeEnhancement(managementResponse, isConsumer = true)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose] shouldEqual expected
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -110,11 +109,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(managementResponse).toOption.get
+      mockPurposeEnhancement(managementResponse, isConsumer = true)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose] shouldEqual expected
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -158,7 +157,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        //        riskAnalysisForm = SpecData.validRiskAnalysis
         riskAnalysisForm = None
       )
 
@@ -211,8 +209,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose retrieve" should {
-    "succeed" in {
+    "succeed if requested by consumer" in {
       val purposeId = UUID.randomUUID()
+      val userId    = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       (mockPurposeManagementService
         .getPurpose(_: String)(_: UUID))
@@ -220,16 +221,48 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
-      val expected: Purpose = PurposeConverter.dependencyToApi(SpecData.purpose).toOption.get
+      mockAssertUserConsumer(userId, SpecData.purpose.consumerId, SpecData.relationships())
+      mockPurposeEnhancement(SpecData.purpose, isConsumer = true)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Purpose] shouldEqual expected
+        val response = responseAs[Purpose]
+        response.id shouldEqual SpecData.purpose.id
+        response.clients.clients should not be empty
+      }
+    }
+
+    "succeed if requested by producer" in {
+      val purposeId = UUID.randomUUID()
+      val userId    = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purpose  = SpecData.purpose
+      val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(Future.successful(purpose))
+
+      mockAssertUserProducer(userId, purpose.consumerId, eService, SpecData.relationships())
+      mockPurposeEnhancement(purpose, isConsumer = false)
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        val response = responseAs[Purpose]
+        response.id shouldEqual purpose.id
+        response.clients.clients shouldBe empty
       }
     }
 
     "fail if Purpose does not exist" in {
       val purposeId = UUID.randomUUID()
+      val userId    = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -248,12 +281,50 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "fail if User is not a Consumer or a Producer" in {
+      val purposeId = UUID.randomUUID()
+      val userId    = UUID.randomUUID()
+
+      val purpose  = SpecData.purpose
+      val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      (mockPurposeManagementService
+        .getPurpose(_: String)(_: UUID))
+        .expects(bearerToken, purposeId)
+        .once()
+        .returns(Future.successful(SpecData.purpose))
+
+      mockAssertUserProducer(
+        userId,
+        SpecData.purpose.consumerId,
+        eService,
+        SpecData.relationships().copy(items = Seq.empty)
+      )
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0009"
+      }
+    }
+
   }
 
   "Purposes listing" should {
     "succeed" in {
+      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
+      val purposes: PurposeManagementDependency.Purposes =
+        PurposeManagementDependency.Purposes(Seq(purpose))
+
       val states = Seq(
         PurposeManagementDependency.PurposeVersionState.DRAFT,
         PurposeManagementDependency.PurposeVersionState.ACTIVE
@@ -267,13 +338,74 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         ))
         .expects(bearerToken, Some(eServiceId), Some(consumerId), states)
         .once()
-        .returns(Future.successful(SpecData.purposes))
+        .returns(Future.successful(purposes))
 
-      val expected: Purposes = PurposesConverter.dependencyToApi(SpecData.purposes).toOption.get
+      purposes.purposes.foreach { purpose =>
+        mockAssertUserConsumer(userId, consumerId, SpecData.relationships())
+        mockPurposeEnhancement(purpose, isConsumer = true)
+      }
 
       Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Purposes] shouldEqual expected
+        responseAs[Purposes].purposes.map(_.id) should contain theSameElementsAs purposes.purposes.map(_.id)
+      }
+    }
+
+    "succeed showing only authorized purposes" in {
+      val userId        = UUID.randomUUID()
+      val ownEServiceId = UUID.randomUUID()
+      val ownConsumerId = UUID.randomUUID()
+      val ownProducerId = UUID.randomUUID()
+
+      val purposeAsConsumerId   = UUID.randomUUID()
+      val purposeAsProducerId   = UUID.randomUUID()
+      val unauthorizedPurposeId = UUID.randomUUID()
+
+      val otherConsumerId1 = UUID.randomUUID()
+      val otherConsumerId2 = UUID.randomUUID()
+      val otherEServiceId1 = UUID.randomUUID()
+      val otherEServiceId2 = UUID.randomUUID()
+      val otherProducerId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val ownEService    = SpecData.eService.copy(id = ownEServiceId, producerId = ownProducerId)
+      val otherEService1 = SpecData.eService.copy(id = otherEServiceId1, producerId = otherProducerId)
+      val purposeAsConsumer =
+        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownConsumerId, eserviceId = otherEServiceId2)
+      val purposeAsProducer =
+        SpecData.purpose.copy(id = purposeAsProducerId, consumerId = otherConsumerId2, eserviceId = ownEServiceId)
+      val purposeUnauthorized =
+        SpecData.purpose.copy(id = unauthorizedPurposeId, consumerId = otherConsumerId1, eserviceId = otherEServiceId1)
+
+      val purposes: PurposeManagementDependency.Purposes =
+        PurposeManagementDependency.Purposes(Seq(purposeAsConsumer, purposeAsProducer, purposeUnauthorized))
+
+      (mockPurposeManagementService
+        .getPurposes(_: String)(
+          _: Option[UUID],
+          _: Option[UUID],
+          _: Seq[PurposeManagementDependency.PurposeVersionState]
+        ))
+        .expects(bearerToken, None, None, Seq.empty)
+        .once()
+        .returns(Future.successful(purposes))
+
+      // Consumer Purpose
+      mockAssertUserConsumer(userId, ownConsumerId, SpecData.relationships(userId, ownConsumerId))
+      mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
+      // Producer Purpose
+      mockAssertUserProducer(userId, otherConsumerId2, ownEService, SpecData.relationships(userId, ownProducerId))
+      mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
+      // Purpose not allowed
+      mockAssertUserProducer(userId, otherConsumerId1, otherEService1, SpecData.relationships().copy(items = Seq.empty))
+
+      Get() ~> service.getPurposes(None, None, "") ~> check {
+        status shouldEqual StatusCodes.OK
+        val result = responseAs[Purposes]
+        result.purposes.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
+        result.purposes.find(_.id == purposeAsConsumer.id).get.clients.clients should not be empty
+        result.purposes.find(_.id == purposeAsProducer.id).get.clients.clients shouldBe empty
       }
     }
 
@@ -282,6 +414,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
       val apiError =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
+      val userId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       (mockPurposeManagementService
         .getPurposes(_: String)(

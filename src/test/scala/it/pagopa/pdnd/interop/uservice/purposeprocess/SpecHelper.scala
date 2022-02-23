@@ -4,15 +4,15 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
+import it.pagopa.interop.authorizationmanagement.client.model.Client
 import it.pagopa.pdnd.interop.commons.files.service.FileManager
 import it.pagopa.pdnd.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.model.Agreement
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.model.ClientComponentState
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.model.Relationships
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
-import it.pagopa.pdnd.interop.uservice.keymanagement.client.{model => AuthorizationManagement}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   ActivatePurposeVersionPayload,
@@ -232,12 +232,39 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   def mockClientStateUpdate(
     purposeId: UUID,
     state: AuthorizationManagement.ClientComponentState
-  ): CallHandler3[String, UUID, ClientComponentState, Future[Unit]] =
+  ): CallHandler3[String, UUID, AuthorizationManagement.ClientComponentState, Future[Unit]] =
     (mockAuthorizationManagementService
       .updateStateOnClients(_: String)(_: UUID, _: AuthorizationManagement.ClientComponentState))
       .expects(bearerToken, purposeId, state)
       .returning(Future.successful(()))
       .once()
+
+  def mockClientsRetrieve(
+    purposeId: Option[UUID],
+    result: Seq[AuthorizationManagement.Client] = Seq(SpecData.client)
+  ): CallHandler2[String, Option[UUID], Future[Seq[Client]]] =
+    (mockAuthorizationManagementService
+      .getClients(_: String)(_: Option[UUID]))
+      .expects(bearerToken, purposeId)
+      .returning(Future.successful(result))
+      .once()
+
+  def mockPurposeEnhancement(
+    purpose: PurposeManagement.Purpose,
+    isConsumer: Boolean,
+    eService: Option[CatalogManagement.EService] = None
+  ): Unit = {
+    val agreement      = SpecData.agreement
+    val descriptor     = SpecData.descriptor.copy(id = agreement.descriptorId)
+    val actualEService = eService.getOrElse(SpecData.eService).copy(descriptors = Seq(descriptor))
+    mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
+    mockEServiceRetrieve(purpose.eserviceId, actualEService)
+    mockOrganizationRetrieve(actualEService.producerId)
+    if (isConsumer)
+      mockClientsRetrieve(Some(purpose.id))
+
+    ()
+  }
 
   implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
     sprayJsonUnmarshaller[Purpose]

@@ -2,13 +2,15 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 
 import akka.actor.ActorSystem
 import it.pagopa.pdnd.interop.uservice._
+import it.pagopa.interop.authorizationmanagement
 
 package object service {
   type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
   type AgreementManagementApi     = agreementmanagement.client.api.AgreementApi
 
-  type AuthorizationManagementInvoker    = keymanagement.client.invoker.ApiInvoker
-  type AuthorizationManagementPurposeApi = keymanagement.client.api.PurposeApi
+  type AuthorizationManagementInvoker    = authorizationmanagement.client.invoker.ApiInvoker
+  type AuthorizationManagementPurposeApi = authorizationmanagement.client.api.PurposeApi
+  type AuthorizationManagementClientApi  = authorizationmanagement.client.api.ClientApi
 
   type PurposeManagementInvoker = purposemanagement.client.invoker.ApiInvoker
   type PurposeManagementApi     = purposemanagement.client.api.PurposeApi
@@ -30,11 +32,17 @@ package object service {
 
   object AuthorizationManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): AuthorizationManagementInvoker =
-      keymanagement.client.invoker.ApiInvoker(keymanagement.client.api.EnumsSerializers.all)
+      authorizationmanagement.client.invoker.ApiInvoker(authorizationmanagement.client.api.EnumsSerializers.all)
   }
 
-  object AuthorizationManagementApi {
-    def apply(baseUrl: String): AuthorizationManagementPurposeApi = keymanagement.client.api.PurposeApi(baseUrl)
+  object AuthorizationManagementClientApi {
+    def apply(baseUrl: String): AuthorizationManagementClientApi =
+      authorizationmanagement.client.api.ClientApi(baseUrl)
+  }
+
+  object AuthorizationManagementPurposeApi {
+    def apply(baseUrl: String): AuthorizationManagementPurposeApi =
+      authorizationmanagement.client.api.PurposeApi(baseUrl)
   }
 
   object PurposeManagementInvoker {

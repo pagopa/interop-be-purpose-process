@@ -2,7 +2,7 @@ package it.pagopa.pdnd.interop.uservice.purposeprocess
 
 import it.pagopa.pdnd.interop.uservice.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.pdnd.interop.uservice.partymanagement.client.{model => PartyManagement}
-import it.pagopa.pdnd.interop.uservice.purposemanagement.client
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.pdnd.interop.uservice.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.pdnd.interop.uservice.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.pdnd.interop.uservice.purposeprocess.api.impl.RiskAnalysisValidation
@@ -93,18 +93,18 @@ object SpecData {
     )
   )
 
-  val validManagementRiskAnalysisSeed: client.model.RiskAnalysisFormSeed =
+  val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
     RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
 
-  val validManagementRiskAnalysis: client.model.RiskAnalysisForm =
-    client.model.RiskAnalysisForm(
+  val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+    PurposeManagement.RiskAnalysisForm(
       id = UUID.randomUUID(),
       version = validManagementRiskAnalysisSeed.version,
       singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
-        client.model.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
       multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
-        client.model.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
       )
     )
 
@@ -143,8 +143,20 @@ object SpecData {
     state = AgreementManagement.AgreementState.ACTIVE,
     verifiedAttributes = Seq.empty,
     suspendedByConsumer = None,
-    suspendedByProducer = None
+    suspendedByProducer = None,
+    createdAt = timestamp,
+    updatedAt = None
   )
+
+  val client: AuthorizationManagement.Client =
+    AuthorizationManagement.Client(
+      id = UUID.randomUUID(),
+      consumerId = UUID.randomUUID(),
+      name = "Client",
+      description = None,
+      purposes = Seq.empty,
+      relationships = Set.empty
+    )
 
   val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(
     `type` = "something",
