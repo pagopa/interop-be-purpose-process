@@ -10,7 +10,9 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   PurposeVersionSeed,
   PurposeVersionState,
   Purposes,
-  StateChangeDetails
+  StateChangeDetails,
+  DraftPurposeVersionUpdateContent,
+  WaitingForApprovalPurposeVersionUpdateContent
 }
 import it.pagopa.pdnd.interop.uservice.purposeprocess.service.{
   PurposeManagementApi,
@@ -94,5 +96,23 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     val request: ApiRequest[PurposeVersion] =
       api.archivePurposeVersion(purposeId, versionId, stateChangeDetails)(BearerToken(bearerToken))
     invoker.invoke(request, s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
+  }
+
+  override def updateDraftPurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
+      api.updateDraftPurposeVersion(purposeId, versionId, updateContent)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Updating draft version $versionId of Purpose $purposeId with $updateContent")
+  }
+
+  override def updateWaitingForApprovalPurposeVersion(bearerToken: String)(
+    purposeId: UUID,
+    versionId: UUID,
+    updateContent: WaitingForApprovalPurposeVersionUpdateContent
+  ): Future[PurposeVersion] = {
+    val request: ApiRequest[PurposeVersion] =
+      api.updateWaitingForApprovalPurposeVersion(purposeId, versionId, updateContent)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Updating draft version $versionId of Purpose $purposeId with $updateContent")
   }
 }

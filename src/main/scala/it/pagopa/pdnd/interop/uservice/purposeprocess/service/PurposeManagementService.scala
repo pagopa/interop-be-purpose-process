@@ -9,7 +9,9 @@ import it.pagopa.pdnd.interop.uservice.purposemanagement.client.model.{
   PurposeVersionSeed,
   PurposeVersionState,
   Purposes,
-  StateChangeDetails
+  StateChangeDetails,
+  DraftPurposeVersionUpdateContent,
+  WaitingForApprovalPurposeVersionUpdateContent
 }
 
 import java.util.UUID
@@ -39,4 +41,14 @@ trait PurposeManagementService {
   def archivePurposeVersion(
     bearerToken: String
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
+
+  def updateDraftPurposeVersion(
+    bearerToken: String
+  )(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent): Future[PurposeVersion]
+
+  def updateWaitingForApprovalPurposeVersion(bearerToken: String)(
+    purposeId: UUID,
+    versionId: UUID,
+    updateContent: WaitingForApprovalPurposeVersionUpdateContent
+  ): Future[PurposeVersion]
 }
