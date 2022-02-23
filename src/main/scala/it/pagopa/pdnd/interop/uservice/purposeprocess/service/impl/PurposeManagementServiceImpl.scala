@@ -113,6 +113,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   ): Future[PurposeVersion] = {
     val request: ApiRequest[PurposeVersion] =
       api.updateWaitingForApprovalPurposeVersion(purposeId, versionId, updateContent)(BearerToken(bearerToken))
-    invoker.invoke(request, s"Updating draft version $versionId of Purpose $purposeId with $updateContent")
+    invoker.invoke(
+      request,
+      s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
+    )
   }
 }

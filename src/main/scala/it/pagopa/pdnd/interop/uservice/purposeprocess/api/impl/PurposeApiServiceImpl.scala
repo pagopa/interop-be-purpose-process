@@ -464,7 +464,7 @@ final case class PurposeApiServiceImpl(
         case Success(r) =>
           updateWaitingForApprovalPurposeVersion200(r)
         case Failure(ex) =>
-          logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error("Error while updating waiting for approval Version {} of Purpose {}", versionId, purposeId, ex)
           complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
