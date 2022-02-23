@@ -12,6 +12,7 @@ object PurposeVersionConverter {
       updatedAt = version.updatedAt,
       firstActivationAt = version.firstActivationAt,
       expectedApprovalDate = version.expectedApprovalDate,
-      riskAnalysis = version.riskAnalysis.map(PurposeVersionDocumentConverter.dependencyToApi)
+      riskAnalysis = version.riskAnalysis.map(PurposeVersionDocumentConverter.dependencyToApi),
+      dailyCalls = version.dailyCalls
     )
 }

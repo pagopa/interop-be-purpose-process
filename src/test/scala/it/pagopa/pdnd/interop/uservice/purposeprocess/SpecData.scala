@@ -127,10 +127,16 @@ object SpecData {
     state = PurposeManagement.PurposeVersionState.DRAFT,
     createdAt = timestamp,
     updatedAt = None,
+    firstActivationAt = None,
     expectedApprovalDate = None,
     dailyCalls = 1000,
     riskAnalysis = None
   )
+
+  def draftUpdate(dailyCalls: Int): DraftPurposeVersionUpdateContent = DraftPurposeVersionUpdateContent(dailyCalls)
+
+  def waitingForApprovalUpdate: WaitingForApprovalPurposeVersionUpdateContent =
+    WaitingForApprovalPurposeVersionUpdateContent(timestamp)
 
   val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
 
@@ -155,7 +161,8 @@ object SpecData {
       name = "Client",
       description = None,
       purposes = Seq.empty,
-      relationships = Set.empty
+      relationships = Set.empty,
+      kind = AuthorizationManagement.ClientKind.CONSUMER
     )
 
   val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(

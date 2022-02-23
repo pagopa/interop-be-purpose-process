@@ -54,6 +54,7 @@ final case class PurposeApiServiceImpl(
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
+
   private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
@@ -393,6 +394,78 @@ final case class PurposeApiServiceImpl(
         case Failure(ex) =>
           logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
           archivePurposeVersion400(defaultProblem)
+      }
+    }
+  }
+
+  override def updateDraftPurposeVersion(
+    purposeId: String,
+    versionId: String,
+    updateContent: DraftPurposeVersionUpdateContent
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result: Future[PurposeVersion] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+      update = DraftPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
+      response <- purposeManagementService.updateDraftPurposeVersion(bearerToken)(purposeUUID, versionUUID, update)
+    } yield PurposeVersionConverter.dependencyToApi(response)
+
+    val defaultProblem: Problem =
+      problemOf(StatusCodes.InternalServerError, ArchivePurposeBadRequest(purposeId, versionId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(r) =>
+          updateDraftPurposeVersion200(r)
+        case Failure(ex) =>
+          logger.error("Error while updating draft Version {} of Purpose {}", versionId, purposeId, ex)
+          complete(StatusCodes.InternalServerError, defaultProblem)
+      }
+    }
+  }
+
+  override def updateWaitingForApprovalPurposeVersion(
+    purposeId: String,
+    versionId: String,
+    updateContent: WaitingForApprovalPurposeVersionUpdateContent
+  )(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    val result: Future[PurposeVersion] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAProducer(bearerToken)(userUUID, purpose.eserviceId)
+      update = WaitingForApprovalPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
+      response <- purposeManagementService.updateWaitingForApprovalPurposeVersion(bearerToken)(
+        purposeUUID,
+        versionUUID,
+        update
+      )
+    } yield PurposeVersionConverter.dependencyToApi(response)
+
+    val defaultProblem: Problem =
+      problemOf(StatusCodes.InternalServerError, ArchivePurposeBadRequest(purposeId, versionId))
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(r) =>
+          updateWaitingForApprovalPurposeVersion200(r)
+        case Failure(ex) =>
+          logger.error("Error while updating waiting for approval Version {} of Purpose {}", versionId, purposeId, ex)
+          complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
   }
