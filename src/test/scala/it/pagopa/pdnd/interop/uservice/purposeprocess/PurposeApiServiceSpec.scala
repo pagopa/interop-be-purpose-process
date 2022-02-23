@@ -697,7 +697,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose draft version update" should {
 
-    "succed" in {
+    "succeed" in {
 
       val userId           = UUID.randomUUID()
       val consumerId       = UUID.randomUUID()
@@ -709,7 +709,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val expected: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion.copy(dailyCalls = 100)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
 
       (mockPurposeManagementService
         .updateDraftPurposeVersion(_: String)(
@@ -773,7 +773,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
 
       Post() ~> service.updateDraftPurposeVersion(
         purposeId.toString,
@@ -832,7 +832,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose waiting for approval version update" should {
 
-    "succed" in {
+    "succeed" in {
       val userId           = UUID.randomUUID()
       val producerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
@@ -845,8 +845,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.purposeVersion.copy(expectedApprovalDate = Some(timestamp))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(producerId = producerId))
-      mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId))
+      mockAssertUserProducer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
 
       (
         mockPurposeManagementService
@@ -913,8 +912,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(producerId = producerId))
-      mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId).copy(items = Seq.empty))
+      mockAssertUserProducer(
+        userId,
+        consumerId,
+        eService,
+        SpecData.relationships(userId, producerId).copy(items = Seq.empty)
+      )
 
       Post() ~> service.updateWaitingForApprovalPurposeVersion(
         purposeId.toString,
