@@ -11,7 +11,7 @@ object ApplicationConfiguration {
   lazy val jwtAudience: Set[String] = config.getStringList("purpose-process.jwt.audience").asScala.toSet
 
   lazy val agreementManagementURL: String     = config.getString("purpose-process.services.agreement-management")
-  lazy val authorizationManagementURL: String = config.getString("purpose-process.services.key-management")
+  lazy val authorizationManagementURL: String = config.getString("purpose-process.services.authorization-management")
   lazy val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
   lazy val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
   lazy val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
