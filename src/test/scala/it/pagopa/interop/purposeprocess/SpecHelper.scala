@@ -218,13 +218,22 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   ): CallHandler3[String, UUID, UUID, Future[Relationships]] =
     mockRelationshipsRetrieve(userId, consumerId, result)
 
-  def mockAssertUserProducer(
+  def mockAssertUserProducerIfNotConsumer(
     userId: UUID,
     consumerId: UUID,
     eService: CatalogManagement.EService,
     relationships: PartyManagement.Relationships
   ): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
     mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+    mockEServiceRetrieve(eService.id, eService)
+    mockRelationshipsRetrieve(userId, eService.producerId, relationships)
+  }
+
+  def mockAssertUserProducer(
+    userId: UUID,
+    eService: CatalogManagement.EService,
+    relationships: PartyManagement.Relationships
+  ): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
     mockEServiceRetrieve(eService.id, eService)
     mockRelationshipsRetrieve(userId, eService.producerId, relationships)
   }

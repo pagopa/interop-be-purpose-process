@@ -247,7 +247,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purpose))
 
-      mockAssertUserProducer(userId, purpose.consumerId, eService, SpecData.relationships())
+      mockAssertUserProducerIfNotConsumer(userId, purpose.consumerId, eService, SpecData.relationships())
       mockPurposeEnhancement(purpose, isConsumer = false)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -296,7 +296,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
-      mockAssertUserProducer(
+      mockAssertUserProducerIfNotConsumer(
         userId,
         SpecData.purpose.consumerId,
         eService,
@@ -395,10 +395,20 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAssertUserConsumer(userId, ownConsumerId, SpecData.relationships(userId, ownConsumerId))
       mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
       // Producer Purpose
-      mockAssertUserProducer(userId, otherConsumerId2, ownEService, SpecData.relationships(userId, ownProducerId))
+      mockAssertUserProducerIfNotConsumer(
+        userId,
+        otherConsumerId2,
+        ownEService,
+        SpecData.relationships(userId, ownProducerId)
+      )
       mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
       // Purpose not allowed
-      mockAssertUserProducer(userId, otherConsumerId1, otherEService1, SpecData.relationships().copy(items = Seq.empty))
+      mockAssertUserProducerIfNotConsumer(
+        userId,
+        otherConsumerId1,
+        otherEService1,
+        SpecData.relationships().copy(items = Seq.empty)
+      )
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
         status shouldEqual StatusCodes.OK
@@ -845,8 +855,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.purposeVersion.copy(expectedApprovalDate = Some(timestamp))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(producerId = producerId))
-      mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId))
+      mockAssertUserProducer(
+        userId,
+        SpecData.eService.copy(id = eserviceId, producerId = producerId),
+        SpecData.relationships(userId, producerId)
+      )
 
       (
         mockPurposeManagementService
@@ -913,8 +926,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(producerId = producerId))
-      mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId).copy(items = Seq.empty))
+      mockAssertUserProducer(
+        userId,
+        SpecData.eService.copy(id = eserviceId, producerId = producerId),
+        SpecData.relationships(userId, producerId).copy(items = Seq.empty)
+      )
 
       Post() ~> service.updateWaitingForApprovalPurposeVersion(
         purposeId.toString,
@@ -943,8 +959,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(producerId = producerId))
-      mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId))
+      mockAssertUserProducer(
+        userId,
+        SpecData.eService.copy(id = eserviceId, producerId = producerId),
+        SpecData.relationships(userId, producerId)
+      )
 
       (
         mockPurposeManagementService
