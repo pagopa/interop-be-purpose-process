@@ -14,7 +14,7 @@ servers:
   - url: '/purpose-process/{{version}}'
     description: This service is the purpose process
 security:
-  - bearerAuth: []
+  - bearerAuth: [ ]
 tags:
   - name: purpose
     description: Implements purpose process
@@ -51,7 +51,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/PurposeVersionState'
-            default: []
+            default: [ ]
           explode: false
       responses:
         '200':
@@ -147,6 +147,32 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+    delete:
+      tags:
+        - purpose
+      operationId: deletePurpose
+      description: Deletes a specific purpose if there are no version or just a draft version
+      responses:
+        '204':
+          description: Purpose deleted
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Purpose has at least one version that is not in draft state or more than one version
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Purpose Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /purposes/{purposeId}/versions:
     parameters:
       - name: purposeId
@@ -180,32 +206,6 @@ paths:
             schema:
               $ref: '#/components/schemas/PurposeVersionSeed'
         required: true
-    delete:
-      tags:
-        - purpose
-      operationId: deletePurpose
-      description: Deletes a specific purpose if there are no version or just a draft version
-      responses:
-        '204':
-          description: Purpose deleted
-        '400':
-          description: Bad Request
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '403':
-          description: Purpose has at least one version that is not in draft state or more than one version
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Purpose Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
   /status:
     get:
       tags:

@@ -51,4 +51,6 @@ trait PurposeManagementService {
     versionId: UUID,
     updateContent: WaitingForApprovalPurposeVersionUpdateContent
   ): Future[PurposeVersion]
+
+  def deletePurpose(bearerToken: String)(purposeId: UUID): Future[Unit]
 }

@@ -463,6 +463,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
 
       mockPurposeRetrieve(purposeId, managementResponse)
+      mockPurposeDelete(purposeId)
       mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
@@ -493,6 +494,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
 
       mockPurposeRetrieve(purposeId, managementResponse)
+      mockPurposeDelete(purposeId)
       mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {

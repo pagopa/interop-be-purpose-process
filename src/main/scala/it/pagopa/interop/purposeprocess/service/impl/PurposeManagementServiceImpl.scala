@@ -118,4 +118,10 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
       s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
     )
   }
+
+  override def deletePurpose(bearerToken: String)(purposeId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      api.deletePurpose(purposeId)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Deleting purpose $purposeId")
+  }
 }
