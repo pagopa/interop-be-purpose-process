@@ -91,11 +91,11 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
-          logger.error("Error creating purpose - Risk Analysis Validation failed {} - {}", seed, ex.getMessage)
+          logger.error(s"Error creating purpose - Risk Analysis Validation failed $seed - ${ex.getMessage}")
           val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
           createPurpose400(problem)
         case Failure(ex) =>
-          logger.error("Error creating purpose {}", seed, ex)
+          logger.error(s"Error creating purpose $seed  - ${ex.getMessage}")
           createPurpose400(defaultProblem)
       }
     }
@@ -124,7 +124,7 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           createPurposeVersion201(purpose)
         case Failure(ex) =>
-          logger.error("Error creating purpose version {}", seed, ex)
+          logger.error(s"Error creating purpose version $seed  - ${ex.getMessage}")
           createPurposeVersion400(defaultProblem)
       }
     }
@@ -154,7 +154,7 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           updatePurpose200(purpose)
         case Failure(ex) =>
-          logger.error("Error updating Purpose {}", purposeId, ex)
+          logger.error(s"Error updating Purpose $purposeId - ${ex.getMessage}")
           updatePurpose400(defaultProblem)
       }
     }
@@ -182,7 +182,7 @@ final case class PurposeApiServiceImpl(
         case Success(purpose) =>
           getPurpose200(purpose)
         case Failure(ex) =>
-          logger.error("Error while retrieving purpose {}", id, ex)
+          logger.error(s"Error while retrieving purpose $id - ${ex.getMessage}")
           getPurpose400(defaultProblem)
       }
     }
@@ -230,11 +230,7 @@ final case class PurposeApiServiceImpl(
           getPurposes200(purpose)
         case Failure(ex) =>
           logger.error(
-            "Error while retrieving purposes for EService {}, Consumer {} and States {}",
-            eServiceId,
-            consumerId,
-            states,
-            ex
+            s"Error while retrieving purposes for EService $eServiceId, Consumer $consumerId and States $states - ${ex.getMessage}"
           )
           getPurposes400(defaultProblem)
       }
@@ -267,10 +263,10 @@ final case class PurposeApiServiceImpl(
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(_) => deletePurpose204
         case Failure(ex: UndeletableVersionError) =>
-          logger.error("Error while deleting purpose {}: {}", id, ex.getMessage)
+          logger.error(s"Error while deleting purpose $id - ${ex.getMessage}")
           deletePurpose403(problemOf(StatusCodes.Forbidden, ex))
         case Failure(ex) =>
-          logger.error("Error while deleting purpose {}: {}", id, ex)
+          logger.error(s"Error while deleting purpose $id - ${ex.getMessage}")
           complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
@@ -309,23 +305,23 @@ final case class PurposeApiServiceImpl(
         case Success(result) =>
           activatePurposeVersion200(result)
         case Failure(ex: ActivatePurposeVersionNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          logger.error(s"Error while activating Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           val problem = problemOf(StatusCodes.NotFound, ex)
           activatePurposeVersion404(problem)
         case Failure(ex: AgreementNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          logger.error(s"Error while activating Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex: DescriptorNotFound) =>
-          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          logger.error(s"Error while activating Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex: MissingRiskAnalysis) =>
-          logger.error("Error while activating Version {} of Purpose {} - {}", versionId, purposeId, ex.getMessage)
+          logger.error(s"Error while activating Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           val problem = problemOf(StatusCodes.BadRequest, ex)
           activatePurposeVersion400(problem)
         case Failure(ex) =>
-          logger.error("Error while activating Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error(s"Error while activating Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           activatePurposeVersion400(defaultProblem)
       }
     }
@@ -359,7 +355,7 @@ final case class PurposeApiServiceImpl(
         case Success(r) =>
           suspendPurposeVersion200(r)
         case Failure(ex) =>
-          logger.error("Error while suspending Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error(s"Error while suspending Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           suspendPurposeVersion400(defaultProblem)
       }
     }
@@ -393,7 +389,7 @@ final case class PurposeApiServiceImpl(
         case Success(r) =>
           archivePurposeVersion200(r)
         case Failure(ex) =>
-          logger.error("Error while archiving Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error(s"Error while archiving Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           archivePurposeVersion400(defaultProblem)
       }
     }
@@ -427,7 +423,7 @@ final case class PurposeApiServiceImpl(
         case Success(r) =>
           updateDraftPurposeVersion200(r)
         case Failure(ex) =>
-          logger.error("Error while updating draft Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error(s"Error while updating draft Version $versionId of Purpose $purposeId - ${ex.getMessage}")
           complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
@@ -465,7 +461,9 @@ final case class PurposeApiServiceImpl(
         case Success(r) =>
           updateWaitingForApprovalPurposeVersion200(r)
         case Failure(ex) =>
-          logger.error("Error while updating waiting for approval Version {} of Purpose {}", versionId, purposeId, ex)
+          logger.error(
+            s"Error while updating waiting for approval Version $versionId of Purpose $purposeId - ${ex.getMessage}"
+          )
           complete(StatusCodes.InternalServerError, defaultProblem)
       }
     }
