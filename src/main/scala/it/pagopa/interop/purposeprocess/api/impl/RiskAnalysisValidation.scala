@@ -125,7 +125,7 @@ object RiskAnalysisValidation {
   ): ValidationResult[Seq[Unit]] =
     validationRules.find(_.fieldName == fieldName) match {
       case Some(rule) =>
-        rule.dependencies.map(validateDependency(answersJson: JsObject)).sequence
+        rule.dependencies.map(validateDependency(answersJson: JsObject, rule.fieldName)).sequence
       case None =>
         UnexpectedField(fieldName).invalidNec
     }
@@ -135,10 +135,12 @@ object RiskAnalysisValidation {
     * @param dependency dependency
     * @return Validation result
     */
-  def validateDependency(answersJson: JsObject)(dependency: DependencyEntry): ValidationResult[Unit] =
+  def validateDependency(answersJson: JsObject, dependentField: String)(
+    dependency: DependencyEntry
+  ): ValidationResult[Unit] =
     answersJson.getFields(dependency.fieldName) match {
       case Nil =>
-        DependencyNotFound(dependency.fieldName).invalidNec
+        DependencyNotFound(dependency.fieldName, dependentField).invalidNec
       case f :: Nil =>
         f match {
           case str: JsString if str.value == dependency.fieldValue =>
@@ -146,7 +148,7 @@ object RiskAnalysisValidation {
           case arr: JsArray if jsArrayContains(arr, dependency.fieldValue) =>
             ().validNec
           case _ =>
-            UnexpectedFieldValue(dependency.fieldName).invalidNec
+            UnexpectedFieldValue(dependency.fieldName, dependentField, dependency.fieldValue).invalidNec
         }
       case _ :: _ =>
         TooManyOccurrences(dependency.fieldName).invalidNec
