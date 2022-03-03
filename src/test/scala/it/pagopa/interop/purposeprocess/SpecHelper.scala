@@ -98,6 +98,20 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result.copy(id = purposeId)))
 
+  def mockPurposeDelete(purposeId: UUID): CallHandler2[String, UUID, Future[Unit]] =
+    (mockPurposeManagementService
+      .deletePurpose(_: String)(_: UUID))
+      .expects(bearerToken, purposeId)
+      .once()
+      .returns(Future.unit)
+
+  def mockPurposeVersionDelete(purposeId: UUID, versionId: UUID): CallHandler3[String, UUID, UUID, Future[Unit]] =
+    (mockPurposeManagementService
+      .deletePurposeVersion(_: String)(_: UUID, _: UUID))
+      .expects(bearerToken, purposeId, versionId)
+      .once()
+      .returns(Future.unit)
+
   def mockPurposesRetrieve(
     eServiceId: Option[UUID] = None,
     consumerId: Option[UUID] = None,
@@ -256,6 +270,13 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .getClients(_: String)(_: Option[UUID]))
       .expects(bearerToken, purposeId)
       .returning(Future.successful(result))
+      .once()
+
+  def mockPurposeFromClientRemoval(purposeId: UUID, clientId: UUID): CallHandler3[String, UUID, UUID, Future[Unit]] =
+    (mockAuthorizationManagementService
+      .removePurposeFromClient(_: String)(_: UUID, _: UUID))
+      .expects(bearerToken, purposeId, clientId)
+      .returning(Future.unit)
       .once()
 
   def mockPurposeEnhancement(

@@ -259,6 +259,14 @@ final case class PurposeApiServiceImpl(
       purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
       _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
       _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
+      clients     <- authorizationManagementService.getClients(bearerToken)(Some(purposeUUID))
+      _ <- clients.traverse(client =>
+        authorizationManagementService.removePurposeFromClient(bearerToken)(purposeUUID, client.id)
+      )
+      _ <- purpose.versions.traverse(version =>
+        purposeManagementService.deletePurposeVersion(bearerToken)(purposeUUID, version.id)
+      )
+      _ <- purposeManagementService.deletePurpose(bearerToken)(purposeUUID)
     } yield ()
 
     val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)

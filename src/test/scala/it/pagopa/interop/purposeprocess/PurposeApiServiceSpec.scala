@@ -463,6 +463,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
 
       mockPurposeRetrieve(purposeId, managementResponse)
+      mockClientsRetrieve(Some(purposeId), Seq.empty)
+      mockPurposeDelete(purposeId)
       mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
@@ -493,6 +495,43 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
 
       mockPurposeRetrieve(purposeId, managementResponse)
+      mockClientsRetrieve(Some(purposeId), Seq.empty)
+      mockPurposeDelete(purposeId)
+      mockPurposeVersionDelete(purposeId, purposeDraftVersion.id)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldBe empty
+      }
+    }
+
+    "succeed if there is just one version in draft associated with a client" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeDraftVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeDraftVersion)
+        )
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockClientsRetrieve(Some(purposeId), Seq(SpecData.client))
+      mockPurposeFromClientRemoval(purposeId, SpecData.client.id)
+      mockPurposeDelete(purposeId)
+      mockPurposeVersionDelete(purposeId, purposeDraftVersion.id)
       mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
