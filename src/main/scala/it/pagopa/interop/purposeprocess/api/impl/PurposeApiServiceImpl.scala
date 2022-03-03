@@ -153,6 +153,10 @@ final case class PurposeApiServiceImpl(
       handleApiError(defaultProblem) orElse handleUserTypeError orElse {
         case Success(purpose) =>
           updatePurpose200(purpose)
+        case Failure(ex: RiskAnalysisValidationFailed) =>
+          logger.error(s"Error Updating Purpose $purposeId - Risk Analysis Validation failed - ${ex.getMessage}")
+          val problem = problemOf(StatusCodes.BadRequest, RiskAnalysisFormError(ex.getMessage))
+          createPurpose400(problem)
         case Failure(ex) =>
           logger.error(s"Error updating Purpose $purposeId - ${ex.getMessage}")
           updatePurpose400(defaultProblem)

@@ -64,7 +64,10 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
       val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
-      verifyValidationFailure(result, _.contains(DependencyNotFound("usesThirdPartyPersonalData")) shouldBe true)
+      verifyValidationFailure(
+        result,
+        _.contains(DependencyNotFound("usesThirdPartyPersonalData", "usesConfidentialData")) shouldBe true
+      )
     }
 
     "fail if a provided answer depends on an existing field with an unexpected value" in {
@@ -80,7 +83,10 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
       val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
 
-      verifyValidationFailure(result, _.contains(UnexpectedFieldValue("usesThirdPartyPersonalData")) shouldBe true)
+      verifyValidationFailure(
+        result,
+        _.contains(UnexpectedFieldValue("usesThirdPartyPersonalData", "usesConfidentialData", "YES")) shouldBe true
+      )
     }
 
     "fail on missing expected answer (answer tree is not complete)" in {
