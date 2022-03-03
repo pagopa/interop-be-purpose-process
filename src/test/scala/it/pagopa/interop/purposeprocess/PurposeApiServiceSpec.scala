@@ -495,6 +495,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, managementResponse)
       mockPurposeDelete(purposeId)
+      mockPurposeVersionDelete(purposeId, purposeDraftVersion.id)
       mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
