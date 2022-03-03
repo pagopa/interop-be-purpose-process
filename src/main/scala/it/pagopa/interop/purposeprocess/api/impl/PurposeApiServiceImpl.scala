@@ -248,7 +248,9 @@ final case class PurposeApiServiceImpl(
 
     def isDeletable(purpose: PurposeManagementDependency.Purpose): Boolean = {
       val states = purpose.versions.map(_.state)
-      states.isEmpty || states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+      states.isEmpty ||
+      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT) ||
+      states == Seq(PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
     }
 
     val result: Future[Unit] = for {

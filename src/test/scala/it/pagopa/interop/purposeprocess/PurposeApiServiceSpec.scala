@@ -540,6 +540,40 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "succeed if there is just one version in waiting for approval associated with a client" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeVersion =
+        SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeVersion)
+        )
+
+      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockClientsRetrieve(Some(purposeId), Seq(SpecData.client))
+      mockPurposeFromClientRemoval(purposeId, SpecData.client.id)
+      mockPurposeDelete(purposeId)
+      mockPurposeVersionDelete(purposeId, purposeVersion.id)
+      mockRelationshipsRetrieve(userId, consumerId, partyManagementResponse)
+
+      Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldBe empty
+      }
+    }
+
     "fail if the user is not a consumer" in {
       val userId     = UUID.randomUUID()
       val eserviceId = UUID.randomUUID()
@@ -599,7 +633,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if there is one version in a state different from draft" in {
+    "fail if there is one version not in a deletable state" in {
       val userId     = UUID.randomUUID()
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
@@ -607,7 +641,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
+      val purposeVersion = SpecData.purposeVersion.copy(state = SUSPENDED)
 
       val managementResponse =
         SpecData.purpose.copy(
