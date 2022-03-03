@@ -272,6 +272,13 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .returning(Future.successful(result))
       .once()
 
+  def mockPurposeFromClientRemoval(purposeId: UUID, clientId: UUID): CallHandler3[String, UUID, UUID, Future[Unit]] =
+    (mockAuthorizationManagementService
+      .removePurposeFromClient(_: String)(_: UUID, _: UUID))
+      .expects(bearerToken, purposeId, clientId)
+      .returning(Future.unit)
+      .once()
+
   def mockPurposeEnhancement(
     purpose: PurposeManagement.Purpose,
     isConsumer: Boolean,

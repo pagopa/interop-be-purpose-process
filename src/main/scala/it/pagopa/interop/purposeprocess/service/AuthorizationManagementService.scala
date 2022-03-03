@@ -9,5 +9,6 @@ trait AuthorizationManagementService {
 
   def updateStateOnClients(bearerToken: String)(purposeId: UUID, state: ClientComponentState): Future[Unit]
   def getClients(bearerToken: String)(purposeId: Option[UUID]): Future[Seq[Client]]
+  def removePurposeFromClient(bearerToken: String)(purposeId: UUID, clientId: UUID): Future[Unit]
 
 }

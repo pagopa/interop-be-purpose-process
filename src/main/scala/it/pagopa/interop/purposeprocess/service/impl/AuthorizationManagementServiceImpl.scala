@@ -40,4 +40,10 @@ final case class AuthorizationManagementServiceImpl(
       clientApi.listClients(purposeId = purposeId)(BearerToken(bearerToken))
     invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
   }
+
+  override def removePurposeFromClient(bearerToken: String)(purposeId: UUID, clientId: UUID): Future[Unit] = {
+    val request: ApiRequest[Unit] =
+      purposeApi.removeClientPurpose(clientId, purposeId)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Removing purpose $purposeId from client $clientId")
+  }
 }
