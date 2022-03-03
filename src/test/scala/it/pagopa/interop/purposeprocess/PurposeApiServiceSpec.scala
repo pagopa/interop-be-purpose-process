@@ -664,6 +664,62 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
   }
 
+  "Purpose version deletion" should {
+    import PurposeManagementDependency.PurposeVersionState._
+
+    "succeed" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val managementResponse =
+        SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockPurposeVersionDelete(purposeId, versionId)
+      mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
+
+      Delete() ~> service.deletePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.NoContent
+        responseAs[String] shouldBe empty
+      }
+    }
+
+    "fail if the user is not a consumer" in {
+      val userId     = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+
+      val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
+
+      val managementResponse =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(purposeVersion)
+        )
+
+      mockPurposeRetrieve(purposeId, managementResponse)
+      mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
+
+      Delete() ~> service.deletePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        responseAs[Problem].status shouldBe 403
+        responseAs[Problem].errors.head.code shouldBe "012-0007"
+      }
+    }
+
+  }
+
   "Purpose version creation" should {
     "succeed" in {
       val userId           = UUID.randomUUID()

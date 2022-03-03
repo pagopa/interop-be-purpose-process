@@ -286,6 +286,36 @@ final case class PurposeApiServiceImpl(
     }
   }
 
+  override def deletePurposeVersion(purposeId: String, versionId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = {
+    logger.info(s"Attempting to delete version $versionId of purpose $purposeId")
+
+    val result: Future[Unit] = for {
+      bearerToken <- getBearer(contexts).toFuture
+      userId      <- getUidFuture(contexts)
+      userUUID    <- userId.toFutureUUID
+      purposeUUID <- purposeId.toFutureUUID
+      versionUUID <- versionId.toFutureUUID
+      purpose     <- purposeManagementService.getPurpose(bearerToken)(purposeUUID)
+      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+      _           <- purposeManagementService.deletePurposeVersion(bearerToken)(purposeUUID, versionUUID)
+    } yield ()
+
+    val defaultProblem: Problem =
+      problemOf(StatusCodes.InternalServerError, DeletePurposeVersionError(purposeId, versionId))
+
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(_) => deletePurposeVersion204
+        case Failure(ex) =>
+          logger.error(s"Error while deleting version $versionId of purpose $purposeId - ${ex.getMessage}")
+          complete(StatusCodes.InternalServerError, defaultProblem)
+      }
+    }
+  }
+
   override def activatePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
