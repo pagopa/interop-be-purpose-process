@@ -2,14 +2,14 @@ package it.pagopa.interop.purposeprocess.api.converters.purposemanagement
 
 import cats.implicits._
 import it.pagopa.interop.purposemanagement.client.model.{Purpose => DependencyPurpose}
-import it.pagopa.interop.purposeprocess.model.{Agreement, Clients, EService, Purpose}
+import it.pagopa.interop.purposeprocess.model.{Agreement, Client, EService, Purpose}
 
 object PurposeConverter {
   def dependencyToApi(
     purpose: DependencyPurpose,
     eService: EService,
     agreement: Agreement,
-    clients: Clients
+    clients: Seq[Client]
   ): Either[Throwable, Purpose] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.traverse(RiskAnalysisConverter.dependencyToApi)

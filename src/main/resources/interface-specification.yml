@@ -14,7 +14,7 @@ servers:
   - url: '/purpose-process/{{version}}'
     description: This service is the purpose process
 security:
-  - bearerAuth: [ ]
+  - bearerAuth: []
 tags:
   - name: purpose
     description: Implements purpose process
@@ -51,7 +51,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/PurposeVersionState'
-            default: [ ]
+            default: []
           explode: false
       responses:
         '200':
@@ -506,14 +506,9 @@ components:
         - id
         - name
     Clients:
-      type: object
-      properties:
-        clients:
-          type: array
-          items:
-            $ref: '#/components/schemas/Client'
-      required:
-        - clients
+      type: array
+      items:
+        $ref: '#/components/schemas/Client'
     EService:
       type: object
       properties:

@@ -547,14 +547,13 @@ final case class PurposeApiServiceImpl(
     depPurpose: PurposeManagementDependency.Purpose,
     userType: PurposeManagementDependency.ChangedBy
   ): Future[Purpose] = {
-    def clientsByUserType(): Future[Clients] =
+    def clientsByUserType(): Future[Seq[Client]] =
       userType match {
-        case PurposeManagementDependency.ChangedBy.PRODUCER =>
-          Future.successful(Clients(clients = Seq.empty))
+        case PurposeManagementDependency.ChangedBy.PRODUCER => Future.successful(Seq.empty[Client])
         case PurposeManagementDependency.ChangedBy.CONSUMER =>
           for {
             depClients <- authorizationManagementService.getClients(bearerToken)(purposeId = Some(depPurpose.id))
-            clients = Clients(clients = depClients.map(ClientConverter.dependencyToApi))
+            clients = depClients.map(ClientConverter.dependencyToApi)
           } yield clients
       }
 
