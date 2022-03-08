@@ -21,7 +21,6 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   final val defaultProblemType: String     = "about:blank"
 
   implicit def clientFormat: RootJsonFormat[Client]                 = jsonFormat2(Client)
-  implicit def clientsFormat: RootJsonFormat[Clients]               = jsonFormat1(Clients)
   implicit def organizationFormat: RootJsonFormat[Organization]     = jsonFormat2(Organization)
   implicit def descriptorFormat: RootJsonFormat[EServiceDescriptor] = jsonFormat4(EServiceDescriptor)
   implicit def eServiceFormat: RootJsonFormat[EService]             = jsonFormat4(EService)

@@ -228,7 +228,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
         response.id shouldEqual SpecData.purpose.id
-        response.clients.clients should not be empty
+        response.clients should not be empty
       }
     }
 
@@ -254,7 +254,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
-        response.clients.clients shouldBe empty
+        response.clients shouldBe empty
       }
     }
 
@@ -414,8 +414,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
         val result = responseAs[Purposes]
         result.purposes.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
-        result.purposes.find(_.id == purposeAsConsumer.id).get.clients.clients should not be empty
-        result.purposes.find(_.id == purposeAsProducer.id).get.clients.clients shouldBe empty
+        result.purposes.find(_.id == purposeAsConsumer.id).get.clients should not be empty
+        result.purposes.find(_.id == purposeAsProducer.id).get.clients shouldBe empty
       }
     }
 
