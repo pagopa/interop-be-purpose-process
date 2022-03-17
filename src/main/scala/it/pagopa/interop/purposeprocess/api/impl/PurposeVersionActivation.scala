@@ -142,7 +142,7 @@ final case class PurposeVersionActivation(
       )
       agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
-      activeVersions            = purposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+      consumerActiveVersions            = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
       allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
 
       consumerLoadRequestsSum        = activeVersions.map(_.dailyCalls).sum
