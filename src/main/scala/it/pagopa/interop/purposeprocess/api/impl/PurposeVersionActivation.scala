@@ -138,7 +138,7 @@ final case class PurposeVersionActivation(
       loadRequestsSum = activeVersions.map(_.dailyCalls).sum
       maxDailyCalls <- eService.descriptors
         .find(_.id == agreement.descriptorId)
-        .map(_.dailyCallsMaxNumber)
+        .map(_.dailyCallsPerConsumer)
         .toFuture(DescriptorNotFound(eService.id.toString, agreement.descriptorId.toString))
     } yield loadRequestsSum + version.dailyCalls <= maxDailyCalls
 

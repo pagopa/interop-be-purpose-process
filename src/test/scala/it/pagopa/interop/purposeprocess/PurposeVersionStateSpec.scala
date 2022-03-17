@@ -249,7 +249,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
       val purposes = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
@@ -326,7 +326,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
       val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
@@ -376,7 +376,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
       val purposes = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
@@ -427,7 +427,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
       val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
@@ -470,7 +470,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose1 =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       val updatedVersion =
@@ -512,7 +512,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose1 =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       val updatedVersion =
@@ -549,7 +549,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -583,7 +583,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       val updatedVersion =
@@ -620,7 +620,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -654,7 +654,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -688,7 +688,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -722,7 +722,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -762,7 +762,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposes = SpecData.purposes.copy(purposes = Seq(purpose))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsMaxNumber = 10000)
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       mockPurposeRetrieve(purposeId, purpose)

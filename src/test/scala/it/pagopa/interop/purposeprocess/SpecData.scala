@@ -30,7 +30,8 @@ object SpecData {
     description = None,
     audience = Seq.empty,
     voucherLifespan = 1,
-    dailyCallsMaxNumber = 10000,
+    dailyCallsPerConsumer = 10000,
+    dailyCallsTotal = 100000,
     interface = None,
     docs = Seq.empty,
     state = CatalogManagement.EServiceDescriptorState.PUBLISHED
