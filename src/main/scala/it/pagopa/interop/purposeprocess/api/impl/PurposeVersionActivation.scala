@@ -126,7 +126,7 @@ final case class PurposeVersionActivation(
     for {
       purposes <- purposeManagementService.getPurposes(bearerToken)(
         eserviceId = Some(purpose.eserviceId),
-        consumerId = Some(purpose.consumerId), //TODO per i totali non va passato questo consumer id
+        consumerId = Some(purpose.consumerId),
         states = Seq(ACTIVE)
       )
 
