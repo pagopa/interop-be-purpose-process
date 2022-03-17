@@ -145,7 +145,7 @@ final case class PurposeVersionActivation(
       activeVersions            = purposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
       allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
 
-      loadRequestsSum        = activeVersions.map(_.dailyCalls).sum
+      consumerLoadRequestsSum        = activeVersions.map(_.dailyCalls).sum
       allPurposesRequestsSum = allPurposesActiveVersions.map(_.dailyCalls).sum
 
       currentDescriptor <- eService.descriptors
