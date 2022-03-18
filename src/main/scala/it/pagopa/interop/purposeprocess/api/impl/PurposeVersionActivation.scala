@@ -124,7 +124,7 @@ final case class PurposeVersionActivation(
     bearerToken: String
   )(eService: EService, purpose: Purpose, version: PurposeVersion): Future[Boolean] = {
     for {
-      purposes <- purposeManagementService.getPurposes(bearerToken)(
+      consumerPurposes <- purposeManagementService.getPurposes(bearerToken)(
         eserviceId = Some(purpose.eserviceId),
         consumerId = Some(purpose.consumerId),
         states = Seq(ACTIVE)
@@ -142,11 +142,11 @@ final case class PurposeVersionActivation(
       )
       agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
-      consumerActiveVersions            = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+      consumerActiveVersions    = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
       allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
 
-      consumerLoadRequestsSum        = activeVersions.map(_.dailyCalls).sum
-      allPurposesRequestsSum = allPurposesActiveVersions.map(_.dailyCalls).sum
+      consumerLoadRequestsSum = consumerActiveVersions.map(_.dailyCalls).sum
+      allPurposesRequestsSum  = allPurposesActiveVersions.map(_.dailyCalls).sum
 
       currentDescriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
@@ -155,7 +155,7 @@ final case class PurposeVersionActivation(
       maxDailyCallsPerConsumer = currentDescriptor.dailyCallsPerConsumer
       maxDailyCallsTotal       = currentDescriptor.dailyCallsTotal
 
-    } yield loadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
+    } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
 
   }
 
