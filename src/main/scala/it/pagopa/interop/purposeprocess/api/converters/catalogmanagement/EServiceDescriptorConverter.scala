@@ -8,7 +8,7 @@ object EServiceDescriptorConverter {
     EServiceDescriptor(
       id = descriptor.id,
       version = descriptor.version,
-      dailyCalls = descriptor.dailyCallsMaxNumber,
+      dailyCalls = descriptor.dailyCallsPerConsumer,
       state = EServiceDescriptorStateConverter.dependencyToApi(descriptor.state)
     )
 }

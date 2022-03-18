@@ -187,7 +187,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
       result = existingPurposes
     )
-
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = None,
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
     mockAgreementsRetrieve(
       activatingPurpose.eserviceId,
       activatingPurpose.consumerId,

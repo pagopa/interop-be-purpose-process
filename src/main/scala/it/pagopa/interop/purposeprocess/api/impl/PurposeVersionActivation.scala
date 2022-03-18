@@ -124,23 +124,38 @@ final case class PurposeVersionActivation(
     bearerToken: String
   )(eService: EService, purpose: Purpose, version: PurposeVersion): Future[Boolean] = {
     for {
-      purposes <- purposeManagementService.getPurposes(bearerToken)(
+      consumerPurposes <- purposeManagementService.getPurposes(bearerToken)(
         eserviceId = Some(purpose.eserviceId),
         consumerId = Some(purpose.consumerId),
         states = Seq(ACTIVE)
       )
-      activeVersions = purposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+
+      allPurposes <- purposeManagementService.getPurposes(bearerToken)(
+        eserviceId = Some(purpose.eserviceId),
+        consumerId = None,
+        states = Seq(ACTIVE)
+      )
+
       agreements <- agreementManagementService.getAgreements(bearerToken)(
         eServiceId = purpose.eserviceId,
         consumerId = purpose.consumerId
       )
       agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
-      loadRequestsSum = activeVersions.map(_.dailyCalls).sum
-      maxDailyCalls <- eService.descriptors
+
+      consumerActiveVersions    = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+      allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+
+      consumerLoadRequestsSum = consumerActiveVersions.map(_.dailyCalls).sum
+      allPurposesRequestsSum  = allPurposesActiveVersions.map(_.dailyCalls).sum
+
+      currentDescriptor <- eService.descriptors
         .find(_.id == agreement.descriptorId)
-        .map(_.dailyCallsMaxNumber)
         .toFuture(DescriptorNotFound(eService.id.toString, agreement.descriptorId.toString))
-    } yield loadRequestsSum + version.dailyCalls <= maxDailyCalls
+
+      maxDailyCallsPerConsumer = currentDescriptor.dailyCallsPerConsumer
+      maxDailyCallsTotal       = currentDescriptor.dailyCallsTotal
+
+    } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
 
   }
 
