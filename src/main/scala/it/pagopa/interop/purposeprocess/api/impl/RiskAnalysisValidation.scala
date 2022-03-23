@@ -150,8 +150,7 @@ object RiskAnalysisValidation {
           case _ =>
             UnexpectedFieldValue(dependency.fieldName, dependentField, dependency.fieldValue).invalidNec
         }
-      case _ :: _ =>
-        TooManyOccurrences(dependency.fieldName).invalidNec
+      case _ => TooManyOccurrences(dependency.fieldName).invalidNec
     }
 
   /** Check if a JsArray contains a specific String (JsString)
