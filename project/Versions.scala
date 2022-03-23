@@ -1,5 +1,5 @@
 object Versions {
-  lazy val akkaHttpVersion             = "10.2.6"
+  lazy val akkaHttpVersion             = "10.2.9"
   lazy val akkaManagementVersion       = "1.1.1"
   lazy val akkaVersion                 = "2.6.17"
   lazy val cassandraPersistenceVersion = "1.0.5"
