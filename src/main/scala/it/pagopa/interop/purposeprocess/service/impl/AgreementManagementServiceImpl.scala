@@ -26,8 +26,8 @@ final case class AgreementManagementServiceImpl(invoker: AgreementManagementInvo
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = api.getAgreements(
-        correlationId,
-        ip,
+        xCorrelationId = correlationId,
+        xForwardedFor = ip,
         consumerId = Some(consumerId.toString),
         eserviceId = Some(eServiceId.toString),
         state = None

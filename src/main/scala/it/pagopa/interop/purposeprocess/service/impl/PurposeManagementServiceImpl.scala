@@ -24,7 +24,7 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.createPurpose(correlationId, seed, ip)(BearerToken(bearerToken))
+      request = api.createPurpose(xCorrelationId = correlationId, seed, xForwardedFor = ip)(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Creating purpose for EService ${seed.eserviceId} and Consumer ${seed.consumerId}"
@@ -38,7 +38,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.createPurposeVersion(correlationId, purposeId, seed, ip)(BearerToken(bearerToken))
+      request = api.createPurposeVersion(xCorrelationId = correlationId, purposeId, seed, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(request, s"Creating purpose version for Purpose $purposeId")
     } yield result
   }
@@ -48,7 +50,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent): Future[Purpose] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.updatePurpose(correlationId, purposeId, purposeUpdateContent, ip)(BearerToken(bearerToken))
+      request = api.updatePurpose(xCorrelationId = correlationId, purposeId, purposeUpdateContent, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(request, s"Updating Purpose $purposeId")
     } yield result
   }
@@ -56,7 +60,7 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   override def getPurpose(contexts: Seq[(String, String)])(id: UUID): Future[Purpose] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.getPurpose(correlationId, id, ip)(BearerToken(bearerToken))
+      request = api.getPurpose(xCorrelationId = correlationId, id, xForwardedFor = ip)(BearerToken(bearerToken))
       result <- invoker.invoke(request, s"Retrieving purpose $id")
     } yield result
 
@@ -67,7 +71,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.getPurposes(correlationId, ip, eserviceId, consumerId, states)(BearerToken(bearerToken))
+      request = api.getPurposes(xCorrelationId = correlationId, xForwardedFor = ip, eserviceId, consumerId, states)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(
         request,
         s"Retrieving purposes for EService $eserviceId, Consumer $consumerId and States $states"
@@ -80,7 +86,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.activatePurposeVersion(correlationId, purposeId, versionId, payload, ip)(BearerToken(bearerToken))
+      request = api.activatePurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        payload,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Activating Version $versionId of Purpose $purposeId by ${payload.stateChangeDetails.changedBy}"
@@ -94,9 +106,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.suspendPurposeVersion(correlationId, purposeId, versionId, stateChangeDetails, ip)(
-        BearerToken(bearerToken)
-      )
+      request = api.suspendPurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        stateChangeDetails,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Suspending Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}"
@@ -109,9 +125,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.waitForApprovalPurposeVersion(correlationId, purposeId, versionId, stateChangeDetails, ip)(
-        BearerToken(bearerToken)
-      )
+      request = api.waitForApprovalPurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        stateChangeDetails,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Waiting for Approval for Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}"
@@ -124,9 +144,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.archivePurposeVersion(correlationId, purposeId, versionId, stateChangeDetails, ip)(
-        BearerToken(bearerToken)
-      )
+      request = api.archivePurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        stateChangeDetails,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}"
@@ -139,9 +163,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   )(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.updateDraftPurposeVersion(correlationId, purposeId, versionId, updateContent, ip)(
-        BearerToken(bearerToken)
-      )
+      request = api.updateDraftPurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        updateContent,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(request, s"Updating draft version $versionId of Purpose $purposeId with $updateContent")
     } yield result
   }
@@ -153,9 +181,13 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   ): Future[PurposeVersion] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.updateWaitingForApprovalPurposeVersion(correlationId, purposeId, versionId, updateContent, ip)(
-        BearerToken(bearerToken)
-      )
+      request = api.updateWaitingForApprovalPurposeVersion(
+        xCorrelationId = correlationId,
+        purposeId,
+        versionId,
+        updateContent,
+        xForwardedFor = ip
+      )(BearerToken(bearerToken))
       result <- invoker.invoke(
         request,
         s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
@@ -166,7 +198,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   override def deletePurpose(contexts: Seq[(String, String)])(purposeId: UUID): Future[Unit] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.deletePurpose(correlationId, purposeId, ip)(BearerToken(bearerToken))
+      request = api.deletePurpose(xCorrelationId = correlationId, purposeId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(request, s"Deleting purpose $purposeId")
     } yield result
   }
@@ -174,7 +208,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   override def deletePurposeVersion(contexts: Seq[(String, String)])(purposeId: UUID, versionId: UUID): Future[Unit] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.deletePurposeVersion(correlationId, purposeId, versionId, ip)(BearerToken(bearerToken))
+      request = api.deletePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(request, s"Deleting purpose version $purposeId/$versionId")
     } yield result
   }

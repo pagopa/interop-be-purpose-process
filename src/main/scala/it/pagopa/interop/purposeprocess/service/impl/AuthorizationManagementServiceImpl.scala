@@ -27,10 +27,10 @@ final case class AuthorizationManagementServiceImpl(
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = purposeApi.updatePurposeState(
-        correlationId,
+        xCorrelationId = correlationId,
         purposeId = purposeId,
         clientPurposeDetailsUpdate = payload,
-        ip
+        xForwardedFor = ip
       )(BearerToken(bearerToken))
       // Do not fail because this service should not be blocked by this update
       result <- invoker

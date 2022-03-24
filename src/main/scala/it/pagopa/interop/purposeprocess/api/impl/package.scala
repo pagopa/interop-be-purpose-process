@@ -2,12 +2,12 @@ package it.pagopa.interop.purposeprocess.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCode
+import it.pagopa.interop._
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.utils.AkkaUtils.getFutureBearer
 import it.pagopa.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 import it.pagopa.interop.commons.utils.TypeConversions.TryOps
 import it.pagopa.interop.commons.utils.errors.ComponentError
-import it.pagopa.interop._
 import it.pagopa.interop.purposeprocess.model._
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 

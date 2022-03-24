@@ -58,7 +58,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: Seq[(String, String)])(_: PurposeManagementDependency.PurposeSeed))
-        .expects(*, PurposeSeedConverter.apiToDependency(seed).toOption.get)
+        .expects(context, PurposeSeedConverter.apiToDependency(seed).toOption.get)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -105,7 +105,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: Seq[(String, String)])(_: PurposeManagementDependency.PurposeSeed))
-        .expects(*, PurposeSeedConverter.apiToDependency(seed).toOption.get)
+        .expects(context, PurposeSeedConverter.apiToDependency(seed).toOption.get)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -196,7 +196,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: Seq[(String, String)])(_: PurposeManagementDependency.PurposeSeed))
-        .expects(*, PurposeSeedConverter.apiToDependency(seed).toOption.get)
+        .expects(context, PurposeSeedConverter.apiToDependency(seed).toOption.get)
         .once()
         .returns(Future.failed(apiError))
 
@@ -217,7 +217,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.successful(SpecData.purpose))
 
@@ -243,7 +243,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.successful(purpose))
 
@@ -271,7 +271,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -292,7 +292,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.successful(SpecData.purpose))
 
@@ -338,7 +338,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             _: Seq[PurposeManagementDependency.PurposeVersionState]
           )
         )
-        .expects(*, Some(eServiceId), Some(consumerId), states)
+        .expects(context, Some(eServiceId), Some(consumerId), states)
         .once()
         .returns(Future.successful(purposes))
 
@@ -391,7 +391,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             _: Seq[PurposeManagementDependency.PurposeVersionState]
           )
         )
-        .expects(*, None, None, Seq.empty)
+        .expects(context, None, None, Seq.empty)
         .once()
         .returns(Future.successful(purposes))
 
@@ -440,7 +440,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             _: Seq[PurposeManagementDependency.PurposeVersionState]
           )
         )
-        .expects(*, None, None, Seq.empty)
+        .expects(context, None, None, Seq.empty)
         .once()
         .returns(Future.failed(apiError))
 
@@ -752,7 +752,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurposeVersion(_: Seq[(String, String)])(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed))
-        .expects(*, purposeId, PurposeVersionSeedConverter.apiToDependency(seed))
+        .expects(context, purposeId, PurposeVersionSeedConverter.apiToDependency(seed))
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -779,7 +779,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -828,7 +828,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurposeVersion(_: Seq[(String, String)])(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed))
-        .expects(*, purposeId, PurposeVersionSeedConverter.apiToDependency(seed))
+        .expects(context, purposeId, PurposeVersionSeedConverter.apiToDependency(seed))
         .once()
         .returns(Future.failed(apiError))
 
@@ -864,7 +864,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             _: PurposeManagementDependency.DraftPurposeVersionUpdateContent
           )
         )
-        .expects(*, purposeId, purposeVersionId, PurposeManagementDependency.DraftPurposeVersionUpdateContent(100))
+        .expects(
+          context,
+          purposeId,
+          purposeVersionId,
+          PurposeManagementDependency.DraftPurposeVersionUpdateContent(100)
+        )
         .once()
         .returns(Future.successful[PurposeManagementDependency.PurposeVersion](expected))
 
@@ -892,7 +897,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -953,7 +958,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             _: PurposeManagementDependency.DraftPurposeVersionUpdateContent
           )
         )
-        .expects(*, purposeId, purposeVersionId, PurposeManagementDependency.DraftPurposeVersionUpdateContent(100))
+        .expects(
+          context,
+          purposeId,
+          purposeVersionId,
+          PurposeManagementDependency.DraftPurposeVersionUpdateContent(100)
+        )
         .once()
         .returns(Future.failed(apiError))
 
@@ -1031,7 +1041,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .getPurpose(_: Seq[(String, String)])(_: UUID))
-        .expects(*, purposeId)
+        .expects(context, purposeId)
         .once()
         .returns(Future.failed(apiError))
 

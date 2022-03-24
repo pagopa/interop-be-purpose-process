@@ -116,7 +116,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       (mockPurposeManagementService
         .suspendPurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          *,
+          context,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)

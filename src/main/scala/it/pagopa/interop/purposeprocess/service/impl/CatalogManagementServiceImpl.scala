@@ -23,7 +23,9 @@ final case class CatalogManagementServiceImpl(invoker: CatalogManagementInvoker,
   override def getEServiceById(contexts: Seq[(String, String)])(eServiceId: UUID): Future[EService] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
-      request = api.getEService(correlationId, eServiceId.toString, ip)(BearerToken(bearerToken))
+      request = api.getEService(xCorrelationId = correlationId, eServiceId.toString, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
       result <- invoker.invoke(request, s"Retrieving EService $eServiceId")
     } yield result
   }
