@@ -1,13 +1,10 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
-import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiRequest, BearerToken}
+import it.pagopa.interop.authorizationmanagement.client.invoker.BearerToken
 import it.pagopa.interop.authorizationmanagement.client.model.{Client, ClientComponentState, ClientPurposeDetailsUpdate}
-import it.pagopa.interop.purposeprocess.service.{
-  AuthorizationManagementClientApi,
-  AuthorizationManagementInvoker,
-  AuthorizationManagementPurposeApi,
-  AuthorizationManagementService
-}
+import it.pagopa.interop.commons.utils.extractHeaders
+import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
+import it.pagopa.interop.purposeprocess.service._
 import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
@@ -22,28 +19,49 @@ final case class AuthorizationManagementServiceImpl(
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def updateStateOnClients(bearerToken: String)(purposeId: UUID, state: ClientComponentState): Future[Unit] = {
+  override def updateStateOnClients(
+    contexts: Seq[(String, String)]
+  )(purposeId: UUID, state: ClientComponentState): Future[Unit] = {
     val payload: ClientPurposeDetailsUpdate = ClientPurposeDetailsUpdate(state = state)
-    val request: ApiRequest[Unit] =
-      purposeApi.updatePurposeState(purposeId = purposeId, clientPurposeDetailsUpdate = payload)(
+
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = purposeApi.updatePurposeState(
+        correlationId,
+        purposeId = purposeId,
+        clientPurposeDetailsUpdate = payload,
+        ip
+      )(BearerToken(bearerToken))
+      // Do not fail because this service should not be blocked by this update
+      result <- invoker
+        .invoke(request, s"Update Purpose state on all clients")
+        .recoverWith { case _ =>
+          Future.successful(())
+        }
+    } yield result
+
+  }
+
+  override def getClients(contexts: Seq[(String, String)])(purposeId: Option[UUID]): Future[Seq[Client]] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = clientApi.listClients(xCorrelationId = correlationId, xForwardedFor = ip, purposeId = purposeId)(
         BearerToken(bearerToken)
       )
-    invoker
-      .invoke(request, s"Update Purpose state on all clients")
-      .recoverWith { case _ =>
-        Future.successful(())
-      } // Do not fail because this service should not be blocked by this update
+      result <- invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
+    } yield result
+
   }
 
-  override def getClients(bearerToken: String)(purposeId: Option[UUID]): Future[Seq[Client]] = {
-    val request: ApiRequest[Seq[Client]] =
-      clientApi.listClients(purposeId = purposeId)(BearerToken(bearerToken))
-    invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
-  }
-
-  override def removePurposeFromClient(bearerToken: String)(purposeId: UUID, clientId: UUID): Future[Unit] = {
-    val request: ApiRequest[Unit] =
-      purposeApi.removeClientPurpose(clientId, purposeId)(BearerToken(bearerToken))
-    invoker.invoke(request, s"Removing purpose $purposeId from client $clientId")
+  override def removePurposeFromClient(
+    contexts: Seq[(String, String)]
+  )(purposeId: UUID, clientId: UUID): Future[Unit] = {
+    for {
+      (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
+      request = purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId, xForwardedFor = ip)(
+        BearerToken(bearerToken)
+      )
+      result <- invoker.invoke(request, s"Removing purpose $purposeId from client $clientId")
+    } yield result
   }
 }

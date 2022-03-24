@@ -44,20 +44,20 @@ object RiskAnalysisConverter {
       accessDataArt9Gdpr          <- toYesNoSingleAnswer(singleAnswers, ValidationRules.ACCESS_DATA_ART9_GDPR)
       accessUnderageData          <- toYesNoSingleAnswer(singleAnswers, ValidationRules.ACCESS_UNDERAGE_DATA)
       knowsDataQuantity           <- toYesNoSingleAnswer(singleAnswers, ValidationRules.KNOWS_DATA_QUANTITY)
-      dataQuantity                <- toSingleAnswer(singleAnswers, ValidationRules.DATA_QUANTITY, FormDataQuantityAnswers.fromValue)
+      dataQuantity   <- toSingleAnswer(singleAnswers, ValidationRules.DATA_QUANTITY, FormDataQuantityAnswers.fromValue)
       deliveryMethod <- toSingleAnswer(
         singleAnswers,
         ValidationRules.DELIVERY_METHOD,
         FormDeliveryMethodAnswers.fromValue
       )
-      doneDpia                   <- toYesNoSingleAnswer(singleAnswers, ValidationRules.DONE_DPIA)
-      definedDataRetentionPeriod <- toYesNoSingleAnswer(singleAnswers, ValidationRules.DEFINED_DATA_RETENTION_PERIOD)
-      purposePursuit <- toSingleAnswer(
+      doneDpia       <- toYesNoSingleAnswer(singleAnswers, ValidationRules.DONE_DPIA)
+      definedDataRetentionPeriod  <- toYesNoSingleAnswer(singleAnswers, ValidationRules.DEFINED_DATA_RETENTION_PERIOD)
+      purposePursuit              <- toSingleAnswer(
         singleAnswers,
         ValidationRules.PURPOSE_PURSUIT,
         FormPurposePursuitAnswers.fromValue
       )
-      checkedAllDataNeeded <- toYesNoSingleAnswer(singleAnswers, ValidationRules.CHECKED_ALL_DATA_NEEDED)
+      checkedAllDataNeeded        <- toYesNoSingleAnswer(singleAnswers, ValidationRules.CHECKED_ALL_DATA_NEEDED)
       minimalDataInteropCatalogue <- toYesNoSingleAnswer(
         singleAnswers,
         ValidationRules.CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE

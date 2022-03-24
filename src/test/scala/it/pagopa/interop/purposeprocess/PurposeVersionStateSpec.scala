@@ -37,9 +37,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .archivePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .archivePurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          *,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
@@ -62,12 +62,12 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
-      val apiError =
+      val apiError                                  =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -114,9 +114,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .suspendPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .suspendPurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          *,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
@@ -149,9 +149,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .suspendPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .suspendPurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          *,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER)
@@ -174,12 +174,12 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
-      val apiError =
+      val apiError                                  =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -245,9 +245,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 10000000
       )
-      val purpose2 =
+      val purpose2   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
@@ -304,7 +304,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val version = SpecData.purposeVersion.copy(
+      val version    = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.DRAFT,
         dailyCalls = 4000
@@ -314,7 +314,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose1 =
+      val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
       val version2_1 = SpecData.purposeVersion.copy(
@@ -322,16 +322,16 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose2 =
+      val purpose2   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
@@ -355,7 +355,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val version = SpecData.purposeVersion.copy(
+      val version    = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.DRAFT,
         dailyCalls = 4000
@@ -365,7 +365,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 1000
       )
-      val purpose1 =
+      val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
       val version2_1 = SpecData.purposeVersion.copy(
@@ -373,17 +373,17 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose2 =
+      val purpose2   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
 
       val descriptor =
         SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000, dailyCallsTotal = 8999)
-      val eService = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
@@ -424,9 +424,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 10000000
       )
-      val purpose2 =
+      val purpose2   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
@@ -457,7 +457,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val version = SpecData.purposeVersion.copy(
+      val version    = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 4000
@@ -467,7 +467,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose1 =
+      val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
       val version2_1 = SpecData.purposeVersion.copy(
@@ -475,16 +475,16 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose2 =
+      val purpose2   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1))
-      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose1, purpose2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
@@ -509,7 +509,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val version = SpecData.purposeVersion.copy(
+      val version    = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 4000
@@ -519,7 +519,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 4000
       )
-      val purpose1 =
+      val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
@@ -551,7 +551,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
 
-      val version = SpecData.purposeVersion.copy(
+      val version    = SpecData.purposeVersion.copy(
         id = versionId,
         state = PurposeManagement.PurposeVersionState.SUSPENDED,
         dailyCalls = 4000
@@ -561,7 +561,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         state = PurposeManagement.PurposeVersionState.ACTIVE,
         dailyCalls = 8000
       )
-      val purpose1 =
+      val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)

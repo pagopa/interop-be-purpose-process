@@ -28,13 +28,13 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def riskAnalysisFormAnswersFormat: RootJsonFormat[RiskAnalysisFormAnswers] =
     jsonFormat20(RiskAnalysisFormAnswers)
-  implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm] = jsonFormat2(RiskAnalysisForm)
-  implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
+  implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm]               = jsonFormat2(RiskAnalysisForm)
+  implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument]   =
     jsonFormat3(PurposeVersionDocument)
-  implicit def purposeFormat: RootJsonFormat[Purpose]                           = jsonFormat13(Purpose)
-  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]             = jsonFormat8(PurposeVersion)
-  implicit def purposesFormat: RootJsonFormat[Purposes]                         = jsonFormat1(Purposes)
-  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                   = jsonFormat5(PurposeSeed)
+  implicit def purposeFormat: RootJsonFormat[Purpose]                                 = jsonFormat13(Purpose)
+  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]                   = jsonFormat8(PurposeVersion)
+  implicit def purposesFormat: RootJsonFormat[Purposes]                               = jsonFormat1(Purposes)
+  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                         = jsonFormat5(PurposeSeed)
   implicit def purposeUpdateContentFormat: RootJsonFormat[PurposeUpdateContent] = jsonFormat3(PurposeUpdateContent)
   implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed]     = jsonFormat1(PurposeVersionSeed)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError]                 = jsonFormat2(ProblemError)

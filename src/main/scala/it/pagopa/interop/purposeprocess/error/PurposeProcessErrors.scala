@@ -7,7 +7,7 @@ object PurposeProcessErrors {
   object CreatePurposeBadRequest extends ComponentError("0001", s"Error creating purpose")
   final case class GetPurposeBadRequest(purposeId: String)
       extends ComponentError("0002", s"Error retrieving purpose $purposeId")
-  object GetPurposesBadRequest extends ComponentError("0003", s"Error retrieving purposes")
+  object GetPurposesBadRequest   extends ComponentError("0003", s"Error retrieving purposes")
 
   final case class SuspendPurposeBadRequest(purposeId: String, versionId: String)
       extends ComponentError("0004", s"Error suspending version $versionId of purpose $purposeId")

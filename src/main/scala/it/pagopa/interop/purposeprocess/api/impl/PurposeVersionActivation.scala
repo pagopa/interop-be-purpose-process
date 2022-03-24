@@ -3,11 +3,11 @@ package it.pagopa.interop.purposeprocess.api.impl
 import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.directives.FileInfo
 import cats.implicits._
+import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
+import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.files.service.{FileManager, StorageFilePath}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.catalogmanagement.client.model.EService
-import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
 import it.pagopa.interop.purposemanagement.client.model.ChangedBy._
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
@@ -54,7 +54,7 @@ final case class PurposeVersionActivation(
     *   <tr><td>SUSPENDED</td><td>PRODUCER</td><td>-</td><td>Activate</td></tr>
     *   <tr><td><i>other</i></td><td>-</td><td>-</td><td>Error: Unauthorized</td></tr>
     * </table>
-    * @param bearerToken Bearer token
+    * @param contexts Request contexts
     * @param eService EService of the Agreement related to the Purpose
     * @param purpose Purpose of the Version
     * @param version Version to activate
@@ -62,7 +62,7 @@ final case class PurposeVersionActivation(
     * @param userId User ID
     * @return the updated Version
     */
-  def activateOrWaitForApproval(bearerToken: String)(
+  def activateOrWaitForApproval(contexts: Seq[(String, String)])(
     eService: EService,
     purpose: Purpose,
     version: PurposeVersion,
@@ -74,15 +74,15 @@ final case class PurposeVersionActivation(
 
     def waitForApproval(): Future[PurposeVersion] =
       purposeManagementService
-        .waitForApprovalPurposeVersion(bearerToken)(purpose.id, version.id, changeDetails)
-    def activate(): Future[PurposeVersion] = {
+        .waitForApprovalPurposeVersion(contexts)(purpose.id, version.id, changeDetails)
+    def activate(): Future[PurposeVersion]        = {
       val payload =
         ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
 
       for {
         version <- purposeManagementService
-          .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-        _ <- authorizationManagementService.updateStateOnClients(bearerToken)(
+          .activatePurposeVersion(contexts)(purpose.id, version.id, payload)
+        _       <- authorizationManagementService.updateStateOnClients(contexts)(
           purposeId = purpose.id,
           state = ClientComponentState.ACTIVE
         )
@@ -92,18 +92,18 @@ final case class PurposeVersionActivation(
 
     (version.state, userType) match {
       case (DRAFT, CONSUMER) =>
-        isLoadAllowed(bearerToken)(eService, purpose, version)
-          .ifM(firstVersionActivation(bearerToken)(purpose, version, changeDetails), waitForApproval())
+        isLoadAllowed(contexts)(eService, purpose, version)
+          .ifM(firstVersionActivation(contexts)(purpose, version, changeDetails), waitForApproval())
       case (DRAFT, PRODUCER) =>
         Future.failed(UserIsNotTheConsumer(userId))
 
       case (WAITING_FOR_APPROVAL, CONSUMER) =>
         Future.failed(UserIsNotTheProducer(userId))
       case (WAITING_FOR_APPROVAL, PRODUCER) =>
-        firstVersionActivation(bearerToken)(purpose, version, changeDetails)
+        firstVersionActivation(contexts)(purpose, version, changeDetails)
 
       case (SUSPENDED, CONSUMER) =>
-        isLoadAllowed(bearerToken)(eService, purpose, version).ifM(activate(), waitForApproval())
+        isLoadAllowed(contexts)(eService, purpose, version).ifM(activate(), waitForApproval())
       case (SUSPENDED, PRODUCER) =>
         activate()
 
@@ -114,33 +114,33 @@ final case class PurposeVersionActivation(
 
   /** Calculate if the load of the Version to activate will exceed the maximum load allowed by the EService,
     * considering all Purposes already activated for the Agreement
-    * @param bearerToken Bearer token
+    * @param contexts Request contexts
     * @param eService EService of the Agreement related to the Purpose
     * @param purpose Purpose of the Version
     * @param version Version to activate
     * @return True if it will exceed, False otherwise
     */
   def isLoadAllowed(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(eService: EService, purpose: Purpose, version: PurposeVersion): Future[Boolean] = {
     for {
-      consumerPurposes <- purposeManagementService.getPurposes(bearerToken)(
+      consumerPurposes <- purposeManagementService.getPurposes(contexts)(
         eserviceId = Some(purpose.eserviceId),
         consumerId = Some(purpose.consumerId),
         states = Seq(ACTIVE)
       )
 
-      allPurposes <- purposeManagementService.getPurposes(bearerToken)(
+      allPurposes <- purposeManagementService.getPurposes(contexts)(
         eserviceId = Some(purpose.eserviceId),
         consumerId = None,
         states = Seq(ACTIVE)
       )
 
-      agreements <- agreementManagementService.getAgreements(bearerToken)(
+      agreements <- agreementManagementService.getAgreements(contexts)(
         eServiceId = purpose.eserviceId,
         consumerId = purpose.consumerId
       )
-      agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
+      agreement  <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
       consumerActiveVersions    = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
       allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
@@ -162,14 +162,14 @@ final case class PurposeVersionActivation(
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
     *
-    * @param bearerToken Beare token
+    * @param contexts Request contexts
     * @param purpose Purpose of the Version
     * @param version Version to activate
     * @param stateChangeDetails Details on the user that is performing the action
     * @return The updated Version
     */
   def firstVersionActivation(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get
     for {
@@ -185,9 +185,9 @@ final case class PurposeVersionActivation(
         ),
         stateChangeDetails = stateChangeDetails
       )
-      updatedVersion <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-      _ <- authorizationManagementService
-        .updateStateOnClients(bearerToken)(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
+      updatedVersion <- purposeManagementService.activatePurposeVersion(contexts)(purpose.id, version.id, payload)
+      _              <- authorizationManagementService
+        .updateStateOnClients(contexts)(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
     } yield updatedVersion
   }
 
@@ -206,7 +206,7 @@ final case class PurposeVersionActivation(
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
-      document <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
+      document         <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,
