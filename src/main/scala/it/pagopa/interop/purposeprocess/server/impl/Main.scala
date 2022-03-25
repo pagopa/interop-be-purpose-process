@@ -46,7 +46,7 @@ import scala.util.{Failure, Success, Try}
 
 trait AgreementManagementDependency {
   private final val agreementManagementInvoker: AgreementManagementInvoker = AgreementManagementInvoker()
-  private final val agreementManagementApi: AgreementManagementApi = AgreementManagementApi(
+  private final val agreementManagementApi: AgreementManagementApi         = AgreementManagementApi(
     ApplicationConfiguration.agreementManagementURL
   )
 
@@ -58,7 +58,7 @@ trait AuthorizationManagementDependency {
   private final val authorizationManagementInvoker: AuthorizationManagementInvoker = AuthorizationManagementInvoker()
   private final val authorizationManagementPurposeApi: AuthorizationManagementPurposeApi =
     AuthorizationManagementPurposeApi(ApplicationConfiguration.authorizationManagementURL)
-  private final val authorizationManagementClientApi: AuthorizationManagementClientApi =
+  private final val authorizationManagementClientApi: AuthorizationManagementClientApi   =
     AuthorizationManagementClientApi(ApplicationConfiguration.authorizationManagementURL)
 
   val authorizationManagement: AuthorizationManagementService =
@@ -71,7 +71,7 @@ trait AuthorizationManagementDependency {
 
 trait CatalogManagementDependency {
   private final val catalogManagementInvoker: CatalogManagementInvoker = CatalogManagementInvoker()
-  private final val catalogManagementApi: CatalogManagementApi = CatalogManagementApi(
+  private final val catalogManagementApi: CatalogManagementApi         = CatalogManagementApi(
     ApplicationConfiguration.catalogManagementURL
   )
 
@@ -81,7 +81,7 @@ trait CatalogManagementDependency {
 
 trait PartyManagementDependency {
   private final val partyManagementInvoker: PartyManagementInvoker = PartyManagementInvoker()
-  private final val partyManagementApi: PartyManagementApi = PartyManagementApi(
+  private final val partyManagementApi: PartyManagementApi         = PartyManagementApi(
     ApplicationConfiguration.partyManagementURL
   )
 
@@ -91,7 +91,7 @@ trait PartyManagementDependency {
 
 trait PurposeManagementDependency {
   private final val purposeManagementInvoker: PurposeManagementInvoker = PurposeManagementInvoker()
-  private final val purposeManagementApi: PurposeManagementApi = PurposeManagementApi(
+  private final val purposeManagementApi: PurposeManagementApi         = PurposeManagementApi(
     ApplicationConfiguration.purposeManagementURL
   )
 
@@ -117,7 +117,7 @@ object Main
     fileManager <- FileManager.getConcreteImplementation(StorageConfiguration.runtimeFileManager)
     keyset      <- JWTConfiguration.jwtReader.loadKeyset()
     jwtValidator = new DefaultJWTReader with PublicKeysHolder {
-      var publicKeyset: Map[KID, SerializedKey] = keyset
+      var publicKeyset: Map[KID, SerializedKey]                                        = keyset
       override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
         getClaimsVerifier(audience = ApplicationConfiguration.jwtAudience)
     }
@@ -125,7 +125,7 @@ object Main
 
   dependenciesLoaded match {
     case Success((jwtValidator, fileManager)) => launchApp(jwtValidator, fileManager)
-    case Failure(ex) =>
+    case Failure(ex)                          =>
       logger.error(s"Startup error ${ex.getMessage}")
       logger.error(ex.getStackTrace.mkString("\n"))
       CoordinatedShutdown(classicActorSystem).run(StartupErrorShutdown)

@@ -75,14 +75,14 @@ final case class PurposeVersionActivation(
     def waitForApproval(): Future[PurposeVersion] =
       purposeManagementService
         .waitForApprovalPurposeVersion(bearerToken)(purpose.id, version.id, changeDetails)
-    def activate(): Future[PurposeVersion] = {
+    def activate(): Future[PurposeVersion]        = {
       val payload =
         ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
 
       for {
         version <- purposeManagementService
           .activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-        _ <- authorizationManagementService.updateStateOnClients(bearerToken)(
+        _       <- authorizationManagementService.updateStateOnClients(bearerToken)(
           purposeId = purpose.id,
           state = ClientComponentState.ACTIVE
         )
@@ -140,7 +140,7 @@ final case class PurposeVersionActivation(
         eServiceId = purpose.eserviceId,
         consumerId = purpose.consumerId
       )
-      agreement <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
+      agreement  <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
       consumerActiveVersions    = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
       allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
@@ -186,7 +186,7 @@ final case class PurposeVersionActivation(
         stateChangeDetails = stateChangeDetails
       )
       updatedVersion <- purposeManagementService.activatePurposeVersion(bearerToken)(purpose.id, version.id, payload)
-      _ <- authorizationManagementService
+      _              <- authorizationManagementService
         .updateStateOnClients(bearerToken)(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
     } yield updatedVersion
   }
@@ -206,7 +206,7 @@ final case class PurposeVersionActivation(
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
-      document <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
+      document         <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,

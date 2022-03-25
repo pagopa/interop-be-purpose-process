@@ -102,7 +102,7 @@ object RiskAnalysisValidation {
     value match {
       case str: JsString =>
         Left(SingleAnswerSeed(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
-      case arr: JsArray =>
+      case arr: JsArray  =>
         val values: Seq[ValidationResult[String]] = {
           arr.elements.map {
             case str: JsString => str.value.validNec
@@ -110,7 +110,7 @@ object RiskAnalysisValidation {
           }
         }
         Right(values.sequence.map(MultiAnswerSeed(fieldName, _)))
-      case _ =>
+      case _             =>
         Left(UnexpectedFieldFormat(fieldName).invalidNec)
     }
 
@@ -126,7 +126,7 @@ object RiskAnalysisValidation {
     validationRules.find(_.fieldName == fieldName) match {
       case Some(rule) =>
         rule.dependencies.map(validateDependency(answersJson: JsObject, rule.fieldName)).sequence
-      case None =>
+      case None       =>
         UnexpectedField(fieldName).invalidNec
     }
 
@@ -139,18 +139,18 @@ object RiskAnalysisValidation {
     dependency: DependencyEntry
   ): ValidationResult[Unit] =
     answersJson.getFields(dependency.fieldName) match {
-      case Nil =>
+      case Nil      =>
         DependencyNotFound(dependency.fieldName, dependentField).invalidNec
       case f :: Nil =>
         f match {
-          case str: JsString if str.value == dependency.fieldValue =>
+          case str: JsString if str.value == dependency.fieldValue         =>
             ().validNec
           case arr: JsArray if jsArrayContains(arr, dependency.fieldValue) =>
             ().validNec
-          case _ =>
+          case _                                                           =>
             UnexpectedFieldValue(dependency.fieldName, dependentField, dependency.fieldValue).invalidNec
         }
-      case _ => TooManyOccurrences(dependency.fieldName).invalidNec
+      case _        => TooManyOccurrences(dependency.fieldName).invalidNec
     }
 
   /** Check if a JsArray contains a specific String (JsString)

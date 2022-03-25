@@ -40,7 +40,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken)
 
-  val config: Config = ConfigFactory
+  val config: Config           = ConfigFactory
     .parseResourcesAnySyntax("application-test")
     .resolve()
   val fileManagerType: String  = config.getString("interop-commons.storage.type")
@@ -301,13 +301,13 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     ()
   }
 
-  implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose] =
+  implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose]               =
     sprayJsonUnmarshaller[Purpose]
   implicit def fromResponseUnmarshallerPurposeVersion: FromEntityUnmarshaller[PurposeVersion] =
     sprayJsonUnmarshaller[PurposeVersion]
-  implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes] =
+  implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]             =
     sprayJsonUnmarshaller[Purposes]
-  implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem] =
+  implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem]               =
     sprayJsonUnmarshaller[Problem]
 
   implicit def catalogProblemErrorFormat: RootJsonFormat[CatalogManagement.ProblemError] =

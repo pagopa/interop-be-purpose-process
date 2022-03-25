@@ -24,7 +24,7 @@ final case class AuthorizationManagementServiceImpl(
 
   override def updateStateOnClients(bearerToken: String)(purposeId: UUID, state: ClientComponentState): Future[Unit] = {
     val payload: ClientPurposeDetailsUpdate = ClientPurposeDetailsUpdate(state = state)
-    val request: ApiRequest[Unit] =
+    val request: ApiRequest[Unit]           =
       purposeApi.updatePurposeState(purposeId = purposeId, clientPurposeDetailsUpdate = payload)(
         BearerToken(bearerToken)
       )
