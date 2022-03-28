@@ -28,6 +28,9 @@ tags:
       url: 'http://swagger.io'
 paths:
   /purposes:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - purpose
@@ -92,6 +95,8 @@ paths:
         required: true
   /purposes/{id}:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: id
         in: path
         description: the purpose id
@@ -124,6 +129,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
     post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: updatePurpose
@@ -148,6 +156,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
     delete:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: deletePurpose
@@ -175,6 +186,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   /purposes/{purposeId}/versions:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         description: the purpose id
@@ -208,6 +221,8 @@ paths:
         required: true
   /purposes/{purposeId}/versions/{versionId}:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -257,6 +272,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   /purposes/{purposeId}/versions/{versionId}/activate:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -296,6 +313,8 @@ paths:
       description: activates the purpose version by id
   /purposes/{purposeId}/versions/{versionId}/suspend:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -335,6 +354,8 @@ paths:
       description: suspends the purpose version by id
   /purposes/{purposeId}/versions/{versionId}/archive:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -374,6 +395,8 @@ paths:
       description: archives the purpose version by id
   /purposes/{purposeId}/versions/{versionId}/update/draft:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -424,6 +447,8 @@ paths:
                 $ref: '#/components/schemas/Problem'
   /purposes/{purposeId}/versions/{versionId}/update/waitingForApproval:
     parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -472,8 +497,19 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
-
 components:
+  parameters:
+    CorrelationIdHeader:
+      in: header
+      name: X-Correlation-Id
+      required: true
+      schema:
+        type: string
+    IpAddress:
+      in: header
+      name: X-Forwarded-For
+      schema:
+        type: string
   schemas:
     Agreement:
       type: object

@@ -4,15 +4,15 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
-import it.pagopa.interop.authorizationmanagement.client.model.Client
-import it.pagopa.interop.commons.files.service.FileManager
-import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.agreementmanagement.client.model.Agreement
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
+import it.pagopa.interop.authorizationmanagement.client.model.Client
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
+import it.pagopa.interop.commons.files.service.FileManager
+import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.partymanagement.client.model.Relationships
 import it.pagopa.interop.partymanagement.client.{model => PartyManagement}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.purposemanagement.client
 import it.pagopa.interop.purposemanagement.client.model.{
   ActivatePurposeVersionPayload,
@@ -37,8 +37,6 @@ import scala.util.{Success, Try}
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
   final val bearerToken: String = "token"
-
-  implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken)
 
   val config: Config           = ConfigFactory
     .parseResourcesAnySyntax("application-test")
@@ -71,13 +69,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   def mockSubject(uuid: String): Try[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
-  def mockEServiceRetrieve(
-    eServiceId: UUID,
-    result: CatalogManagement.EService = SpecData.eService
-  ): CallHandler2[String, UUID, Future[CatalogManagement.EService]] =
+  def mockEServiceRetrieve(eServiceId: UUID, result: CatalogManagement.EService = SpecData.eService)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler2[Seq[(String, String)], UUID, Future[CatalogManagement.EService]] =
     (mockCatalogManagementService
-      .getEServiceById(_: String)(_: UUID))
-      .expects(bearerToken, eServiceId)
+      .getEServiceById(_: Seq[(String, String)])(_: UUID))
+      .expects(contexts, eServiceId)
       .once()
       .returns(Future.successful(result.copy(id = eServiceId)))
 
@@ -88,27 +85,30 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(SpecData.organization.copy(id = organizationId)))
 
-  def mockPurposeRetrieve(
-    purposeId: UUID,
-    result: PurposeManagement.Purpose = SpecData.purpose
-  ): CallHandler2[String, UUID, Future[ManagementPurpose]] =
+  def mockPurposeRetrieve(purposeId: UUID, result: PurposeManagement.Purpose = SpecData.purpose)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler2[Seq[(String, String)], UUID, Future[ManagementPurpose]] =
     (mockPurposeManagementService
-      .getPurpose(_: String)(_: UUID))
-      .expects(bearerToken, purposeId)
+      .getPurpose(_: Seq[(String, String)])(_: UUID))
+      .expects(contexts, purposeId)
       .once()
       .returns(Future.successful(result.copy(id = purposeId)))
 
-  def mockPurposeDelete(purposeId: UUID): CallHandler2[String, UUID, Future[Unit]] =
+  def mockPurposeDelete(
+    purposeId: UUID
+  )(implicit contexts: Seq[(String, String)]): CallHandler2[Seq[(String, String)], UUID, Future[Unit]] =
     (mockPurposeManagementService
-      .deletePurpose(_: String)(_: UUID))
-      .expects(bearerToken, purposeId)
+      .deletePurpose(_: Seq[(String, String)])(_: UUID))
+      .expects(contexts, purposeId)
       .once()
       .returns(Future.unit)
 
-  def mockPurposeVersionDelete(purposeId: UUID, versionId: UUID): CallHandler3[String, UUID, UUID, Future[Unit]] =
+  def mockPurposeVersionDelete(purposeId: UUID, versionId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler3[Seq[(String, String)], UUID, UUID, Future[Unit]] =
     (mockPurposeManagementService
-      .deletePurposeVersion(_: String)(_: UUID, _: UUID))
-      .expects(bearerToken, purposeId, versionId)
+      .deletePurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID))
+      .expects(contexts, purposeId, versionId)
       .once()
       .returns(Future.unit)
 
@@ -117,10 +117,16 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     consumerId: Option[UUID] = None,
     states: Seq[PurposeManagement.PurposeVersionState] = Seq.empty,
     result: PurposeManagement.Purposes = SpecData.purposes
-  ): CallHandler4[String, Option[UUID], Option[UUID], Seq[PurposeVersionState], Future[client.model.Purposes]] =
+  )(implicit contexts: Seq[(String, String)]): CallHandler4[Seq[(String, String)], Option[UUID], Option[UUID], Seq[
+    PurposeVersionState
+  ], Future[client.model.Purposes]] =
     (mockPurposeManagementService
-      .getPurposes(_: String)(_: Option[UUID], _: Option[UUID], _: Seq[PurposeManagement.PurposeVersionState]))
-      .expects(bearerToken, eServiceId, consumerId, states)
+      .getPurposes(_: Seq[(String, String)])(
+        _: Option[UUID],
+        _: Option[UUID],
+        _: Seq[PurposeManagement.PurposeVersionState]
+      ))
+      .expects(contexts, eServiceId, consumerId, states)
       .once()
       .returns(Future.successful(result))
 
@@ -128,10 +134,10 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     eServiceId: UUID,
     consumerId: UUID,
     result: Seq[AgreementManagement.Agreement] = Seq(SpecData.agreement)
-  ): CallHandler3[String, UUID, UUID, Future[Seq[Agreement]]] =
+  )(implicit contexts: Seq[(String, String)]): CallHandler3[Seq[(String, String)], UUID, UUID, Future[Seq[Agreement]]] =
     (mockAgreementManagementService
-      .getAgreements(_: String)(_: UUID, _: UUID))
-      .expects(bearerToken, eServiceId, consumerId)
+      .getAgreements(_: Seq[(String, String)])(_: UUID, _: UUID))
+      .expects(contexts, eServiceId, consumerId)
       .once()
       .returns(Future.successful(result))
 
@@ -159,18 +165,22 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
   }
 
-  def mockVersionFirstActivation(
-    purposeId: UUID,
-    versionId: UUID,
-    result: PurposeManagement.PurposeVersion
-  ): CallHandler4[String, UUID, UUID, ActivatePurposeVersionPayload, Future[client.model.PurposeVersion]] = {
+  def mockVersionFirstActivation(purposeId: UUID, versionId: UUID, result: PurposeManagement.PurposeVersion)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler4[Seq[(String, String)], UUID, UUID, ActivatePurposeVersionPayload, Future[
+    client.model.PurposeVersion
+  ]] = {
     mockRiskAnalysisPdfCreation()
 
     (() => mockDateTimeSupplier.get).expects().returning(SpecData.timestamp).once()
 
     (mockPurposeManagementService
-      .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
-      .expects(bearerToken, purposeId, versionId, *)
+      .activatePurposeVersion(_: Seq[(String, String)])(
+        _: UUID,
+        _: UUID,
+        _: PurposeManagement.ActivatePurposeVersionPayload
+      ))
+      .expects(contexts, purposeId, versionId, *)
       .once()
       .returns(Future.successful(result))
   }
@@ -179,7 +189,9 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     activatingPurpose: PurposeManagement.Purpose,
     existingPurposes: PurposeManagement.Purposes,
     descriptorId: UUID
-  ): CallHandler3[String, UUID, UUID, Future[Seq[Agreement]]] = {
+  )(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler3[Seq[(String, String)], UUID, UUID, Future[Seq[Agreement]]] = {
     val producerId = UUID.randomUUID()
     mockPurposesRetrieve(
       eServiceId = Some(activatingPurpose.eserviceId),
@@ -212,21 +224,31 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     versionId: UUID,
     stateChangeDetails: PurposeManagement.StateChangeDetails,
     result: PurposeManagement.PurposeVersion
-  ): CallHandler4[String, UUID, UUID, StateChangeDetails, Future[client.model.PurposeVersion]] =
+  )(implicit
+    context: Seq[(String, String)]
+  ): CallHandler4[Seq[(String, String)], UUID, UUID, StateChangeDetails, Future[client.model.PurposeVersion]] =
     (mockPurposeManagementService
-      .waitForApprovalPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
-      .expects(bearerToken, purposeId, versionId, stateChangeDetails)
+      .waitForApprovalPurposeVersion(_: Seq[(String, String)])(
+        _: UUID,
+        _: UUID,
+        _: PurposeManagement.StateChangeDetails
+      ))
+      .expects(context, purposeId, versionId, stateChangeDetails)
       .once()
       .returns(Future.successful(result))
 
-  def mockVersionActivate(
-    purposeId: UUID,
-    versionId: UUID,
-    result: PurposeManagement.PurposeVersion
-  ): CallHandler4[String, UUID, UUID, ActivatePurposeVersionPayload, Future[client.model.PurposeVersion]] =
+  def mockVersionActivate(purposeId: UUID, versionId: UUID, result: PurposeManagement.PurposeVersion)(implicit
+    context: Seq[(String, String)]
+  ): CallHandler4[Seq[(String, String)], UUID, UUID, ActivatePurposeVersionPayload, Future[
+    client.model.PurposeVersion
+  ]] =
     (mockPurposeManagementService
-      .activatePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload))
-      .expects(bearerToken, purposeId, versionId, *)
+      .activatePurposeVersion(_: Seq[(String, String)])(
+        _: UUID,
+        _: UUID,
+        _: PurposeManagement.ActivatePurposeVersionPayload
+      ))
+      .expects(context, purposeId, versionId, *)
       .once()
       .returns(Future.successful(result))
 
@@ -242,7 +264,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     consumerId: UUID,
     eService: CatalogManagement.EService,
     relationships: PartyManagement.Relationships
-  ): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
+  )(implicit contexts: Seq[(String, String)]): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
     mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
     mockEServiceRetrieve(eService.id, eService)
     mockRelationshipsRetrieve(userId, eService.producerId, relationships)
@@ -252,35 +274,35 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     userId: UUID,
     eService: CatalogManagement.EService,
     relationships: PartyManagement.Relationships
-  ): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
+  )(implicit contexts: Seq[(String, String)]): CallHandler3[String, UUID, UUID, Future[Relationships]] = {
     mockEServiceRetrieve(eService.id, eService)
     mockRelationshipsRetrieve(userId, eService.producerId, relationships)
   }
 
-  def mockClientStateUpdate(
-    purposeId: UUID,
-    state: AuthorizationManagement.ClientComponentState
-  ): CallHandler3[String, UUID, AuthorizationManagement.ClientComponentState, Future[Unit]] =
+  def mockClientStateUpdate(purposeId: UUID, state: AuthorizationManagement.ClientComponentState)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler3[Seq[(String, String)], UUID, AuthorizationManagement.ClientComponentState, Future[Unit]] =
     (mockAuthorizationManagementService
-      .updateStateOnClients(_: String)(_: UUID, _: AuthorizationManagement.ClientComponentState))
-      .expects(bearerToken, purposeId, state)
+      .updateStateOnClients(_: Seq[(String, String)])(_: UUID, _: AuthorizationManagement.ClientComponentState))
+      .expects(contexts, purposeId, state)
       .returning(Future.successful(()))
       .once()
 
-  def mockClientsRetrieve(
-    purposeId: Option[UUID],
-    result: Seq[AuthorizationManagement.Client] = Seq(SpecData.client)
-  ): CallHandler2[String, Option[UUID], Future[Seq[Client]]] =
+  def mockClientsRetrieve(purposeId: Option[UUID], result: Seq[AuthorizationManagement.Client] = Seq(SpecData.client))(
+    implicit contexts: Seq[(String, String)]
+  ): CallHandler2[Seq[(String, String)], Option[UUID], Future[Seq[Client]]] =
     (mockAuthorizationManagementService
-      .getClients(_: String)(_: Option[UUID]))
-      .expects(bearerToken, purposeId)
+      .getClients(_: Seq[(String, String)])(_: Option[UUID]))
+      .expects(contexts, purposeId)
       .returning(Future.successful(result))
       .once()
 
-  def mockPurposeFromClientRemoval(purposeId: UUID, clientId: UUID): CallHandler3[String, UUID, UUID, Future[Unit]] =
+  def mockPurposeFromClientRemoval(purposeId: UUID, clientId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): CallHandler3[Seq[(String, String)], UUID, UUID, Future[Unit]] =
     (mockAuthorizationManagementService
-      .removePurposeFromClient(_: String)(_: UUID, _: UUID))
-      .expects(bearerToken, purposeId, clientId)
+      .removePurposeFromClient(_: Seq[(String, String)])(_: UUID, _: UUID))
+      .expects(contexts, purposeId, clientId)
       .returning(Future.unit)
       .once()
 
@@ -288,7 +310,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     purpose: PurposeManagement.Purpose,
     isConsumer: Boolean,
     eService: Option[CatalogManagement.EService] = None
-  ): Unit = {
+  )(implicit contexts: Seq[(String, String)]): Unit = {
     val agreement      = SpecData.agreement
     val descriptor     = SpecData.descriptor.copy(id = agreement.descriptorId)
     val actualEService = eService.getOrElse(SpecData.eService).copy(descriptors = Seq(descriptor))

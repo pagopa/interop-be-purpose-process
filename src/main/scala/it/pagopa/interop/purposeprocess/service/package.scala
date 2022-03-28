@@ -2,7 +2,6 @@ package it.pagopa.interop.purposeprocess
 
 import akka.actor.ActorSystem
 import it.pagopa.interop._
-import it.pagopa.interop.authorizationmanagement
 
 package object service {
   type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker

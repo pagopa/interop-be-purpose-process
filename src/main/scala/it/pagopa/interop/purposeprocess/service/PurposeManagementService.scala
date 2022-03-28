@@ -18,41 +18,45 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait PurposeManagementService {
-  def createPurpose(bearerToken: String)(seed: PurposeSeed): Future[Purpose]
-  def createPurposeVersion(bearerToken: String)(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion]
-  def updatePurpose(bearerToken: String)(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent): Future[Purpose]
-  def getPurpose(bearerToken: String)(id: UUID): Future[Purpose]
+  def createPurpose(contexts: Seq[(String, String)])(seed: PurposeSeed): Future[Purpose]
+  def createPurposeVersion(
+    contexts: Seq[(String, String)]
+  )(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion]
+  def updatePurpose(
+    contexts: Seq[(String, String)]
+  )(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent): Future[Purpose]
+  def getPurpose(contexts: Seq[(String, String)])(id: UUID): Future[Purpose]
   def getPurposes(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes]
 
   def activatePurposeVersion(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion]
 
   def suspendPurposeVersion(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def waitForApprovalPurposeVersion(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def archivePurposeVersion(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
 
   def updateDraftPurposeVersion(
-    bearerToken: String
+    contexts: Seq[(String, String)]
   )(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent): Future[PurposeVersion]
 
-  def updateWaitingForApprovalPurposeVersion(bearerToken: String)(
+  def updateWaitingForApprovalPurposeVersion(contexts: Seq[(String, String)])(
     purposeId: UUID,
     versionId: UUID,
     updateContent: WaitingForApprovalPurposeVersionUpdateContent
   ): Future[PurposeVersion]
 
-  def deletePurpose(bearerToken: String)(purposeId: UUID): Future[Unit]
+  def deletePurpose(contexts: Seq[(String, String)])(purposeId: UUID): Future[Unit]
 
-  def deletePurposeVersion(bearerToken: String)(purposeId: UUID, versionId: UUID): Future[Unit]
+  def deletePurposeVersion(contexts: Seq[(String, String)])(purposeId: UUID, versionId: UUID): Future[Unit]
 }

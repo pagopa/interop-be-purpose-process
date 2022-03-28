@@ -37,9 +37,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .archivePurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .archivePurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          *,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
@@ -66,8 +66,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
@@ -114,9 +114,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .suspendPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .suspendPurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          context,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
@@ -149,9 +149,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
-        .suspendPurposeVersion(_: String)(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
+        .suspendPurposeVersion(_: Seq[(String, String)])(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails))
         .expects(
-          bearerToken,
+          *,
           purposeId,
           versionId,
           PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER)
@@ -178,8 +178,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       (mockPurposeManagementService
-        .getPurpose(_: String)(_: UUID))
-        .expects(bearerToken, purposeId)
+        .getPurpose(_: Seq[(String, String)])(_: UUID))
+        .expects(*, purposeId)
         .once()
         .returns(Future.failed(apiError))
 
