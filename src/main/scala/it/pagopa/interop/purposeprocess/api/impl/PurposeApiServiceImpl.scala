@@ -566,7 +566,7 @@ final case class PurposeApiServiceImpl(
         .lastOption
         .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
       depEService   <- catalogManagementService.getEServiceById(contexts)(depPurpose.eserviceId)
-      depProducer   <- partyManagementService.getOrganizationById(bearerToken)(depEService.producerId)
+      depProducer   <- partyManagementService.getInstitutionById(bearerToken)(depEService.producerId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
       producer  = OrganizationConverter.dependencyToApi(depProducer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture

@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
 import it.pagopa.interop.partymanagement.client.invoker.{ApiRequest, BearerToken}
-import it.pagopa.interop.partymanagement.client.model.{Organization, RelationshipState, Relationships}
+import it.pagopa.interop.partymanagement.client.model.{Institution, RelationshipState, Relationships}
 import it.pagopa.interop.purposeprocess.service.{PartyManagementApi, PartyManagementInvoker, PartyManagementService}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -13,9 +13,9 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
 
   implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
-  override def getOrganizationById(bearerToken: String)(organizationId: UUID): Future[Organization] = {
-    val request: ApiRequest[Organization] = api.getOrganizationById(organizationId)(BearerToken(bearerToken))
-    invoker.invoke(request, s"Retrieving Organization $organizationId")
+  override def getInstitutionById(bearerToken: String)(institutionId: UUID): Future[Institution] = {
+    val request: ApiRequest[Institution] = api.getInstitutionById(institutionId)(BearerToken(bearerToken))
+    invoker.invoke(request, s"Retrieving Institution $institutionId")
   }
 
   override def getActiveRelationships(bearerToken: String)(from: UUID, to: UUID): Future[Relationships] = {
