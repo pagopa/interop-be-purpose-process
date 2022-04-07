@@ -37,7 +37,7 @@ object SpecData {
     state = CatalogManagement.EServiceDescriptorState.PUBLISHED
   )
 
-  val organization: PartyManagement.Organization = PartyManagement.Organization(
+  val institution: PartyManagement.Institution = PartyManagement.Institution(
     id = UUID.randomUUID(),
     institutionId = UUID.randomUUID().toString,
     description = "Organization description",

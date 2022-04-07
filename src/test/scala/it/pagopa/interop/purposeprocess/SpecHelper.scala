@@ -78,12 +78,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result.copy(id = eServiceId)))
 
-  def mockOrganizationRetrieve(organizationId: UUID): CallHandler2[String, UUID, Future[PartyManagement.Organization]] =
+  def mockOrganizationRetrieve(institutionId: UUID): CallHandler2[String, UUID, Future[PartyManagement.Institution]] =
     (mockPartyManagementService
-      .getOrganizationById(_: String)(_: UUID))
-      .expects(bearerToken, organizationId)
+      .getInstitutionById(_: String)(_: UUID))
+      .expects(bearerToken, institutionId)
       .once()
-      .returns(Future.successful(SpecData.organization.copy(id = organizationId)))
+      .returns(Future.successful(SpecData.institution.copy(id = institutionId)))
 
   def mockPurposeRetrieve(purposeId: UUID, result: PurposeManagement.Purpose = SpecData.purpose)(implicit
     contexts: Seq[(String, String)]
