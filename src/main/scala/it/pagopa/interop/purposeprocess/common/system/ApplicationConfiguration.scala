@@ -2,21 +2,20 @@ package it.pagopa.interop.purposeprocess.common.system
 
 import com.typesafe.config.{Config, ConfigFactory}
 
-import scala.jdk.CollectionConverters._
-
 object ApplicationConfiguration {
-  lazy val config: Config = ConfigFactory.load()
+  val config: Config = ConfigFactory.load()
 
-  lazy val serverPort: Int          = config.getInt("purpose-process.port")
-  lazy val jwtAudience: Set[String] = config.getStringList("purpose-process.jwt.audience").asScala.toSet
+  val serverPort: Int          = config.getInt("purpose-process.port")
+  val jwtAudience: Set[String] = config.getString("purpose-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
 
-  lazy val agreementManagementURL: String     = config.getString("purpose-process.services.agreement-management")
-  lazy val authorizationManagementURL: String = config.getString("purpose-process.services.authorization-management")
-  lazy val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
-  lazy val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
-  lazy val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
+  val agreementManagementURL: String     = config.getString("purpose-process.services.agreement-management")
+  val authorizationManagementURL: String = config.getString("purpose-process.services.authorization-management")
+  val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
+  val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
+  val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
 
-  lazy val storageContainer: String = config.getString("purpose-process.storage.container")
-  lazy val storagePath: String      = config.getString("purpose-process.storage.risk-analysis-path")
+  val storageContainer: String = config.getString("purpose-process.storage.container")
+  val storagePath: String      = config.getString("purpose-process.storage.risk-analysis-path")
 
+  require(jwtAudience.nonEmpty, "Audience cannot be empty")
 }
