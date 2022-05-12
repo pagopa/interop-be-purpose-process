@@ -113,6 +113,8 @@ object Main
 
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
+  System.setProperty("kanela.show-banner", "false")
+
   val dependenciesLoaded: Try[(JWTReader, FileManager)] = for {
     fileManager <- FileManager.getConcreteImplementation(StorageConfiguration.runtimeFileManager)
     keyset      <- JWTConfiguration.jwtReader.loadKeyset()
