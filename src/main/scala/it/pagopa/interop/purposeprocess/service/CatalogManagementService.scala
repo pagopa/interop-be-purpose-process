@@ -6,5 +6,5 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait CatalogManagementService {
-  def getEServiceById(contexts: Seq[(String, String)])(eServiceId: UUID): Future[EService]
+  def getEServiceById(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService]
 }

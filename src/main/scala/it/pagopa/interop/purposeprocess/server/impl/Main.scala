@@ -178,8 +178,9 @@ object Main
 
     logger.info(s"Started build info = ${buildinfo.BuildInfo.toString}")
 
-    val bindingFuture: Future[Http.ServerBinding] =
-      Http().newServerAt("0.0.0.0", ApplicationConfiguration.serverPort).bind(corsHandler(controller.routes))
+    val bindingFuture: Future[Http.ServerBinding] = Http()
+      .newServerAt("0.0.0.0", ApplicationConfiguration.serverPort)
+      .bind(corsHandler(controller.routes))
     bindingFuture
   }
 }

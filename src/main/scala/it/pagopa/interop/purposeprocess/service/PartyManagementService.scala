@@ -6,6 +6,10 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait PartyManagementService {
-  def getInstitutionById(bearerToken: String)(institutionId: UUID): Future[Institution]
-  def getActiveRelationships(bearerToken: String)(from: UUID, to: UUID): Future[Relationships]
+  def getInstitutionById(bearerToken: String)(institutionId: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Institution]
+  def getActiveRelationships(bearerToken: String)(from: UUID, to: UUID)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Relationships]
 }

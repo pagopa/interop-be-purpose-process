@@ -62,27 +62,27 @@ final case class PurposeVersionActivation(
     * @param userId User ID
     * @return the updated Version
     */
-  def activateOrWaitForApproval(contexts: Seq[(String, String)])(
+  def activateOrWaitForApproval(
     eService: EService,
     purpose: Purpose,
     version: PurposeVersion,
     userType: ChangedBy,
     userId: UUID
-  ): Future[PurposeVersion] = {
+  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
     val changeDetails = StateChangeDetails(changedBy = userType)
 
     def waitForApproval(): Future[PurposeVersion] =
       purposeManagementService
-        .waitForApprovalPurposeVersion(contexts)(purpose.id, version.id, changeDetails)
+        .waitForApprovalPurposeVersion(purpose.id, version.id, changeDetails)
     def activate(): Future[PurposeVersion]        = {
       val payload =
         ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
 
       for {
         version <- purposeManagementService
-          .activatePurposeVersion(contexts)(purpose.id, version.id, payload)
-        _       <- authorizationManagementService.updateStateOnClients(contexts)(
+          .activatePurposeVersion(purpose.id, version.id, payload)
+        _       <- authorizationManagementService.updateStateOnClients(
           purposeId = purpose.id,
           state = ClientComponentState.ACTIVE
         )
@@ -91,24 +91,17 @@ final case class PurposeVersionActivation(
     }
 
     (version.state, userType) match {
-      case (DRAFT, CONSUMER) =>
-        isLoadAllowed(contexts)(eService, purpose, version)
-          .ifM(firstVersionActivation(contexts)(purpose, version, changeDetails), waitForApproval())
-      case (DRAFT, PRODUCER) =>
-        Future.failed(UserIsNotTheConsumer(userId))
-
-      case (WAITING_FOR_APPROVAL, CONSUMER) =>
-        Future.failed(UserIsNotTheProducer(userId))
-      case (WAITING_FOR_APPROVAL, PRODUCER) =>
-        firstVersionActivation(contexts)(purpose, version, changeDetails)
-
-      case (SUSPENDED, CONSUMER) =>
-        isLoadAllowed(contexts)(eService, purpose, version).ifM(activate(), waitForApproval())
-      case (SUSPENDED, PRODUCER) =>
-        activate()
-
-      case _ =>
-        Future.failed(UserNotAllowed(userId))
+      case (DRAFT, CONSUMER)                =>
+        isLoadAllowed(eService, purpose, version).ifM(
+          firstVersionActivation(purpose, version, changeDetails),
+          waitForApproval()
+        )
+      case (DRAFT, PRODUCER)                => Future.failed(UserIsNotTheConsumer(userId))
+      case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
+      case (WAITING_FOR_APPROVAL, PRODUCER) => firstVersionActivation(purpose, version, changeDetails)
+      case (SUSPENDED, CONSUMER) => isLoadAllowed(eService, purpose, version).ifM(activate(), waitForApproval())
+      case (SUSPENDED, PRODUCER) => activate()
+      case _                     => Future.failed(UserNotAllowed(userId))
     }
   }
 
@@ -120,23 +113,23 @@ final case class PurposeVersionActivation(
     * @param version Version to activate
     * @return True if it will exceed, False otherwise
     */
-  def isLoadAllowed(
+  def isLoadAllowed(eService: EService, purpose: Purpose, version: PurposeVersion)(implicit
     contexts: Seq[(String, String)]
-  )(eService: EService, purpose: Purpose, version: PurposeVersion): Future[Boolean] = {
+  ): Future[Boolean] = {
     for {
-      consumerPurposes <- purposeManagementService.getPurposes(contexts)(
+      consumerPurposes <- purposeManagementService.getPurposes(
         eserviceId = Some(purpose.eserviceId),
         consumerId = Some(purpose.consumerId),
         states = Seq(ACTIVE)
       )
 
-      allPurposes <- purposeManagementService.getPurposes(contexts)(
+      allPurposes <- purposeManagementService.getPurposes(
         eserviceId = Some(purpose.eserviceId),
         consumerId = None,
         states = Seq(ACTIVE)
       )
 
-      agreements <- agreementManagementService.getAgreements(contexts)(
+      agreements <- agreementManagementService.getAgreements(
         eServiceId = purpose.eserviceId,
         consumerId = purpose.consumerId
       )
@@ -168,9 +161,9 @@ final case class PurposeVersionActivation(
     * @param stateChangeDetails Details on the user that is performing the action
     * @return The updated Version
     */
-  def firstVersionActivation(
+  def firstVersionActivation(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  )(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails): Future[PurposeVersion] = {
+  ): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get
     for {
       path <- createRiskAnalysisDocument(documentId, purpose, version)
@@ -185,9 +178,9 @@ final case class PurposeVersionActivation(
         ),
         stateChangeDetails = stateChangeDetails
       )
-      updatedVersion <- purposeManagementService.activatePurposeVersion(contexts)(purpose.id, version.id, payload)
+      updatedVersion <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
       _              <- authorizationManagementService
-        .updateStateOnClients(contexts)(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
+        .updateStateOnClients(purposeId = purpose.id, state = ClientComponentState.ACTIVE)
     } yield updatedVersion
   }
 

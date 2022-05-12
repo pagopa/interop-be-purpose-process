@@ -39,7 +39,9 @@ object SpecData {
 
   val institution: PartyManagement.Institution = PartyManagement.Institution(
     id = UUID.randomUUID(),
-    institutionId = UUID.randomUUID().toString,
+    origin = "yadayada",
+    originId = "yadayada",
+    externalId = "yadayada",
     description = "Organization description",
     digitalAddress = "address",
     address = "address",

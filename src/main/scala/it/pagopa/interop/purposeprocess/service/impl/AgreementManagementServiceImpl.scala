@@ -9,7 +9,8 @@ import it.pagopa.interop.purposeprocess.service.{
   AgreementManagementInvoker,
   AgreementManagementService
 }
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,11 +19,12 @@ final case class AgreementManagementServiceImpl(invoker: AgreementManagementInvo
   implicit ec: ExecutionContext
 ) extends AgreementManagementService {
 
-  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def getAgreements(
+  override def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit
     contexts: Seq[(String, String)]
-  )(eServiceId: UUID, consumerId: UUID): Future[Seq[Agreement]] = {
+  ): Future[Seq[Agreement]] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = api.getAgreements(
