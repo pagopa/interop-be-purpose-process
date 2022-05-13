@@ -36,7 +36,6 @@ import it.pagopa.interop.purposeprocess.error.InternalErrors.{
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service._
-import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -55,7 +54,7 @@ final case class PurposeApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
 
-  private val logger = Logger.takingImplicit[ContextFieldsToLog](LoggerFactory.getLogger(this.getClass))
+  private val logger = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
