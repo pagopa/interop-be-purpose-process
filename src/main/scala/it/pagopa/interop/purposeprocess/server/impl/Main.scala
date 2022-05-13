@@ -1,188 +1,64 @@
 package it.pagopa.interop.purposeprocess.server.impl
 
-import akka.actor.CoordinatedShutdown
+import cats.syntax.all._
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.Directives.complete
-import akka.http.scaladsl.server.directives.SecurityDirectives
 import akka.management.scaladsl.AkkaManagement
-import com.nimbusds.jose.proc.SecurityContext
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
-import it.pagopa.interop.purposeprocess.service.PurposeManagementService
-import it.pagopa.interop.commons.files.StorageConfiguration
-import it.pagopa.interop.commons.files.service.FileManager
-import it.pagopa.interop.commons.jwt.service.JWTReader
-import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
-import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
-import it.pagopa.interop.commons.utils.AkkaUtils.PassThroughAuthenticator
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.ValidationRequestError
-import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.commons.utils.service.impl.{OffsetDateTimeSupplierImpl, UUIDSupplierImpl}
-import it.pagopa.interop.commons.utils.{CORSSupport, OpenapiUtils}
-import it.pagopa.interop.purposeprocess.api.impl.{
-  HealthApiMarshallerImpl,
-  HealthServiceApiImpl,
-  PurposeApiMarshallerImpl,
-  PurposeApiServiceImpl,
-  problemOf
-}
-import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
-import it.pagopa.interop.purposeprocess.common.system.{ApplicationConfiguration, classicActorSystem, executionContext}
+import it.pagopa.interop.commons.utils.CORSSupport
+
 import it.pagopa.interop.purposeprocess.server.Controller
-import it.pagopa.interop.purposeprocess.service.{AuthorizationManagementPurposeApi, _}
-import it.pagopa.interop.purposeprocess.service.impl.{
-  AgreementManagementServiceImpl,
-  AuthorizationManagementServiceImpl,
-  CatalogManagementServiceImpl,
-  PDFCreatorImpl,
-  PartyManagementServiceImpl,
-  PurposeManagementServiceImpl
-}
+import it.pagopa.interop.commons.logging.renderBuildInfo
+
 import kamon.Kamon
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
+import akka.actor.typed.ActorSystem
+import scala.concurrent.ExecutionContext
+import akka.actor.typed.scaladsl.Behaviors
+import buildinfo.BuildInfo
+import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 
-trait AgreementManagementDependency {
-  private final val agreementManagementInvoker: AgreementManagementInvoker = AgreementManagementInvoker()
-  private final val agreementManagementApi: AgreementManagementApi         = AgreementManagementApi(
-    ApplicationConfiguration.agreementManagementURL
-  )
+object Main extends App with CORSSupport with Dependencies {
 
-  val agreementManagement: AgreementManagementService =
-    AgreementManagementServiceImpl(agreementManagementInvoker, agreementManagementApi)
-}
-
-trait AuthorizationManagementDependency {
-  private final val authorizationManagementInvoker: AuthorizationManagementInvoker = AuthorizationManagementInvoker()
-  private final val authorizationManagementPurposeApi: AuthorizationManagementPurposeApi =
-    AuthorizationManagementPurposeApi(ApplicationConfiguration.authorizationManagementURL)
-  private final val authorizationManagementClientApi: AuthorizationManagementClientApi   =
-    AuthorizationManagementClientApi(ApplicationConfiguration.authorizationManagementURL)
-
-  val authorizationManagement: AuthorizationManagementService =
-    AuthorizationManagementServiceImpl(
-      authorizationManagementInvoker,
-      authorizationManagementPurposeApi,
-      authorizationManagementClientApi
-    )
-}
-
-trait CatalogManagementDependency {
-  private final val catalogManagementInvoker: CatalogManagementInvoker = CatalogManagementInvoker()
-  private final val catalogManagementApi: CatalogManagementApi         = CatalogManagementApi(
-    ApplicationConfiguration.catalogManagementURL
-  )
-
-  val catalogManagement: CatalogManagementService =
-    CatalogManagementServiceImpl(catalogManagementInvoker, catalogManagementApi)
-}
-
-trait PartyManagementDependency {
-  private final val partyManagementInvoker: PartyManagementInvoker = PartyManagementInvoker()
-  private final val partyManagementApi: PartyManagementApi         = PartyManagementApi(
-    ApplicationConfiguration.partyManagementURL
-  )
-
-  val partyManagement: PartyManagementService =
-    PartyManagementServiceImpl(partyManagementInvoker, partyManagementApi)
-}
-
-trait PurposeManagementDependency {
-  private final val purposeManagementInvoker: PurposeManagementInvoker = PurposeManagementInvoker()
-  private final val purposeManagementApi: PurposeManagementApi         = PurposeManagementApi(
-    ApplicationConfiguration.purposeManagementURL
-  )
-
-  val purposeManagement: PurposeManagementService =
-    PurposeManagementServiceImpl(purposeManagementInvoker, purposeManagementApi)
-}
-
-//shuts down the actor system in case of startup errors
-case object StartupErrorShutdown extends CoordinatedShutdown.Reason
-
-object Main
-    extends App
-    with CORSSupport
-    with AgreementManagementDependency
-    with AuthorizationManagementDependency
-    with CatalogManagementDependency
-    with PartyManagementDependency
-    with PurposeManagementDependency {
-
-  private val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  private val logger: Logger = Logger(this.getClass)
 
   System.setProperty("kanela.show-banner", "false")
 
-  val dependenciesLoaded: Try[(JWTReader, FileManager)] = for {
-    fileManager <- FileManager.getConcreteImplementation(StorageConfiguration.runtimeFileManager)
-    keyset      <- JWTConfiguration.jwtReader.loadKeyset()
-    jwtValidator = new DefaultJWTReader with PublicKeysHolder {
-      var publicKeyset: Map[KID, SerializedKey]                                        = keyset
-      override protected val claimsVerifier: DefaultJWTClaimsVerifier[SecurityContext] =
-        getClaimsVerifier(audience = ApplicationConfiguration.jwtAudience)
-    }
-  } yield (jwtValidator, fileManager)
+  val system = ActorSystem[Nothing](
+    Behaviors.setup[Nothing] { context =>
+      implicit val actorSystem: ActorSystem[_]        = context.system
+      implicit val executionContext: ExecutionContext = actorSystem.executionContext
 
-  dependenciesLoaded match {
-    case Success((jwtValidator, fileManager)) => launchApp(jwtValidator, fileManager)
-    case Failure(ex)                          =>
-      logger.error(s"Startup error ${ex.getMessage}")
-      logger.error(ex.getStackTrace.mkString("\n"))
-      CoordinatedShutdown(classicActorSystem).run(StartupErrorShutdown)
-  }
+      Kamon.init()
+      AkkaManagement.get(actorSystem.classicSystem).start()
 
-  private def launchApp(jwtReader: JWTReader, fileManager: FileManager): Future[Http.ServerBinding] = {
-    Kamon.init()
+      logger.info(renderBuildInfo(BuildInfo))
 
-    val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
-    val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
+      val serverBinding: Future[Http.ServerBinding] = for {
+        jwtReader <- jwtValidator()
+        fManager  <- fileManager
+        controller = new Controller(healthApi, purposeApi(jwtReader, fManager), validationExceptionToRoute.some)(
+          actorSystem.classicSystem
+        )
+        binding <- Http()
+          .newServerAt("0.0.0.0", ApplicationConfiguration.serverPort)
+          .bind(corsHandler(controller.routes))
+      } yield binding
 
-    val purposeApi: PurposeApi = new PurposeApi(
-      PurposeApiServiceImpl(
-        agreementManagement,
-        authorizationManagement,
-        catalogManagement,
-        partyManagement,
-        purposeManagement,
-        fileManager,
-        PDFCreatorImpl,
-        uuidSupplier,
-        dateTimeSupplier
-      ),
-      PurposeApiMarshallerImpl,
-      jwtReader.OAuth2JWTValidatorAsContexts
-    )
+      serverBinding.onComplete {
+        case Success(b) =>
+          logger.info(s"Started server at ${b.localAddress.getHostString()}:${b.localAddress.getPort()}")
+        case Failure(e) =>
+          actorSystem.terminate()
+          logger.error("Startup error: ", e)
+      }
 
-    val healthApi: HealthApi = new HealthApi(
-      new HealthServiceApiImpl(),
-      HealthApiMarshallerImpl,
-      SecurityDirectives.authenticateOAuth2("SecurityRealm", PassThroughAuthenticator)
-    )
+      Behaviors.empty[Nothing]
+    },
+    BuildInfo.name
+  )
 
-    locally {
-      val _ = AkkaManagement.get(classicActorSystem).start()
-    }
+  system.whenTerminated.onComplete { case _ => Kamon.stop() }(scala.concurrent.ExecutionContext.global)
 
-    val controller: Controller = new Controller(
-      health = healthApi,
-      purpose = purposeApi,
-      validationExceptionToRoute = Some(report => {
-        val error =
-          problemOf(
-            StatusCodes.BadRequest,
-            ValidationRequestError(OpenapiUtils.errorFromRequestValidationReport(report))
-          )
-        complete(error.status, error)(HealthApiMarshallerImpl.toEntityMarshallerProblem)
-      })
-    )
-
-    logger.info(s"Started build info = ${buildinfo.BuildInfo.toString}")
-
-    val bindingFuture: Future[Http.ServerBinding] = Http()
-      .newServerAt("0.0.0.0", ApplicationConfiguration.serverPort)
-      .bind(corsHandler(controller.routes))
-    bindingFuture
-  }
 }
