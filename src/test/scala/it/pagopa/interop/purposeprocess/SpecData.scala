@@ -43,6 +43,7 @@ object SpecData {
     originId = "yadayada",
     externalId = "yadayada",
     description = "Organization description",
+    products = Map.empty[String, PartyManagement.InstitutionProduct],
     digitalAddress = "address",
     address = "address",
     taxCode = "taxCode",
