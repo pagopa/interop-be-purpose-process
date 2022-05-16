@@ -18,45 +18,45 @@ import java.util.UUID
 import scala.concurrent.Future
 
 trait PurposeManagementService {
-  def createPurpose(contexts: Seq[(String, String)])(seed: PurposeSeed): Future[Purpose]
-  def createPurposeVersion(
+  def createPurpose(seed: PurposeSeed)(implicit contexts: Seq[(String, String)]): Future[Purpose]
+  def createPurposeVersion(purposeId: UUID, seed: PurposeVersionSeed)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, seed: PurposeVersionSeed): Future[PurposeVersion]
-  def updatePurpose(
+  ): Future[PurposeVersion]
+  def updatePurpose(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent): Future[Purpose]
-  def getPurpose(contexts: Seq[(String, String)])(id: UUID): Future[Purpose]
-  def getPurposes(
+  ): Future[Purpose]
+  def getPurpose(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Purpose]
+  def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState])(implicit
     contexts: Seq[(String, String)]
-  )(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState]): Future[Purposes]
+  ): Future[Purposes]
 
-  def activatePurposeVersion(
+  def activatePurposeVersion(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload): Future[PurposeVersion]
+  ): Future[PurposeVersion]
 
-  def suspendPurposeVersion(
+  def suspendPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
+  ): Future[PurposeVersion]
 
-  def waitForApprovalPurposeVersion(
+  def waitForApprovalPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
+  ): Future[PurposeVersion]
 
-  def archivePurposeVersion(
+  def archivePurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails): Future[PurposeVersion]
+  ): Future[PurposeVersion]
 
-  def updateDraftPurposeVersion(
-    contexts: Seq[(String, String)]
-  )(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent): Future[PurposeVersion]
+  def updateDraftPurposeVersion(purposeId: UUID, versionId: UUID, updateContent: DraftPurposeVersionUpdateContent)(
+    implicit contexts: Seq[(String, String)]
+  ): Future[PurposeVersion]
 
-  def updateWaitingForApprovalPurposeVersion(contexts: Seq[(String, String)])(
+  def updateWaitingForApprovalPurposeVersion(
     purposeId: UUID,
     versionId: UUID,
     updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  ): Future[PurposeVersion]
+  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion]
 
-  def deletePurpose(contexts: Seq[(String, String)])(purposeId: UUID): Future[Unit]
+  def deletePurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 
-  def deletePurposeVersion(contexts: Seq[(String, String)])(purposeId: UUID, versionId: UUID): Future[Unit]
+  def deletePurposeVersion(purposeId: UUID, versionId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 }

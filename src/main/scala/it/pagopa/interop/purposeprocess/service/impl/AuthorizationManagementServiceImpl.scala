@@ -5,7 +5,8 @@ import it.pagopa.interop.authorizationmanagement.client.model.{Client, ClientCom
 import it.pagopa.interop.commons.utils.extractHeaders
 import it.pagopa.interop.commons.utils.TypeConversions.EitherOps
 import it.pagopa.interop.purposeprocess.service._
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,11 +18,12 @@ final case class AuthorizationManagementServiceImpl(
 )(implicit ec: ExecutionContext)
     extends AuthorizationManagementService {
 
-  implicit val logger: Logger = LoggerFactory.getLogger(this.getClass)
+  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def updateStateOnClients(
+  override def updateStateOnClients(purposeId: UUID, state: ClientComponentState)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, state: ClientComponentState): Future[Unit] = {
+  ): Future[Unit] = {
     val payload: ClientPurposeDetailsUpdate = ClientPurposeDetailsUpdate(state = state)
 
     for {
@@ -42,7 +44,7 @@ final case class AuthorizationManagementServiceImpl(
 
   }
 
-  override def getClients(contexts: Seq[(String, String)])(purposeId: Option[UUID]): Future[Seq[Client]] = {
+  override def getClients(purposeId: Option[UUID])(implicit contexts: Seq[(String, String)]): Future[Seq[Client]] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = clientApi.listClients(xCorrelationId = correlationId, xForwardedFor = ip, purposeId = purposeId)(
@@ -53,9 +55,9 @@ final case class AuthorizationManagementServiceImpl(
 
   }
 
-  override def removePurposeFromClient(
+  override def removePurposeFromClient(purposeId: UUID, clientId: UUID)(implicit
     contexts: Seq[(String, String)]
-  )(purposeId: UUID, clientId: UUID): Future[Unit] = {
+  ): Future[Unit] = {
     for {
       (bearerToken, correlationId, ip) <- extractHeaders(contexts).toFuture
       request = purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId, xForwardedFor = ip)(
