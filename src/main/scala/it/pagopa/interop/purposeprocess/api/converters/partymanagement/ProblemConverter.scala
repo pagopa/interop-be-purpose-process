@@ -1,7 +1,10 @@
 package it.pagopa.interop.purposeprocess.api.converters.partymanagement
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import it.pagopa.interop.partymanagement.client.model.{Problem => PartyProblem, ProblemError => PartyProblemError}
+import it.pagopa.interop.selfcare.partymanagement.client.model.{
+  Problem => PartyProblem,
+  ProblemError => PartyProblemError
+}
 import it.pagopa.interop.purposeprocess.model.{Problem, ProblemError}
 import spray.json._
 

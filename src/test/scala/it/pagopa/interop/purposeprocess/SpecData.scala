@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess
 
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
-import it.pagopa.interop.partymanagement.client.{model => PartyManagement}
+import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagement}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
@@ -43,12 +43,12 @@ object SpecData {
     originId = "yadayada",
     externalId = "yadayada",
     description = "Organization description",
-    products = Map.empty[String, PartyManagement.InstitutionProduct],
     digitalAddress = "address",
     address = "address",
     taxCode = "taxCode",
     attributes = Seq.empty,
-    zipCode = "00000"
+    zipCode = "00000",
+    institutionType = "PUBLIC"
   )
 
   def relationships(from: UUID = UUID.randomUUID(), to: UUID = UUID.randomUUID()): PartyManagement.Relationships =

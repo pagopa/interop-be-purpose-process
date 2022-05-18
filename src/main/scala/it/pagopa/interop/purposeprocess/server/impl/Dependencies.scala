@@ -10,6 +10,7 @@ import it.pagopa.interop.purposeprocess.service.impl.{
 }
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import akka.actor.typed.ActorSystem
+
 import scala.concurrent.ExecutionContext
 import it.pagopa.interop.commons.utils.service._
 import it.pagopa.interop.commons.utils.service.impl._
@@ -21,6 +22,7 @@ import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVe
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.service.JWTReader
+
 import scala.concurrent.Future
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
@@ -41,6 +43,8 @@ import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
 import akka.http.scaladsl.server.Directives.complete
 
 trait Dependencies {
+
+  implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
 
   val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
   val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
@@ -138,7 +142,10 @@ trait Dependencies {
     ApplicationConfiguration.partyManagementURL
   )
 
-  def partyManagement()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
+  def partyManagement()(implicit
+    actorSystem: ActorSystem[_],
+    executionContext: ExecutionContext
+  ): PartyManagementService =
     PartyManagementServiceImpl(partyManagementInvoker(), partyManagementApi)
 
   private def purposeManagementInvoker()(implicit actorSystem: ActorSystem[_]): PurposeManagementInvoker =
