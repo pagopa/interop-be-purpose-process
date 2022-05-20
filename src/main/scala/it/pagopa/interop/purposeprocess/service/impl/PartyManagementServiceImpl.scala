@@ -16,14 +16,15 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api: PartyManagementApi)(implicit
-  ec: ExecutionContext,
   partyManagementApiKeyValue: PartyManagementApiKeyValue
 ) extends PartyManagementService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
-  override def getInstitutionById(institutionId: UUID)(implicit contexts: Seq[(String, String)]): Future[Institution] =
+  override def getInstitutionById(
+    institutionId: UUID
+  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] =
     for {
       uid <- getUidFuture(contexts)
       request: ApiRequest[Institution] = api.getInstitutionById(institutionId)(uid)
@@ -31,7 +32,8 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
     } yield result
 
   override def getActiveRelationships(from: UUID, to: UUID)(implicit
-    contexts: Seq[(String, String)]
+    contexts: Seq[(String, String)],
+    ec: ExecutionContext
   ): Future[Relationships] = for {
     uid <- getUidFuture(contexts)
     request = api.getRelationships(

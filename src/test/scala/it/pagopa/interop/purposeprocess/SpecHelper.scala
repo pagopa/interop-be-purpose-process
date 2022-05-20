@@ -69,8 +69,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   def mockOrganizationRetrieve(institutionId: UUID) =
     (mockPartyManagementService
-      .getInstitutionById(_: UUID)(_: Seq[(String, String)]))
-      .expects(institutionId, *)
+      .getInstitutionById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(institutionId, *, *)
       .once()
       .returns(Future.successful(SpecData.institution.copy(id = institutionId)))
 
@@ -128,8 +128,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     result: PartyManagement.Relationships = SpecData.relationships()
   ) =
     (mockPartyManagementService
-      .getActiveRelationships(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(from, to, *)
+      .getActiveRelationships(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(from, to, *, *)
       .once()
       .returns(Future.successful(result))
 
