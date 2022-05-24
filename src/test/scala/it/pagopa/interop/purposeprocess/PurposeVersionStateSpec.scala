@@ -2,7 +2,7 @@ package it.pagopa.interop.purposeprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.commons.utils.UID
+import it.pagopa.interop.commons.utils.{UID, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
@@ -28,7 +28,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ARCHIVED)
 
@@ -58,7 +59,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purposeId = UUID.randomUUID()
       val versionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -83,7 +85,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val consumerId = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
@@ -105,7 +108,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
@@ -138,7 +142,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
@@ -170,7 +175,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purposeId = UUID.randomUUID()
       val versionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -197,7 +203,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val producerId = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purpose  = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId)
       val eService = SpecData.eService.copy(producerId = producerId)
@@ -226,7 +233,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -276,7 +284,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId  = UUID.randomUUID()
       val producerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version  = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.DRAFT)
       val purpose  = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
@@ -302,7 +311,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version    = SpecData.purposeVersion.copy(
         id = versionId,
@@ -353,7 +363,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version    = SpecData.purposeVersion.copy(
         id = versionId,
@@ -405,7 +416,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -455,7 +467,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version    = SpecData.purposeVersion.copy(
         id = versionId,
@@ -507,7 +520,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version    = SpecData.purposeVersion.copy(
         id = versionId,
@@ -549,7 +563,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version    = SpecData.purposeVersion.copy(
         id = versionId,
@@ -591,7 +606,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -625,7 +641,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -662,7 +679,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -696,7 +714,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -730,7 +749,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -764,7 +784,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val versionId    = UUID.randomUUID()
       val descriptorId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
@@ -798,7 +819,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val descriptorId = UUID.randomUUID()
       val documentId   = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val version = SpecData.purposeVersion.copy(
         id = versionId,
