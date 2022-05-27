@@ -11,10 +11,12 @@ import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => Aut
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.catalogmanagement.client.invoker.{ApiError => CatalogApiError}
 import it.pagopa.interop.commons.files.service.FileManager
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, authorizeInterop, hasPermissions}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.{getBearer, getUidFuture}
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors.OperationForbidden
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.partymanagement.client.invoker.{ApiError => PartyApiError}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
@@ -56,6 +58,13 @@ final case class PurposeApiServiceImpl(
 
   private val logger = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
+  private[this] def authorize(roles: String*)(
+    route: => Route
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorizeInterop(hasPermissions(roles: _*), problemOf(StatusCodes.Forbidden, OperationForbidden)) {
+      route
+    }
+
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
     authorizationManagementService,
@@ -70,7 +79,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating Purpose {}", seed)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
@@ -104,7 +113,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating Purpose Version {}", seed)
     val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
@@ -133,7 +142,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Updating Purpose {}", purposeId)
     val result: Future[Purpose] = for {
       bearerToken     <- getBearer(contexts).toFuture
@@ -167,7 +176,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     logger.info("Retrieving Purpose {}", id)
     val result: Future[Purpose] = for {
       bearerToken <- getBearer(contexts).toFuture
@@ -195,7 +204,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     logger.info("Retrieving Purposes for EService {}, Consumer {} and States {}", eServiceId, consumerId, states)
 
     def filterPurposeByUserType(
@@ -243,49 +252,52 @@ final case class PurposeApiServiceImpl(
 
   override def deletePurpose(
     id: String
-  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route = {
-    logger.info("Attempting to delete purpose {}", id)
+  )(implicit contexts: Seq[(String, String)], toEntityMarshallerProblem: ToEntityMarshaller[Problem]): Route =
+    authorize(ADMIN_ROLE) {
+      logger.info("Attempting to delete purpose {}", id)
 
-    def isDeletable(purpose: PurposeManagementDependency.Purpose): Boolean = {
-      val states = purpose.versions.map(_.state)
-      states.isEmpty ||
-      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT) ||
-      states == Seq(PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
-    }
+      def isDeletable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+        val states = purpose.versions.map(_.state)
+        states.isEmpty ||
+        states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT) ||
+        states == Seq(PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+      }
 
-    val result: Future[Unit] = for {
-      bearerToken <- getBearer(contexts).toFuture
-      userId      <- getUidFuture(contexts)
-      userUUID    <- userId.toFutureUUID
-      purposeUUID <- id.toFutureUUID
-      purpose     <- purposeManagementService.getPurpose(purposeUUID)
-      _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
-      _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
-      clients     <- authorizationManagementService.getClients(Some(purposeUUID))
-      _ <- clients.traverse(client => authorizationManagementService.removePurposeFromClient(purposeUUID, client.id))
-      _ <- purpose.versions.traverse(version => purposeManagementService.deletePurposeVersion(purposeUUID, version.id))
-      _ <- purposeManagementService.deletePurpose(purposeUUID)
-    } yield ()
+      val result: Future[Unit] = for {
+        bearerToken <- getBearer(contexts).toFuture
+        userId      <- getUidFuture(contexts)
+        userUUID    <- userId.toFutureUUID
+        purposeUUID <- id.toFutureUUID
+        purpose     <- purposeManagementService.getPurpose(purposeUUID)
+        _           <- assertUserIsAConsumer(bearerToken)(userUUID, purpose.consumerId)
+        _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
+        clients     <- authorizationManagementService.getClients(Some(purposeUUID))
+        _ <- clients.traverse(client => authorizationManagementService.removePurposeFromClient(purposeUUID, client.id))
+        _ <- purpose.versions.traverse(version =>
+          purposeManagementService.deletePurposeVersion(purposeUUID, version.id)
+        )
+        _ <- purposeManagementService.deletePurpose(purposeUUID)
+      } yield ()
 
-    val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)
+      val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)
 
-    onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
-        case Success(_)                           => deletePurpose204
-        case Failure(ex: UndeletableVersionError) =>
-          logger.error(s"Error while deleting purpose $id", ex)
-          deletePurpose403(problemOf(StatusCodes.Forbidden, ex))
-        case Failure(ex)                          =>
-          logger.error(s"Error while deleting purpose $id", ex)
-          complete(StatusCodes.InternalServerError, defaultProblem)
+      onComplete(result) {
+        handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+          case Success(_)                           => deletePurpose204
+          case Failure(ex: UndeletableVersionError) =>
+            logger.error(s"Error while deleting purpose $id", ex)
+            deletePurpose403(problemOf(StatusCodes.Forbidden, ex))
+          case Failure(ex)                          =>
+            logger.error(s"Error while deleting purpose $id", ex)
+            complete(StatusCodes.InternalServerError, defaultProblem)
+        }
       }
     }
-  }
 
   override def deletePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info(s"Attempting to delete version $versionId of purpose $purposeId")
 
     val result: Future[Unit] = for {
@@ -316,7 +328,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
       bearerToken    <- getBearer(contexts).toFuture
@@ -371,7 +383,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Suspending Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
@@ -405,7 +417,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     logger.info("Archiving for Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
@@ -443,7 +455,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
@@ -477,7 +489,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = {
+  ): Route = authorize(ADMIN_ROLE) {
     val result: Future[PurposeVersion] = for {
       bearerToken <- getBearer(contexts).toFuture
       purposeUUID <- purposeId.toFutureUUID
