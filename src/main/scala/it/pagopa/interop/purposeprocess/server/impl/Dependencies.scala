@@ -1,29 +1,23 @@
 package it.pagopa.interop.purposeprocess.server.impl
 
-import it.pagopa.interop.purposeprocess.service.{AuthorizationManagementPurposeApi, _}
-import it.pagopa.interop.purposeprocess.service.impl.{
-  AgreementManagementServiceImpl,
-  AuthorizationManagementServiceImpl,
-  CatalogManagementServiceImpl,
-  PartyManagementServiceImpl,
-  PurposeManagementServiceImpl
-}
-import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import akka.actor.typed.ActorSystem
-import scala.concurrent.ExecutionContext
-import it.pagopa.interop.commons.utils.service._
-import it.pagopa.interop.commons.utils.service.impl._
+import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.Directives.complete
+import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.directives.SecurityDirectives
+import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import it.pagopa.interop.commons.files.StorageConfiguration
-import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl
-import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
-import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.service.JWTReader
-import scala.concurrent.Future
+import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
+import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
+import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
+import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
+import it.pagopa.interop.commons.utils.service._
+import it.pagopa.interop.commons.utils.service.impl._
 import it.pagopa.interop.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
@@ -31,16 +25,16 @@ import it.pagopa.interop.purposeprocess.api.impl.{
   PurposeApiServiceImpl,
   problemOf
 }
-import akka.http.scaladsl.server.directives.SecurityDirectives
-import it.pagopa.interop.commons.utils.AkkaUtils
-import com.atlassian.oai.validator.report.ValidationReport
-import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.model.StatusCodes
-import it.pagopa.interop.commons.utils.OpenapiUtils
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
-import akka.http.scaladsl.server.Directives.complete
+import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
+import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
+import it.pagopa.interop.purposeprocess.service.impl._
+import it.pagopa.interop.purposeprocess.service._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Dependencies {
+
+  implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
 
   val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
   val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl

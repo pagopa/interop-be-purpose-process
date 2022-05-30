@@ -2,6 +2,8 @@ package it.pagopa.interop.purposeprocess
 
 import akka.actor.ActorSystem
 import it.pagopa.interop._
+import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
+import it.pagopa.interop.selfcare._
 
 package object service {
   type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
@@ -19,6 +21,13 @@ package object service {
 
   type PartyManagementInvoker = partymanagement.client.invoker.ApiInvoker
   type PartyManagementApi     = partymanagement.client.api.PartyApi
+
+  type PartyManagementApiKeyValue = selfcare.partymanagement.client.invoker.ApiKeyValue
+
+  object PartyManagementApiKeyValue {
+    def apply(): PartyManagementApiKeyValue =
+      partymanagement.client.invoker.ApiKeyValue(ApplicationConfiguration.partyManagementApiKey)
+  }
 
   object AgreementManagementInvoker {
     def apply()(implicit actorSystem: ActorSystem): AgreementManagementInvoker =

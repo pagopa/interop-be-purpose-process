@@ -9,7 +9,7 @@ import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.partymanagement.client.{model => PartyManagement}
+import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagement}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
@@ -69,8 +69,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
   def mockOrganizationRetrieve(institutionId: UUID) =
     (mockPartyManagementService
-      .getInstitutionById(_: String)(_: UUID)(_: Seq[(String, String)]))
-      .expects(bearerToken, institutionId, *)
+      .getInstitutionById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(institutionId, *, *)
       .once()
       .returns(Future.successful(SpecData.institution.copy(id = institutionId)))
 
@@ -128,8 +128,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     result: PartyManagement.Relationships = SpecData.relationships()
   ) =
     (mockPartyManagementService
-      .getActiveRelationships(_: String)(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(bearerToken, from, to, *)
+      .getActiveRelationships(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(from, to, *, *)
       .once()
       .returns(Future.successful(result))
 

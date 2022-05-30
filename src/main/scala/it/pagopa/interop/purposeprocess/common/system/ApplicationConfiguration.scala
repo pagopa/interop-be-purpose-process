@@ -18,4 +18,6 @@ object ApplicationConfiguration {
   val storagePath: String      = config.getString("purpose-process.storage.risk-analysis-path")
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
+
+  val partyManagementApiKey: String = config.getString("purpose-process.api-keys.party-management")
 }
