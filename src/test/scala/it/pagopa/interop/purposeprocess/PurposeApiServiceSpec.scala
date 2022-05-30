@@ -2,7 +2,7 @@ package it.pagopa.interop.purposeprocess
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.commons.utils.UID
+import it.pagopa.interop.commons.utils.{UID, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
@@ -29,7 +29,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -76,7 +77,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -122,7 +124,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val incorrectRiskAnalysis = RiskAnalysisForm(
         version = "1.0",
@@ -150,7 +153,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -176,7 +180,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -213,7 +218,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId = UUID.randomUUID()
       val userId    = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -236,7 +242,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId = UUID.randomUUID()
       val userId    = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purpose  = SpecData.purpose
       val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
@@ -262,7 +269,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId = UUID.randomUUID()
       val userId    = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -288,7 +296,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purpose  = SpecData.purpose
       val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -319,7 +328,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purpose = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
       val purposes: PurposeManagementDependency.Purposes =
@@ -367,7 +377,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val otherEServiceId2 = UUID.randomUUID()
       val otherProducerId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val ownEService         = SpecData.eService.copy(id = ownEServiceId, producerId = ownProducerId)
       val otherEService1      = SpecData.eService.copy(id = otherEServiceId1, producerId = otherProducerId)
@@ -426,7 +437,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
       val userId                         = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       (
         mockPurposeManagementService
@@ -455,7 +467,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val managementResponse =
         SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
@@ -479,7 +492,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeDraftVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
@@ -512,7 +526,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeDraftVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
@@ -546,7 +561,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
@@ -580,7 +596,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
 
@@ -608,7 +625,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeDraftVersion    = SpecData.purposeVersion.copy(state = DRAFT)
       val purposeNonDraftVersion = SpecData.purposeVersion.copy(state = ACTIVE)
@@ -639,7 +657,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = SUSPENDED)
 
@@ -674,7 +693,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val managementResponse =
         SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
@@ -696,7 +716,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
 
@@ -727,7 +748,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -762,7 +784,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val userId    = UUID.randomUUID()
       val purposeId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -788,7 +811,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId  = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -808,7 +832,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId  = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -843,7 +868,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val expected: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion.copy(dailyCalls = 100)
 
@@ -880,7 +906,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -909,7 +936,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId       = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
@@ -932,7 +960,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val consumerId       = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -978,7 +1007,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val expected: PurposeManagementDependency.PurposeVersion =
         SpecData.purposeVersion.copy(expectedApprovalDate = Some(timestamp))
@@ -1022,7 +1052,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -1052,7 +1083,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
       mockAssertUserProducer(
@@ -1080,7 +1112,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] = Seq("bearer" -> bearerToken, UID -> userId.toString)
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
