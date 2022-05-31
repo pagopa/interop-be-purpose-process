@@ -258,6 +258,7 @@ paths:
       description: deletes the purpose version by id
   /status:
     get:
+      security: []
       tags:
         - health
       summary: Health status endpoint
