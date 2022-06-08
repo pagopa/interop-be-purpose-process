@@ -7,7 +7,7 @@ import scala.concurrent.Future
 
 trait AuthorizationManagementService {
 
-  def updateStateOnClients(purposeId: UUID, state: ClientComponentState)(implicit
+  def updateStateOnClients(purposeId: UUID, versionId: UUID, state: ClientComponentState)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit]
   def getClients(purposeId: Option[UUID])(implicit contexts: Seq[(String, String)]): Future[Seq[Client]]

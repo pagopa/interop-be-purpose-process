@@ -35,7 +35,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
         .archivePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
@@ -115,7 +115,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships(userId, consumerId))
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
         .suspendPurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
@@ -151,7 +151,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockRelationshipsRetrieve(userId, consumerId, SpecData.relationships().copy(items = Seq.empty))
       mockEServiceRetrieve(eServiceId, SpecData.eService.copy(producerId = producerId))
       mockRelationshipsRetrieve(userId, producerId, SpecData.relationships(userId, producerId))
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.INACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
         .suspendPurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
@@ -268,7 +268,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockVersionFirstActivation(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -443,15 +443,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
-      val updatedVersion =
-        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockVersionActivate(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -539,14 +538,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
-      val updatedVersion =
-        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockAssertUserProducerIfNotConsumer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -582,14 +580,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
-      val updatedVersion =
-        SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockAssertUserProducerIfNotConsumer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -662,7 +659,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockAssertUserProducerIfNotConsumer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionFirstActivation(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK

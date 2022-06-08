@@ -388,6 +388,7 @@ final case class PurposeApiServiceImpl(
       response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
+        versionId = versionUUID,
         state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
       )
     } yield PurposeVersionConverter.dependencyToApi(response)
@@ -421,6 +422,7 @@ final case class PurposeApiServiceImpl(
       response <- purposeManagementService.archivePurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
+        versionId = versionUUID,
         state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
       )
     } yield PurposeVersionConverter.dependencyToApi(response)
