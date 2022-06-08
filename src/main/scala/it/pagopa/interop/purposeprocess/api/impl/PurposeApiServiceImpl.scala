@@ -206,8 +206,8 @@ final case class PurposeApiServiceImpl(
     def filterPurposeByUserType(purposes: PurposeManagementDependency.Purposes, userId: UUID): Future[Seq[Purpose]] = {
       // TODO Bad. This would lead to inconsistent page size during pagination.
       //      Can we use filter parameters on management request?
-      purposes.purposes
-        .traverse(purpose =>
+      Future
+        .traverse(purposes.purposes)(purpose =>
           for {
             userType        <- userType(userId, purpose.eserviceId, purpose.consumerId)
               .map(Some(_))
@@ -264,11 +264,13 @@ final case class PurposeApiServiceImpl(
         _           <- assertUserIsAConsumer(userUUID, purpose.consumerId)
         _           <- Future.successful(purpose).ensure(UndeletableVersionError(id))(isDeletable)
         clients     <- authorizationManagementService.getClients(Some(purposeUUID))
-        _ <- clients.traverse(client => authorizationManagementService.removePurposeFromClient(purposeUUID, client.id))
-        _ <- purpose.versions.traverse(version =>
+        _           <- Future.traverse(clients)(client =>
+          authorizationManagementService.removePurposeFromClient(purposeUUID, client.id)
+        )
+        _           <- Future.traverse(purpose.versions)(version =>
           purposeManagementService.deletePurposeVersion(purposeUUID, version.id)
         )
-        _ <- purposeManagementService.deletePurpose(purposeUUID)
+        _           <- purposeManagementService.deletePurpose(purposeUUID)
       } yield ()
 
       val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)
