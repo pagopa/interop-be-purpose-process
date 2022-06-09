@@ -240,12 +240,14 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockRelationshipsRetrieve(userId, eService.producerId, relationships)
   }
 
-  def mockClientStateUpdate(purposeId: UUID, state: AuthorizationManagement.ClientComponentState)(implicit
-    contexts: Seq[(String, String)]
+  def mockClientStateUpdate(purposeId: UUID, versionId: UUID, state: AuthorizationManagement.ClientComponentState)(
+    implicit contexts: Seq[(String, String)]
   ) =
     (mockAuthorizationManagementService
-      .updateStateOnClients(_: UUID, _: AuthorizationManagement.ClientComponentState)(_: Seq[(String, String)]))
-      .expects(purposeId, state, contexts)
+      .updateStateOnClients(_: UUID, _: UUID, _: AuthorizationManagement.ClientComponentState)(
+        _: Seq[(String, String)]
+      ))
+      .expects(purposeId, versionId, state, contexts)
       .returning(Future.successful(()))
       .once()
 
