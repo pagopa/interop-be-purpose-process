@@ -100,11 +100,14 @@ trait Dependencies {
   def agreementManagement()(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AgreementManagementService =
     AgreementManagementServiceImpl(agreementManagementInvoker(), agreementManagementApi)
 
-  private def authorizationManagementInvoker()(implicit actorSystem: ActorSystem[_]): AuthorizationManagementInvoker =
-    AuthorizationManagementInvoker()(actorSystem.classicSystem)
-  private final val authorizationManagementPurposeApi: AuthorizationManagementPurposeApi                             =
+  private def authorizationManagementInvoker()(implicit
+    actorSystem: ActorSystem[_],
+    blockingEc: ExecutionContext
+  ): AuthorizationManagementInvoker =
+    AuthorizationManagementInvoker()(actorSystem.classicSystem, blockingEc)
+  private final val authorizationManagementPurposeApi: AuthorizationManagementPurposeApi                            =
     AuthorizationManagementPurposeApi(ApplicationConfiguration.authorizationManagementURL)
-  private final val authorizationManagementClientApi: AuthorizationManagementClientApi                               =
+  private final val authorizationManagementClientApi: AuthorizationManagementClientApi                              =
     AuthorizationManagementClientApi(ApplicationConfiguration.authorizationManagementURL)
 
   def authorizationManagement()(implicit
