@@ -67,7 +67,8 @@ trait Dependencies {
   val healthApi: HealthApi = new HealthApi(
     new HealthServiceApiImpl(),
     HealthApiMarshallerImpl,
-    SecurityDirectives.authenticateOAuth2("SecurityRealm", AkkaUtils.PassThroughAuthenticator)
+    SecurityDirectives.authenticateOAuth2("SecurityRealm", AkkaUtils.PassThroughAuthenticator),
+    loggingEnabled = false
   )
 
   def purposeApi(jwtReader: JWTReader, fileManager: FileManager)(implicit
