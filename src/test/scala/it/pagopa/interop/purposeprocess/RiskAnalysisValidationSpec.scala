@@ -20,7 +20,6 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
   "Risk Analysis Validation" should {
     "succeed on correct form" in {
-
       val riskAnalysis = SpecData.validRiskAnalysis
 
       val expected = RiskAnalysisFormSeed(

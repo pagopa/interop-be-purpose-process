@@ -16,23 +16,26 @@ import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
-import spray.json.{DefaultJsonProtocol, RootJsonFormat}
+import spray.json._
 
 import java.io.File
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
+import akka.http.scaladsl.server.directives.FileInfo
+import java.io.ByteArrayOutputStream
+import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
+import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
   final val bearerToken: String = "token"
 
-  val config: Config           = ConfigFactory
+  val config: Config = ConfigFactory
     .parseResourcesAnySyntax("application-test")
     .resolve()
-  val fileManagerType: String  = config.getString("interop-commons.storage.type")
-  val fileManager: FileManager = FileManager.getConcreteImplementation(fileManagerType).get
 
+  val mockfileManager: FileManager                                       = mock[FileManager]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
@@ -50,11 +53,22 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       mockCatalogManagementService,
       mockPartyManagementService,
       mockPurposeManagementService,
-      fileManager,
+      mockfileManager,
       mockPdfCreator,
       mockUUIDSupplier,
       mockDateTimeSupplier
     )(ExecutionContext.global)
+
+  def mockFileManagerStore(storageFilePath: String) = (
+    mockfileManager.store(_: String, _: String)(_: UUID, _: (FileInfo, File))
+  ).expects(*, *, *, *).once().returns(Future.successful(storageFilePath))
+
+  def mockFileManagerGet(filePath: String)(returns: Array[Byte]) =
+    (mockfileManager.get(_: String)(_: String)).expects(*, filePath).once().returns {
+      val b = new ByteArrayOutputStream
+      b.writeBytes(returns)
+      Future.successful(b)
+    }
 
   def mockSubject(uuid: String): Try[JWTClaimsSet] = Success(new JWTClaimsSet.Builder().subject(uuid).build())
 
@@ -82,6 +96,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(purposeId, contexts)
       .once()
       .returns(Future.successful(result.copy(id = purposeId)))
+
+  def mockPurposeRetrieveError(problem: PurposeProblem) = (mockPurposeManagementService
+    .getPurpose(_: UUID)(_: Seq[(String, String)]))
+    .expects(*, *)
+    .once()
+    .returns(Future.failed(PurposeApiError[String](problem.status, "Some error", Some(problem.toJson.prettyPrint))))
 
   def mockPurposeDelete(purposeId: UUID)(implicit contexts: Seq[(String, String)]) =
     (mockPurposeManagementService

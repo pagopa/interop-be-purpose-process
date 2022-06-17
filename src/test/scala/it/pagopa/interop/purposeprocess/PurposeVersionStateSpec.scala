@@ -98,7 +98,6 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         problem.errors.head.code shouldBe "012-0007"
       }
     }
-
   }
 
   "Purpose version suspend" should {
@@ -221,7 +220,6 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         problem.errors.head.code shouldBe "012-0009"
       }
     }
-
   }
 
   "Purpose version activate" should {
@@ -269,6 +267,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockVersionFirstActivation(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockFileManagerStore("whateverPath")
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -660,6 +659,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionFirstActivation(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockFileManagerStore("whateverPath")
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -849,6 +849,5 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         problem.errors.head.code shouldBe "012-0016"
       }
     }
-
   }
 }

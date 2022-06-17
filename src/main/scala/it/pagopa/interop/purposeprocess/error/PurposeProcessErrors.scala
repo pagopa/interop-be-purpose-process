@@ -46,4 +46,11 @@ object PurposeProcessErrors {
   final case class DeletePurposeVersionError(purposeId: String, versionId: String)
       extends ComponentError("0020", s"Error deleting version $versionId of purpose $purposeId")
 
+  final case class GetPurposeVersionDocumentBadRequest(purposeId: String, versionId: String, documentId: String)
+      extends ComponentError("0021", s"Error retrieving purpose version document $purposeId/$versionId/$documentId")
+  final case class PurposeVersionNotFound(purposeId: String, versionId: String)
+      extends ComponentError("0022", s"Version $versionId of Purpose $purposeId not found")
+  final case class PurposeVersionDocumentNotFound(purposeId: String, versionId: String, documentId: String)
+      extends ComponentError("0023", s"Document $documentId of version $versionId of Purpose $purposeId not found")
+
 }
