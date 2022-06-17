@@ -66,7 +66,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
     language: Language
-  ): Try[Map[String, String]] = {
+  ): Try[Map[String, String]] =
     for {
       singleAnswers <- riskAnalysisForm.singleAnswers.traverse(formatSingleAnswer(formConfig, language))
       multiAnswers  <- riskAnalysisForm.multiAnswers.traverse(formatMultiAnswer(formConfig, language))
@@ -74,16 +74,39 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       "dailyCalls" -> dailyCalls.toString,
       "answers"    ->
         s"""
-           | ${singleAnswers.mkString(" ")}
-           | ${multiAnswers.mkString(" ")}
+           | ${singleAnswers.mkString("\n")}
+           | ${multiAnswers.mkString("\n")}
         """.stripMargin
     )
-  }
+
+  private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
+    answer: RiskAnalysisSingleAnswer
+  ): Try[String] =
+    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText)
+
+  private def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
+    answer: RiskAnalysisMultiAnswer
+  ): Try[String] =
+    formatAnswer(formConfig, language, answer, answer.key, getMultiAnswerText(_, _, language))
+
+  private def formatAnswer[T](
+    formConfig: RiskAnalysisFormConfig,
+    language: Language,
+    answer: T,
+    answerKey: String,
+    getText: (FormConfigQuestion, T) => Try[String]
+  ): Try[String] =
+    for {
+      questionConfig <- getQuestionConfig(formConfig, answerKey)
+      questionLabel = getLocalizedLabel(questionConfig.label, language)
+      infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
+      answerText <- getText(questionConfig, answer)
+    } yield answerToHtml(questionLabel, infoLabel, answerText)
 
   private def getSingleAnswerText(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
     questionConfig match {
-      case c: SingleAnswerQuestionConfig =>
-        getSingleAnswerTextFromConfig(c, answer)
+      case _: SingleAnswerQuestionConfig =>
+        getSingleAnswerTextFromConfig(answer)
       case c: MultiAnswerQuestionConfig  =>
         Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
     }
@@ -100,16 +123,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         getMultiAnswerTextFromConfig(c, answer, language)
     }
 
-  private def getSingleAnswerTextFromConfig(
-    questionConfig: SingleAnswerQuestionConfig,
-    answer: RiskAnalysisSingleAnswer
-  ): Try[String] =
-    questionConfig match {
-      case _: FreeInputQuestion =>
-        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
-      case _: RadioQuestion     =>
-        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
-    }
+  private def getSingleAnswerTextFromConfig(answer: RiskAnalysisSingleAnswer): Try[String] =
+    answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
 
   private def getMultiAnswerTextFromConfig(
     questionConfig: MultiAnswerQuestionConfig,
@@ -123,30 +138,10 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
             q.options
               .find(_.value == v)
               .toTry(new RuntimeException(s"Answer ${answer.key} not found in config ${q.id}"))
-              .map(l => getLocalizedLabel(l.label, language))
+              .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
           )
           .map(_.mkString(" ")) // TODO Check this
     }
-
-  private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
-    answer: RiskAnalysisSingleAnswer
-  ): Try[String] =
-    for {
-      questionConfig <- getQuestionConfig(formConfig, answer.key)
-      questionLabel = getLocalizedLabel(questionConfig.label, language)
-      infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
-      answerText <- getSingleAnswerText(questionConfig, answer)
-    } yield answerToHtml(questionLabel, infoLabel, answerText)
-
-  private def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
-    answer: RiskAnalysisMultiAnswer
-  ): Try[String] =
-    for {
-      questionConfig <- getQuestionConfig(formConfig, answer.key)
-      questionLabel = getLocalizedLabel(questionConfig.label, language)
-      infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
-      answerText <- getMultiAnswerText(questionConfig, answer, language)
-    } yield answerToHtml(questionLabel, infoLabel, answerText)
 
   private def getLocalizedLabel(text: LocalizedText, language: Language): String =
     language match {
