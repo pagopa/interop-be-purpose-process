@@ -78,7 +78,7 @@ final case class PurposeApiServiceImpl(
     dateTimeSupplier
   )
 
-  override def getRiskAnalysisDocumentBy(purposeId: String, versionId: String, documentId: String)(implicit
+  override def getRiskAnalysisDocument(purposeId: String, versionId: String, documentId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerFile: ToEntityMarshaller[File]
@@ -103,13 +103,13 @@ final case class PurposeApiServiceImpl(
         case Success(response)                          => complete(response)
         case Failure(e: PurposeVersionNotFound)         =>
           logger.error("Error while downloading Risk Analysis Document", e)
-          getRiskAnalysisDocumentBy404(problemOf(StatusCodes.NotFound, e))
+          getRiskAnalysisDocument404(problemOf(StatusCodes.NotFound, e))
         case Failure(e: PurposeVersionDocumentNotFound) =>
           logger.error("Error while downloading Risk Analysis Document", e)
-          getRiskAnalysisDocumentBy404(problemOf(StatusCodes.NotFound, e))
+          getRiskAnalysisDocument404(problemOf(StatusCodes.NotFound, e))
         case Failure(e)                                 =>
           logger.error("Error while downloading Risk Analysis Document", e)
-          getRiskAnalysisDocumentBy400(defaultProblem)
+          getRiskAnalysisDocument400(defaultProblem)
       }
     }
   }

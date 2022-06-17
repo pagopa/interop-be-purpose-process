@@ -266,7 +266,7 @@ paths:
       tags:
         - purpose
       summary: Get an Risk Analysis document
-      operationId: getRiskAnalysisDocumentBy
+      operationId: getRiskAnalysisDocument
       parameters:
         - name: purposeId
           in: path

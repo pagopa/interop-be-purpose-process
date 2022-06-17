@@ -1177,7 +1177,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockPurposeRetrieve(purposeId, result = purpose)
       mockFileManagerGet(path)(emptyPdf)
 
-      Get() ~> service.getRiskAnalysisDocumentBy(
+      Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString(),
         purposeVersionId.toString(),
         documentId.toString()
@@ -1211,7 +1211,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, result = purpose)
 
-      Get() ~> service.getRiskAnalysisDocumentBy(
+      Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString(),
         purposeVersionId.toString(),
         documentId.toString()
@@ -1241,7 +1241,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
       mockPurposeRetrieve(purposeId, result = purpose)
 
-      Get() ~> service.getRiskAnalysisDocumentBy(
+      Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString(),
         purposeVersionId.toString(),
         documentId.toString()
@@ -1265,7 +1265,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieveError(SpecData.purposeProblem.copy(status = 404))
 
-      Get() ~> service.getRiskAnalysisDocumentBy(
+      Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString(),
         purposeVersionId.toString(),
         documentId.toString()
