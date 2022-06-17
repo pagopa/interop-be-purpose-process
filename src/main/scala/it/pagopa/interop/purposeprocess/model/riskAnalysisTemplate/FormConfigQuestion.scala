@@ -1,24 +1,7 @@
-package it.pagopa.interop.purposeprocess.model
+package it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
-
-final case class RiskAnalysisFormConfig(version: String, questions: List[FormConfigQuestion])
-
-object RiskAnalysisFormConfig extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[RiskAnalysisFormConfig] = jsonFormat2(RiskAnalysisFormConfig.apply)
-
-}
-
-sealed trait Language
-object LanguageIt extends Language
-object LanguageEn extends Language
-
-final case class LocalizedText(it: String, en: String)
-
-object LocalizedText extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[LocalizedText] = jsonFormat2(LocalizedText.apply)
-}
 
 sealed trait FormConfigQuestion {
   def id: String
@@ -80,10 +63,4 @@ final case class CheckboxQuestion(
 
 object CheckboxQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[CheckboxQuestion] = jsonFormat5(CheckboxQuestion.apply)
-}
-
-final case class LabeledValue(label: LocalizedText, value: String)
-
-object LabeledValue extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[LabeledValue] = jsonFormat2(LabeledValue.apply)
 }

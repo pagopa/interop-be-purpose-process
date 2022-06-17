@@ -9,8 +9,10 @@ import it.pagopa.interop.purposemanagement.client.model.{
   RiskAnalysisMultiAnswer,
   RiskAnalysisSingleAnswer
 }
-import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.PDFCreator
+import spray.json._
 
 import java.io.File
 import java.time.LocalDateTime
@@ -20,7 +22,6 @@ import scala.concurrent.Future
 import scala.io.Source
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.{Failure, Try}
-import spray.json._
 
 object PDFCreatorImpl extends PDFCreator with PDFManager {
 
@@ -49,7 +50,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         file       <- createTempFile
         formConfig <- riskAnalysisForms
           .get(riskAnalysisForm.version)
-          .toTry(new RuntimeException(s"Config version ${riskAnalysisForm.version} not found"))
+          .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, language)
         pdf        <- getPDFAsFile(file.toPath, template, data)
       } yield pdf
@@ -105,10 +106,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private def getSingleAnswerText(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
     questionConfig match {
-      case _: SingleAnswerQuestionConfig =>
-        getSingleAnswerTextFromConfig(answer)
-      case c: MultiAnswerQuestionConfig  =>
-        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
+      case _: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(answer)
+      case c: MultiAnswerQuestionConfig  => Failure(IncompatibleConfig(answer.key, c.id))
     }
 
   private def getMultiAnswerText(
@@ -117,14 +116,12 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   ): Try[String] =
     questionConfig match {
-      case c: SingleAnswerQuestionConfig =>
-        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
-      case c: MultiAnswerQuestionConfig  =>
-        getMultiAnswerTextFromConfig(c, answer, language)
+      case c: SingleAnswerQuestionConfig => Failure(IncompatibleConfig(answer.key, c.id))
+      case c: MultiAnswerQuestionConfig  => getMultiAnswerTextFromConfig(c, answer, language)
     }
 
   private def getSingleAnswerTextFromConfig(answer: RiskAnalysisSingleAnswer): Try[String] =
-    answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
+    answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
 
   private def getMultiAnswerTextFromConfig(
     questionConfig: MultiAnswerQuestionConfig,
@@ -137,7 +134,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
           .traverse(v =>
             q.options
               .find(_.value == v)
-              .toTry(new RuntimeException(s"Answer ${answer.key} not found in config ${q.id}"))
+              .toTry(AnswerNotFoundInConfig(answer.key, q.id))
               .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
           )
           .map(_.mkString(" ")) // TODO Check this
@@ -152,7 +149,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   private def getQuestionConfig(formConfig: RiskAnalysisFormConfig, answerKey: String): Try[FormConfigQuestion] =
     formConfig.questions
       .find(_.id == answerKey)
-      .toTry(new RuntimeException(s"Question $answerKey not found in configuration with version ${formConfig.version}"))
+      .toTry(QuestionNotFoundInConfig(answerKey, formConfig.version))
 
   private def answerToHtml(questionLabel: String, questionInfoLabel: Option[String], answer: String): String =
     s"""

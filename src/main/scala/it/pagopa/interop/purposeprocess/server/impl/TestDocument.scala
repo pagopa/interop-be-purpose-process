@@ -5,7 +5,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
   RiskAnalysisMultiAnswer,
   RiskAnalysisSingleAnswer
 }
-import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl
 
 import java.util.UUID
