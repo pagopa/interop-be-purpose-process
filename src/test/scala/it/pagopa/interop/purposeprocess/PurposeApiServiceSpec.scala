@@ -17,8 +17,16 @@ import spray.json._
 
 import java.util.UUID
 import scala.concurrent.Future
+import java.time.OffsetDateTime
+import cats.implicits._
+import akka.http.scaladsl.model.{ContentType, MediaTypes}
+import org.scalatest.concurrent.ScalaFutures
+import akka.util.ByteString
+import scala.util.Random
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
+import it.pagopa.interop.purposeprocess.api.impl.problemOf
 
-class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
+class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
   import PurposeApiMarshallerImpl._
 
@@ -210,7 +218,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
-
   }
 
   "Purpose retrieve" should {
@@ -319,7 +326,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         problem.errors.head.code shouldBe "012-0009"
       }
     }
-
   }
 
   "Purposes listing" should {
@@ -455,7 +461,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
-
   }
 
   "Purpose deletion" should {
@@ -738,7 +743,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem].errors.head.code shouldBe "012-0007"
       }
     }
-
   }
 
   "Purpose version creation" should {
@@ -856,13 +860,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
-
   }
 
   "Purpose draft version update" should {
 
     "succeed" in {
-
       val userId           = UUID.randomUUID()
       val consumerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
@@ -995,7 +997,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
-
   }
 
   "Purpose waiting for approval version update" should {
@@ -1153,7 +1154,126 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[Problem] shouldEqual expectedProblem
       }
     }
+  }
 
+  "Purpose Risk Analysys Document download" should {
+    "succeed" in {
+      val userId: UUID           = UUID.randomUUID()
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+
+      val path: String                                                 = "/here/there/foo/bar.pdf"
+      val document: PurposeManagementDependency.PurposeVersionDocument =
+        PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, OffsetDateTime.now())
+      val purposeVersion: PurposeManagementDependency.PurposeVersion   =
+        SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
+
+      mockPurposeRetrieve(purposeId, result = purpose)
+      mockFileManagerGet(path)(emptyPdf)
+
+      Get() ~> service.getRiskAnalysisDocumentBy(
+        purposeId.toString(),
+        purposeVersionId.toString(),
+        documentId.toString()
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
+        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+      }
+    }
+
+    "fail with a 404 if the document doesn't exist" in {
+      val userId: UUID           = UUID.randomUUID()
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+
+      val path: String                                                 = "/here/there/foo/bar.pdf"
+      val document: PurposeManagementDependency.PurposeVersionDocument =
+        PurposeManagementDependency.PurposeVersionDocument(
+          UUID.randomUUID(),
+          "application/pdf",
+          path,
+          OffsetDateTime.now()
+        )
+      val purposeVersion: PurposeManagementDependency.PurposeVersion   =
+        SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+
+      mockPurposeRetrieve(purposeId, result = purpose)
+
+      Get() ~> service.getRiskAnalysisDocumentBy(
+        purposeId.toString(),
+        purposeVersionId.toString(),
+        documentId.toString()
+      ) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual problemOf(
+          StatusCodes.NotFound,
+          PurposeProcessErrors.PurposeVersionDocumentNotFound(
+            purposeId.toString(),
+            purposeVersionId.toString(),
+            documentId.toString()
+          )
+        )
+      }
+    }
+
+    "fail with a 404 if the version doesn't exist" in {
+      val userId: UUID           = UUID.randomUUID()
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+
+      val purposeVersion: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+      mockPurposeRetrieve(purposeId, result = purpose)
+
+      Get() ~> service.getRiskAnalysisDocumentBy(
+        purposeId.toString(),
+        purposeVersionId.toString(),
+        documentId.toString()
+      ) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem] shouldEqual problemOf(
+          StatusCodes.NotFound,
+          PurposeProcessErrors.PurposeVersionNotFound(purposeId.toString(), purposeVersionId.toString())
+        )
+      }
+    }
+
+    "fail with a 404 if the purpose doesn't exist" in {
+      val userId: UUID           = UUID.randomUUID()
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+
+      mockPurposeRetrieveError(SpecData.purposeProblem.copy(status = 404))
+
+      Get() ~> service.getRiskAnalysisDocumentBy(
+        purposeId.toString(),
+        purposeVersionId.toString(),
+        documentId.toString()
+      ) ~> check {
+        status shouldEqual StatusCodes.NotFound
+        responseAs[Problem]
+      }
+    }
   }
 
 }

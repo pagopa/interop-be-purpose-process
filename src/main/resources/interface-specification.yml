@@ -256,6 +256,56 @@ paths:
       tags:
         - purpose
       description: deletes the purpose version by id
+  /purposes/{purposeId}/versions/{versionId}/documents/{documentId}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - purpose
+      summary: Get an Risk Analysis document
+      operationId: getRiskAnalysisDocumentBy
+      parameters:
+        - name: purposeId
+          in: path
+          description: the purpose id
+          required: true
+          schema:
+            type: string
+        - name: versionId
+          in: path
+          description: the version Id
+          required: true
+          schema:
+            type: string
+        - name: documentId
+          in: path
+          description: the document id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Risk Analysis document retrieved
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Resource not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /status:
     get:
       security: []

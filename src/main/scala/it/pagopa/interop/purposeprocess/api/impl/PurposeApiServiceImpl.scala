@@ -42,6 +42,9 @@ import it.pagopa.interop.selfcare.partymanagement.client.invoker.{ApiError => Pa
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
+import java.io.File
+import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
+import akka.http.scaladsl.model.{HttpEntity, MediaTypes, ContentType}
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
@@ -74,6 +77,42 @@ final case class PurposeApiServiceImpl(
     uuidSupplier,
     dateTimeSupplier
   )
+
+  override def getRiskAnalysisDocumentBy(purposeId: String, versionId: String, documentId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
+    toEntityMarshallerFile: ToEntityMarshaller[File]
+  ): Route = {
+    val result: Future[HttpEntity.Strict] = for {
+      purposeUUID  <- purposeId.toFutureUUID
+      versionUUID  <- versionId.toFutureUUID
+      documentUUID <- documentId.toFutureUUID
+      purpose      <- purposeManagementService.getPurpose(purposeUUID)
+      version      <- purpose.versions.find(_.id == versionUUID).toFuture(PurposeVersionNotFound(purposeId, versionId))
+      document     <- version.riskAnalysis
+        .find(_.id == documentUUID)
+        .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
+      byteStream   <- fileManager.get(ApplicationConfiguration.storagePath)(document.path)
+    } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray())
+
+    val defaultProblem: Problem =
+      problemOf(StatusCodes.BadRequest, GetPurposeVersionDocumentBadRequest(purposeId, versionId, documentId))
+
+    onComplete(result) {
+      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        case Success(response)                          => complete(response)
+        case Failure(e: PurposeVersionNotFound)         =>
+          logger.error("Error while downloading Risk Analysis Document", e)
+          getRiskAnalysisDocumentBy404(problemOf(StatusCodes.NotFound, e))
+        case Failure(e: PurposeVersionDocumentNotFound) =>
+          logger.error("Error while downloading Risk Analysis Document", e)
+          getRiskAnalysisDocumentBy404(problemOf(StatusCodes.NotFound, e))
+        case Failure(e)                                 =>
+          logger.error("Error while downloading Risk Analysis Document", e)
+          getRiskAnalysisDocumentBy400(defaultProblem)
+      }
+    }
+  }
 
   override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
