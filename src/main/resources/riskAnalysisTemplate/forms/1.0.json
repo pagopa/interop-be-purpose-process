@@ -1,0 +1,138 @@
+{
+  "version": "1.0",
+  "questions": [
+    {
+      "id": "purpose",
+      "type": "text",
+      "label": {
+        "it": "Finalità (richiesto)",
+        "en": "Purpose (required)"
+      },
+      "infoLabel": {
+        "it": "Indicare per quale finalità si intende accedere ai dati messi a disposizione con la fruizione del presente E-Service",
+        "en": "State what is your purpose in accessing the data provided with this E-Service"
+      },
+      "defaultValue": "",
+      "required": true,
+      "dependencies": []
+    },
+    {
+      "id": "legalBasis",
+      "type": "checkbox",
+      "label": {
+        "it": "Indicare sulla base di quale, fra le seguenti basi giuridiche ex art. 6 del GDPR, ritiene di essere titolato ad accedere ai dati personali messi a disposizione con la fruizione dell’E-Service (richiesto, scelta multipla)",
+        "en": "Based on GDPR ex art. 6, state on which legal basis you think you are entitled to access the personal data provided with the access to this E-Service (required, multiple choice)"
+      },
+      "options": [
+        {
+          "label": {
+            "it": "consenso dell’interessato al trattamento dei dati personali per una o più specifiche finalità",
+            "en": "consent of the interested party to the treatment of personal data for one or more purposes"
+          },
+          "value": "CONSENT"
+        },
+        {
+          "label": {
+            "it": "esecuzione di un contratto di cui l'interessato è parte o di misure precontrattuali adottate su richiesta dello stesso",
+            "en": "execution of a contract which the party is part of or precontractual measures adopted upon request of said party"
+          },
+          "value": "CONTRACT"
+        },
+        {
+          "label": {
+            "it": "adempimento di un obbligo legale",
+            "en": "fulfillment of a legal obligation"
+          },
+          "value": "LEGAL_OBLIGATION"
+        },
+        {
+          "label": {
+            "it": "salvaguardia degli interessi vitali di una persona fisica",
+            "en": "safeguard of vital interests of a physical person"
+          },
+          "value": "SAFEGUARD"
+        },
+        {
+          "label": {
+            "it": "esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito",
+            "en": "execution of a task of public interest or connected to the exercise of public authority bestowed upon you"
+          },
+          "value": "PUBLIC_INTEREST"
+        },
+        {
+          "label": {
+            "it": "perseguimento del legittimo interesse del titolare del trattamento o di terzi, a condizione che non prevalgano gli interessi o i diritti e le libertà fondamentali dell'interessato che richiedono la protezione dei dati personali, in particolare se l'interessato è un minore",
+            "en": "pursue of a legitimate interest of the owner of the treatment or of a third party, on condition that the interest, rights and fundamental freedoms of the interested party that require personal data protection not prevail, with particular interests in case of a minor"
+          },
+          "value": "LEGITIMATE_INTEREST"
+        }
+      ],
+      "defaultValue": [],
+      "required": true,
+      "dependencies": [
+        {
+          "id": "usesPersonalData",
+          "value": "YES"
+        }
+      ]
+    },
+    {
+      "id": "legalObligationReference",
+      "type": "text",
+      "label": {
+        "it": "Inserire riferimento normativo per adempimento di un obbligo legale (richiesto)",
+        "en": "State the normative reference towards the fulfillment of a legal obligation (required)"
+      },
+      "defaultValue": "",
+      "required": true,
+      "dependencies": [
+        {
+          "id": "legalBasis",
+          "value": "LEGAL_OBLIGATION"
+        }
+      ]
+    },
+    {
+      "id": "publicInterestReference",
+      "type": "text",
+      "label": {
+        "it": "Inserire riferimento normativo per esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito (richiesto)",
+        "en": "State the normative reference for the execution of a public interest task, or connected to the exercise of public powers bestowed upon you (required)"
+      },
+      "defaultValue": "",
+      "required": true,
+      "dependencies": [
+        {
+          "id": "legalBasis",
+          "value": "PUBLIC_INTEREST"
+        }
+      ]
+    },
+    {
+      "id": "checkedExistenceMereCorrectnessInteropCatalogue",
+      "type": "checkbox",
+      "label": {
+        "it": "Confermare se è stato verificato se sul Catalogo API è presente un altro E-Service in grado di svolgere questa attività di mera verifica (che non preveda ex novo la comunicazione di altri informazioni/dati personali – richiesto)",
+        "en": "Have you checked if there is another E-Service in the Catalog that allows you to carry out this simple check task (in case it does not require the ex novo transmission of other information/personal data)? (required)"
+      },
+      "options": [
+        {
+          "label": { "it": "Confermo", "en": "Confirm" },
+          "value": "YES"
+        }
+      ],
+      "defaultValue": [],
+      "required": true,
+      "dependencies": [
+        {
+          "id": "usesPersonalData",
+          "value": "YES"
+        },
+        {
+          "id": "purposePursuit",
+          "value": "MERE_CORRECTNESS"
+        }
+      ]
+    }
+  ]
+}
