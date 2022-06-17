@@ -27,8 +27,8 @@ sealed trait FormConfigQuestion {
   def `type`: String
 }
 
-//sealed trait SingleAnswerQuestionConfig extends FormConfigQuestion
-//sealed trait MultiAnswerQuestionConfig  extends FormConfigQuestion
+sealed trait SingleAnswerQuestionConfig extends FormConfigQuestion
+sealed trait MultiAnswerQuestionConfig  extends FormConfigQuestion
 
 object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object FormConfigQuestionJsonFormat extends RootJsonFormat[FormConfigQuestion] {
@@ -49,7 +49,7 @@ object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
 }
 
 final case class FreeInputQuestion(id: String, label: LocalizedText, infoLabel: Option[LocalizedText], `type`: String)
-    extends FormConfigQuestion
+    extends SingleAnswerQuestionConfig
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat4(FreeInputQuestion.apply)
@@ -61,7 +61,7 @@ final case class CheckboxQuestion(
   infoLabel: Option[LocalizedText],
   `type`: String,
   options: Seq[LabeledValue]
-) extends FormConfigQuestion
+) extends MultiAnswerQuestionConfig
 
 object CheckboxQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[CheckboxQuestion] = jsonFormat5(CheckboxQuestion.apply)

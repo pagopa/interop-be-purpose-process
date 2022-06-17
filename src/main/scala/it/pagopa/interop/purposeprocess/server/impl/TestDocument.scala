@@ -30,7 +30,7 @@ object TestDocument extends App {
     )
   val dailyCalls                         = 1000
 
-  pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, dailyCalls, LanguageEn).onComplete {
+  pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, dailyCalls, LanguageIt).onComplete {
     case Success(value) => println(value.getPath)
     case Failure(err)   => println(err)
   }

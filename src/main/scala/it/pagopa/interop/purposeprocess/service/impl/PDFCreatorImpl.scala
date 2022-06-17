@@ -81,18 +81,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   }
 
   private def getSingleAnswerText(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
-//    questionConfig match {
-//      case c: SingleAnswerQuestionConfig =>
-//        getSingleAnswerTextFromConfig(c, answer)
-//      case c: MultiAnswerQuestionConfig  =>
-//        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
-//    }
     questionConfig match {
-      case _: FreeInputQuestion =>
-        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
-      case c                    =>
+      case c: SingleAnswerQuestionConfig =>
+        getSingleAnswerTextFromConfig(c, answer)
+      case c: MultiAnswerQuestionConfig  =>
         Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
-
     }
 
   private def getMultiAnswerText(
@@ -100,12 +93,27 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     answer: RiskAnalysisMultiAnswer,
     language: Language
   ): Try[String] =
-//    questionConfig match {
-//      case c: SingleAnswerQuestionConfig =>
-//        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
-//      case c: MultiAnswerQuestionConfig  =>
-//        getMultiAnswerTextFromConfig(c, answer, language)
-//    }
+    questionConfig match {
+      case c: SingleAnswerQuestionConfig =>
+        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
+      case c: MultiAnswerQuestionConfig  =>
+        getMultiAnswerTextFromConfig(c, answer, language)
+    }
+
+  private def getSingleAnswerTextFromConfig(
+    questionConfig: SingleAnswerQuestionConfig,
+    answer: RiskAnalysisSingleAnswer
+  ): Try[String] =
+    questionConfig match {
+      case _: FreeInputQuestion =>
+        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
+    }
+
+  private def getMultiAnswerTextFromConfig(
+    questionConfig: MultiAnswerQuestionConfig,
+    answer: RiskAnalysisMultiAnswer,
+    language: Language
+  ): Try[String] =
     questionConfig match {
       case q: CheckboxQuestion =>
         answer.values
@@ -116,35 +124,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
               .map(l => getLocalizedLabel(l.label, language))
           )
           .map(_.mkString(" ")) // TODO Check this
-      case c                   =>
-        Failure(new RuntimeException(s"Question ${answer.key} not compatible with config ${c.id}"))
     }
-
-//  private def getSingleAnswerTextFromConfig(
-//    questionConfig: SingleAnswerQuestionConfig,
-//    answer: RiskAnalysisSingleAnswer
-//  ): Try[String] =
-//    questionConfig match {
-//      case _: FreeInputQuestion =>
-//        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
-//    }
-//
-//  private def getMultiAnswerTextFromConfig(
-//    questionConfig: MultiAnswerQuestionConfig,
-//    answer: RiskAnalysisMultiAnswer,
-//    language: Language
-//  ): Try[String] =
-//    questionConfig match {
-//      case q: CheckboxQuestion =>
-//        answer.values
-//          .traverse(v =>
-//            q.options
-//              .find(_.value == v)
-//              .toTry(new RuntimeException(s"Answer ${answer.key} not found in config ${q.id}"))
-//              .map(l => getLocalizedLabel(l.label, language))
-//          )
-//          .map(_.mkString(" ")) // TODO Check this
-//    }
 
   private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisSingleAnswer
