@@ -107,6 +107,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     questionConfig match {
       case _: FreeInputQuestion =>
         answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
+      case _: RadioQuestion     =>
+        answer.value.toTry(new RuntimeException(s"Unexpected empty answer for ${answer.key}"))
     }
 
   private def getMultiAnswerTextFromConfig(

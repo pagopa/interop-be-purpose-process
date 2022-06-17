@@ -21,7 +21,6 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
-import scala.annotation.nowarn
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 
@@ -192,7 +191,6 @@ final case class PurposeVersionActivation(
     * @param version Version to activate
     * @return The path of the new document
     */
-  @nowarn
   def createRiskAnalysisDocument(
     documentId: UUID,
     purpose: Purpose,
@@ -202,7 +200,7 @@ final case class PurposeVersionActivation(
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
-      document         <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls, ???)
+      document         <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,

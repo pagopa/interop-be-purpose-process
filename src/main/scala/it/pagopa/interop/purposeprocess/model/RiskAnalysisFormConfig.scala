@@ -35,13 +35,16 @@ object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
     def write(a: FormConfigQuestion): JsValue = a match {
       case q: FreeInputQuestion => q.toJson
       case q: CheckboxQuestion  => q.toJson
+      case q: RadioQuestion     => q.toJson
     }
 
     def read(value: JsValue): FormConfigQuestion =
       value.asJsObject.fields("type") match {
-        case JsString("text")     => value.convertTo[FreeInputQuestion]
-        case JsString("checkbox") => value.convertTo[CheckboxQuestion]
-        case v                    => throw new RuntimeException(s"Failed to decode $v")
+        case JsString("text")       => value.convertTo[FreeInputQuestion]
+        case JsString("checkbox")   => value.convertTo[CheckboxQuestion]
+        case JsString("radio")      => value.convertTo[RadioQuestion]
+        case JsString("select-one") => value.convertTo[RadioQuestion] // This has the same behaviour of radio
+        case v                      => throw new RuntimeException(s"Failed to decode $v")
       }
   }
 
@@ -53,6 +56,18 @@ final case class FreeInputQuestion(id: String, label: LocalizedText, infoLabel: 
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat4(FreeInputQuestion.apply)
+}
+
+final case class RadioQuestion(
+  id: String,
+  label: LocalizedText,
+  infoLabel: Option[LocalizedText],
+  `type`: String,
+  options: Seq[LabeledValue]
+) extends SingleAnswerQuestionConfig
+
+object RadioQuestion extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit def format: RootJsonFormat[RadioQuestion] = jsonFormat5(RadioQuestion.apply)
 }
 
 final case class CheckboxQuestion(
