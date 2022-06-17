@@ -18,6 +18,7 @@ import it.pagopa.interop.purposeprocess.error.InternalErrors.{
   UserNotAllowed
 }
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.LanguageIt
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -200,7 +201,8 @@ final case class PurposeVersionActivation(
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
-      document         <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls)
+      // TODO Language should be a request parameter
+      document <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls, LanguageIt)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,
