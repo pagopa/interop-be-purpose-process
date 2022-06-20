@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
 import cats.implicits.toTraverseOps
-import com.openhtmltopdf.util.XRLog
+import it.pagopa.interop.commons.files.model.PDFConfiguration
 import it.pagopa.interop.commons.files.service.PDFManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.purposemanagement.client.model.{
@@ -20,15 +20,14 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.Future
 import scala.io.Source
-import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.{Failure, Try}
 
 object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   // Suppressing openhtmltopdf log
-  XRLog.listRegisteredLoggers.asScala.foreach((logger: String) =>
-    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
-  )
+//  XRLog.listRegisteredLoggers.asScala.foreach((logger: String) =>
+//    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
+//  )
 
   private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
     "1.0" -> Source
@@ -38,6 +37,31 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       .parseJson
       .convertTo[RiskAnalysisFormConfig]
   )
+
+//  val a = new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath)
+//  println(new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath))
+//  println(new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath).listFiles().toList)
+
+//  private[this] val montserratFonts: List[PDFFontConfig] = new File(
+//    getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath
+//  ).listFiles().toList.map(_.getCanonicalPath).map(PDFFontConfig(_, "Montserrat"))
+
+//  private[this] val montserratFonts: List[PDFFontConfig] = List().map(PDFFontConfig(_, "Montserrat"))
+//
+//  println(montserratFonts)
+
+//  println(getClass.getResource("/riskAnalysisTemplate/").getPath)
+//  println(Paths.get(".").toAbsolutePath)
+
+//  private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(fonts = montserratFonts)
+  private[this] val pdfConfigs: PDFConfiguration =
+//    PDFConfiguration(fonts = List.empty, Some("classpath:/riskAnalysisTemplate/assets/"))
+    PDFConfiguration(
+      fonts = List.empty,
+//      Some("file:/Users/galales/dev/pdnd-interop-uservice-purpose-process/src/main/resources/riskAnalysisTemplate/")
+//      Some(getClass.getResource("/riskAnalysisTemplate/").getFile)
+      Some("classpath:/riskAnalysisTemplate/")
+    )
 
   override def createDocument(
     template: String,
@@ -52,7 +76,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
           .get(riskAnalysisForm.version)
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, language)
-        pdf        <- getPDFAsFile(file.toPath, template, data)
+        pdf        <- getPDFAsFileWithConfigs(file.toPath, template, data, pdfConfigs)
       } yield pdf
     }
 
