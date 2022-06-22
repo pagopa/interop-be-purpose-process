@@ -71,6 +71,7 @@ final case class PurposeApiServiceImpl(
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
     authorizationManagementService,
+    partyManagementService,
     purposeManagementService,
     fileManager,
     pdfCreator,

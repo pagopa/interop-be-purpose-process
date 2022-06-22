@@ -18,7 +18,7 @@ import it.pagopa.interop.purposeprocess.error.InternalErrors.{
   UserNotAllowed
 }
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.LanguageIt
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -28,6 +28,7 @@ import scala.io.Source
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
   authorizationManagementService: AuthorizationManagementService,
+  partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
@@ -95,12 +96,12 @@ final case class PurposeVersionActivation(
     (version.state, userType) match {
       case (DRAFT, CONSUMER)                =>
         isLoadAllowed(eService, purpose, version).ifM(
-          firstVersionActivation(purpose, version, changeDetails),
+          firstVersionActivation(purpose, version, changeDetails, eService),
           waitForApproval()
         )
       case (DRAFT, PRODUCER)                => Future.failed(UserIsNotTheConsumer(userId))
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
-      case (WAITING_FOR_APPROVAL, PRODUCER) => firstVersionActivation(purpose, version, changeDetails)
+      case (WAITING_FOR_APPROVAL, PRODUCER) => firstVersionActivation(purpose, version, changeDetails, eService)
       case (SUSPENDED, CONSUMER) => isLoadAllowed(eService, purpose, version).ifM(activate(), waitForApproval())
       case (SUSPENDED, PRODUCER) => activate()
       case _                     => Future.failed(UserNotAllowed(userId))
@@ -163,12 +164,22 @@ final case class PurposeVersionActivation(
     * @param stateChangeDetails Details on the user that is performing the action
     * @return The updated Version
     */
-  def firstVersionActivation(purpose: Purpose, version: PurposeVersion, stateChangeDetails: StateChangeDetails)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = {
+  def firstVersionActivation(
+    purpose: Purpose,
+    version: PurposeVersion,
+    stateChangeDetails: StateChangeDetails,
+    eService: EService
+  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get
     for {
-      path <- createRiskAnalysisDocument(documentId, purpose, version)
+      producer <- partyManagementService.getInstitutionById(eService.producerId)
+      consumer <- partyManagementService.getInstitutionById(purpose.consumerId)
+      eServiceInfo = EServiceInfo(
+        name = eService.name,
+        producerName = producer.description,
+        consumerName = consumer.description
+      )
+      path <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(
@@ -195,14 +206,21 @@ final case class PurposeVersionActivation(
   def createRiskAnalysisDocument(
     documentId: UUID,
     purpose: Purpose,
-    version: PurposeVersion
+    version: PurposeVersion,
+    eServiceInfo: EServiceInfo
   ): Future[StorageFilePath] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
       // TODO Language should be a request parameter
-      document <- pdfCreator.createDocument(riskAnalysisTemplate, riskAnalysisForm, version.dailyCalls, LanguageIt)
+      document         <- pdfCreator.createDocument(
+        riskAnalysisTemplate,
+        riskAnalysisForm,
+        version.dailyCalls,
+        eServiceInfo,
+        LanguageIt
+      )
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId,

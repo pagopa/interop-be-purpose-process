@@ -69,6 +69,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     template: String,
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
+    eServiceInfo: EServiceInfo,
     language: Language
   ): Future[File] =
     Future.fromTry {
@@ -77,7 +78,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         formConfig <- riskAnalysisForms
           .get(riskAnalysisForm.version)
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
-        data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, language)
+        data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language)
         pdf        <- getPDFAsFileWithConfigs(file.toPath, template, data, pdfConfigs)
       } yield pdf
     }
@@ -92,19 +93,23 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     formConfig: RiskAnalysisFormConfig,
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
+    eServiceInfo: EServiceInfo,
     language: Language
   ): Try[Map[String, String]] =
     for {
       singleAnswers <- riskAnalysisForm.singleAnswers.traverse(formatSingleAnswer(formConfig, language))
       multiAnswers  <- riskAnalysisForm.multiAnswers.traverse(formatMultiAnswer(formConfig, language))
     } yield Map(
-      "dailyCalls" -> dailyCalls.toString,
-      "answers"    ->
+      "dailyCalls"   -> dailyCalls.toString,
+      "answers"      ->
         s"""
            | ${singleAnswers.mkString("\n")}
            | ${multiAnswers.mkString("\n")}
         """.stripMargin,
-      "date"       -> LocalDateTime.now().format(printedDateFormatter)
+      "eServiceName" -> eServiceInfo.name,
+      "producerName" -> eServiceInfo.producerName,
+      "consumerName" -> eServiceInfo.consumerName,
+      "date"         -> LocalDateTime.now().format(printedDateFormatter)
     )
 
   private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
