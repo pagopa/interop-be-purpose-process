@@ -40,30 +40,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       .convertTo[RiskAnalysisFormConfig]
   )
 
-//  val a = new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath)
-//  println(new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath))
-//  println(new File(getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath).listFiles().toList)
-
-//  private[this] val montserratFonts: List[PDFFontConfig] = new File(
-//    getClass.getResource("/riskAnalysisTemplate/assets/font/Montserrat").getPath
-//  ).listFiles().toList.map(_.getCanonicalPath).map(PDFFontConfig(_, "Montserrat"))
-
-//  private[this] val montserratFonts: List[PDFFontConfig] = List().map(PDFFontConfig(_, "Montserrat"))
-//
-//  println(montserratFonts)
-
-//  println(getClass.getResource("/riskAnalysisTemplate/").getPath)
-//  println(Paths.get(".").toAbsolutePath)
-
-//  private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(fonts = montserratFonts)
-  private[this] val pdfConfigs: PDFConfiguration =
-//    PDFConfiguration(fonts = List.empty, Some("classpath:/riskAnalysisTemplate/assets/"))
-    PDFConfiguration(
-      fonts = List.empty,
-//      Some("file:/Users/galales/dev/pdnd-interop-uservice-purpose-process/src/main/resources/riskAnalysisTemplate/")
-//      Some(getClass.getResource("/riskAnalysisTemplate/").getFile)
-      Some("classpath:/riskAnalysisTemplate/")
-    )
+  private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(resourcesBaseUrl = Some("/riskAnalysisTemplate/"))
 
   override def createDocument(
     template: String,
