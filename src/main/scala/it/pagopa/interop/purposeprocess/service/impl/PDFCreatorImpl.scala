@@ -29,6 +29,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 //    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
 //  )
 
+  private val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
   private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
     "1.0" -> Source
       .fromResource("riskAnalysisTemplate/forms/1.0.json") // TODO Load all files in the folder
@@ -101,7 +103,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         s"""
            | ${singleAnswers.mkString("\n")}
            | ${multiAnswers.mkString("\n")}
-        """.stripMargin
+        """.stripMargin,
+      "date"       -> LocalDateTime.now().format(printedDateFormatter)
     )
 
   private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
