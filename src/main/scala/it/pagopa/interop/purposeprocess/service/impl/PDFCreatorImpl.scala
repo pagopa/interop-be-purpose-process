@@ -31,6 +31,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
+  // The Map key must correspond to the version field of the risk analysis form
   private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
     "1.0" -> Source
       .fromResource("riskAnalysisTemplate/forms/1.0.json") // TODO Load all files in the folder
@@ -138,15 +139,15 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   ): Try[String] =
     questionConfig match {
-      case q: CheckboxQuestion =>
+      case question: CheckboxQuestion =>
         answer.values
-          .traverse(v =>
-            q.options
-              .find(_.value == v)
-              .toTry(AnswerNotFoundInConfig(answer.key, q.id))
+          .traverse(answerValue =>
+            question.options
+              .find(_.value == answerValue)
+              .toTry(AnswerNotFoundInConfig(answer.key, question.id))
               .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
           )
-          .map(_.mkString(" ")) // TODO Check this
+          .map(_.mkString(", "))
     }
 
   private def getLocalizedLabel(text: LocalizedText, language: Language): String =
