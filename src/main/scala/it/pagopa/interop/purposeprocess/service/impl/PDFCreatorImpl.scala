@@ -29,19 +29,13 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 //    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
 //  )
 
-  private val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+  private[this] val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+  private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(resourcesBaseUrl = Some("/riskAnalysisTemplate/"))
 
   // The Map key must correspond to the version field of the risk analysis form
   private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
-    "1.0" -> Source
-      .fromResource("riskAnalysisTemplate/forms/1.0.json") // TODO Load all files in the folder
-      .getLines()
-      .mkString(System.lineSeparator())
-      .parseJson
-      .convertTo[RiskAnalysisFormConfig]
+    "1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json")
   )
-
-  private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(resourcesBaseUrl = Some("/riskAnalysisTemplate/"))
 
   override def createDocument(
     template: String,
@@ -58,16 +52,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language)
         pdf        <- getPDFAsFileWithConfigs(file.toPath, template, data, pdfConfigs)
+        _          <- deleteTempFile(file)
       } yield pdf
     }
 
-  private def createTempFile: Try[File] =
-    Try {
-      val fileTimestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-      File.createTempFile(s"${fileTimestamp}_${UUID.randomUUID().toString}_risk_analysis.", ".pdf")
-    }
-
-  private def setupData(
+  private[this] def setupData(
     formConfig: RiskAnalysisFormConfig,
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
@@ -90,17 +79,17 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       "date"         -> LocalDateTime.now().format(printedDateFormatter)
     )
 
-  private def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
+  private[this] def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisSingleAnswer
   ): Try[String] =
     formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText)
 
-  private def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
+  private[this] def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisMultiAnswer
   ): Try[String] =
     formatAnswer(formConfig, language, answer, answer.key, getMultiAnswerText(_, _, language))
 
-  private def formatAnswer[T](
+  private[this] def formatAnswer[T](
     formConfig: RiskAnalysisFormConfig,
     language: Language,
     answer: T,
@@ -114,13 +103,16 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       answerText <- getText(questionConfig, answer)
     } yield answerToHtml(questionLabel, infoLabel, answerText)
 
-  private def getSingleAnswerText(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
+  private[this] def getSingleAnswerText(
+    questionConfig: FormConfigQuestion,
+    answer: RiskAnalysisSingleAnswer
+  ): Try[String] =
     questionConfig match {
       case _: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(answer)
       case c: MultiAnswerQuestionConfig  => Failure(IncompatibleConfig(answer.key, c.id))
     }
 
-  private def getMultiAnswerText(
+  private[this] def getMultiAnswerText(
     questionConfig: FormConfigQuestion,
     answer: RiskAnalysisMultiAnswer,
     language: Language
@@ -130,10 +122,10 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       case c: MultiAnswerQuestionConfig  => getMultiAnswerTextFromConfig(c, answer, language)
     }
 
-  private def getSingleAnswerTextFromConfig(answer: RiskAnalysisSingleAnswer): Try[String] =
+  private[this] def getSingleAnswerTextFromConfig(answer: RiskAnalysisSingleAnswer): Try[String] =
     answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
 
-  private def getMultiAnswerTextFromConfig(
+  private[this] def getMultiAnswerTextFromConfig(
     questionConfig: MultiAnswerQuestionConfig,
     answer: RiskAnalysisMultiAnswer,
     language: Language
@@ -150,18 +142,18 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
           .map(_.mkString(", "))
     }
 
-  private def getLocalizedLabel(text: LocalizedText, language: Language): String =
+  private[this] def getLocalizedLabel(text: LocalizedText, language: Language): String =
     language match {
       case LanguageIt => text.it
       case LanguageEn => text.en
     }
 
-  private def getQuestionConfig(formConfig: RiskAnalysisFormConfig, answerKey: String): Try[FormConfigQuestion] =
+  private[this] def getQuestionConfig(formConfig: RiskAnalysisFormConfig, answerKey: String): Try[FormConfigQuestion] =
     formConfig.questions
       .find(_.id == answerKey)
       .toTry(QuestionNotFoundInConfig(answerKey, formConfig.version))
 
-  private def answerToHtml(questionLabel: String, questionInfoLabel: Option[String], answer: String): String =
+  private[this] def answerToHtml(questionLabel: String, questionInfoLabel: Option[String], answer: String): String =
     s"""
        |<div class="item">
        |  <div class="label">$questionLabel</div>
@@ -169,4 +161,22 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
        |  <div class="answer">$answer</div>
        |</div>
        |""".stripMargin
+
+  private[this] def loadRiskAnalysisFormConfig(resourcePath: String) =
+    Source
+      .fromResource(resourcePath)
+      .getLines()
+      .mkString(System.lineSeparator())
+      .parseJson
+      .convertTo[RiskAnalysisFormConfig]
+
+  private[this] def createTempFile: Try[File] =
+    Try {
+      val fileTimestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+      File.createTempFile(s"${fileTimestamp}_${UUID.randomUUID().toString}_risk_analysis.", ".pdf")
+    }
+
+  private[this] def deleteTempFile(file: File): Try[Boolean] =
+    Try(file.delete()).recover(_ => false)
+
 }
