@@ -1,6 +1,7 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
 import cats.implicits.toTraverseOps
+import com.openhtmltopdf.util.XRLog
 import it.pagopa.interop.commons.files.model.PDFConfiguration
 import it.pagopa.interop.commons.files.service.PDFManager
 import it.pagopa.interop.commons.utils.TypeConversions._
@@ -20,14 +21,15 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.Future
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
 
 object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   // Suppressing openhtmltopdf log
-//  XRLog.listRegisteredLoggers.asScala.foreach((logger: String) =>
-//    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
-//  )
+  XRLog.listRegisteredLoggers.asScala.foreach((logger: String) =>
+    XRLog.setLevel(logger, java.util.logging.Level.SEVERE)
+  )
 
   private[this] val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
   private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(resourcesBaseUrl = Some("/riskAnalysisTemplate/"))
@@ -52,7 +54,6 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language)
         pdf        <- getPDFAsFileWithConfigs(file.toPath, template, data, pdfConfigs)
-        _          <- deleteTempFile(file)
       } yield pdf
     }
 
@@ -175,8 +176,5 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       val fileTimestamp: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
       File.createTempFile(s"${fileTimestamp}_${UUID.randomUUID().toString}_risk_analysis.", ".pdf")
     }
-
-  private[this] def deleteTempFile(file: File): Try[Boolean] =
-    Try(file.delete()).recover(_ => false)
 
 }
