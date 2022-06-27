@@ -213,13 +213,12 @@ final case class PurposeVersionActivation(
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)
       )
-      // TODO Language should be a request parameter
       document         <- pdfCreator.createDocument(
         riskAnalysisTemplate,
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,
-        LanguageIt
+        LanguageIt // TODO Language should be a request parameter
       )
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
