@@ -113,14 +113,20 @@ h1 {
   margin: 32px 0;
 }
 
+.signature::after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
 .signature .date {
   float: left;
 }
 
 .signature .date,
 .signature .message {
-  width: 50%;
   display: inline-block;
+  width: 50%;
 }
 
 .signature .message {
