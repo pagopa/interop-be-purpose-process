@@ -5,6 +5,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
   RiskAnalysisMultiAnswer,
   RiskAnalysisSingleAnswer
 }
+import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
 import org.scalatest.Assertion
@@ -91,6 +92,49 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
           language = language
         )
       )
+    }
+
+    "fail if the question is not in config" in {
+      val questionKey      = "non-existent-key"
+      val answer           = "someValue"
+      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
+        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
+      )
+      val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+
+      result.fold(_ shouldBe a[QuestionNotFoundInConfig], _ => fail("Expected failure, but got Success"))
+    }
+
+    "fail if the question is not of the config expected type" in {
+      val questionKey      = "usesPersonalData"
+      val answer           = "YES"
+      val riskAnalysisForm = dummyRiskAnalysisForm.copy(multiAnswers =
+        Seq(RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = questionKey, values = List(answer)))
+      )
+      val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+
+      result.fold(_ shouldBe a[IncompatibleConfig], _ => fail("Expected failure, but got Success"))
+    }
+
+    "fail if the answer option is not in config" in {
+      val questionKey      = "usesPersonalData"
+      val answer           = "non-existent-answer"
+      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
+        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
+      )
+
+      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      result.fold(_ shouldBe a[AnswerNotFoundInConfig], _ => fail("Expected failure, but got Success"))
+    }
+
+    "fail if the single answer is empty" in {
+      val questionKey      = "usesPersonalData"
+      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
+        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = None))
+      )
+
+      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      result.fold(_ shouldBe a[UnexpectedEmptyAnswer], _ => fail("Expected failure, but got Success"))
     }
   }
 
