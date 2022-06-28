@@ -6,6 +6,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{
   DraftPurposeVersionUpdateContent,
   PurposeSeed,
@@ -45,7 +46,9 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with AuthzScalatestRouteTest {
         override def createDocument(
           template: String,
           riskAnalysisForm: RiskAnalysisForm,
-          dailyCalls: Int
+          dailyCalls: Int,
+          eServiceInfo: EServiceInfo,
+          language: Language
         ): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {

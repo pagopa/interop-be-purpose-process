@@ -13,6 +13,7 @@ import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManageme
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
@@ -160,16 +161,25 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     (() => mockUUIDSupplier.get).expects().returning(documentId).once()
     (mockPdfCreator
-      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int))
-      .expects(*, *, *)
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language))
+      .expects(*, *, *, *, *)
       .returning(Future.successful(tempFile))
       .once()
   }
 
-  def mockVersionFirstActivation(purposeId: UUID, versionId: UUID, result: PurposeManagement.PurposeVersion) = {
+  def mockVersionFirstActivation(
+    purposeId: UUID,
+    versionId: UUID,
+    producerId: UUID,
+    consumerId: UUID,
+    result: PurposeManagement.PurposeVersion
+  ) = {
     mockRiskAnalysisPdfCreation()
 
     (() => mockDateTimeSupplier.get).expects().returning(SpecData.timestamp).once()
+
+    mockOrganizationRetrieve(producerId)
+    mockOrganizationRetrieve(consumerId)
 
     (mockPurposeManagementService
       .activatePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload)(
