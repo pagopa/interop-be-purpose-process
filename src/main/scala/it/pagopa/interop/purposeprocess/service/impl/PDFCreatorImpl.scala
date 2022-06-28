@@ -83,7 +83,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   private[this] def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisSingleAnswer
   ): Try[String] =
-    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText)
+    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText(_, _, language))
 
   private[this] def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisMultiAnswer
@@ -106,10 +106,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private[this] def getSingleAnswerText(
     questionConfig: FormConfigQuestion,
-    answer: RiskAnalysisSingleAnswer
+    answer: RiskAnalysisSingleAnswer,
+    language: Language
   ): Try[String] =
     questionConfig match {
-      case _: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(answer)
+      case c: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(c, answer, language)
       case c: MultiAnswerQuestionConfig  => Failure(IncompatibleConfig(answer.key, c.id))
     }
 
@@ -123,8 +124,21 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       case c: MultiAnswerQuestionConfig  => getMultiAnswerTextFromConfig(c, answer, language)
     }
 
-  private[this] def getSingleAnswerTextFromConfig(answer: RiskAnalysisSingleAnswer): Try[String] =
-    answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+  private[this] def getSingleAnswerTextFromConfig(
+    questionConfig: SingleAnswerQuestionConfig,
+    answer: RiskAnalysisSingleAnswer,
+    language: Language
+  ): Try[String] =
+    questionConfig match {
+      case _: FreeInputQuestion    => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+      case question: RadioQuestion =>
+        for {
+          answerValue  <- answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+          labeledValue <- question.options
+            .find(_.value == answerValue)
+            .toTry(AnswerNotFoundInConfig(answer.key, question.id))
+        } yield getLocalizedLabel(labeledValue.label, language)
+    }
 
   private[this] def getMultiAnswerTextFromConfig(
     questionConfig: MultiAnswerQuestionConfig,
