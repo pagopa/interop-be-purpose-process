@@ -57,7 +57,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       } yield pdf
     }
 
-  private[this] def setupData(
+  def setupData(
     formConfig: RiskAnalysisFormConfig,
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
