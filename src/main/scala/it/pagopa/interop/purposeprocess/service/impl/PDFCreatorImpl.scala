@@ -83,12 +83,12 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   private[this] def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisSingleAnswer
   ): Try[String] =
-    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText(_, _, language))
+    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText(language))
 
   private[this] def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
     answer: RiskAnalysisMultiAnswer
   ): Try[String] =
-    formatAnswer(formConfig, language, answer, answer.key, getMultiAnswerText(_, _, language))
+    formatAnswer(formConfig, language, answer, answer.key, getMultiAnswerText(language))
 
   private[this] def formatAnswer[T](
     formConfig: RiskAnalysisFormConfig,
@@ -105,20 +105,16 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     } yield answerToHtml(questionLabel, infoLabel, answerText)
 
   private[this] def getSingleAnswerText(
-    questionConfig: FormConfigQuestion,
-    answer: RiskAnalysisSingleAnswer,
     language: Language
-  ): Try[String] =
+  )(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
     questionConfig match {
       case c: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(c, answer, language)
       case c: MultiAnswerQuestionConfig  => Failure(IncompatibleConfig(answer.key, c.id))
     }
 
   private[this] def getMultiAnswerText(
-    questionConfig: FormConfigQuestion,
-    answer: RiskAnalysisMultiAnswer,
     language: Language
-  ): Try[String] =
+  )(questionConfig: FormConfigQuestion, answer: RiskAnalysisMultiAnswer): Try[String] =
     questionConfig match {
       case c: SingleAnswerQuestionConfig => Failure(IncompatibleConfig(answer.key, c.id))
       case c: MultiAnswerQuestionConfig  => getMultiAnswerTextFromConfig(c, answer, language)
