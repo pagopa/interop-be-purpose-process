@@ -29,9 +29,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "succeed for 'text' type config" in {
       val questionKey      = "purpose"
       val answer           = "My Purpose"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
-      )
+      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
 
       languages.foreach(language =>
         checkSuccessfulSingleAnswerResult(
@@ -46,9 +44,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "succeed for 'radio' type config" in {
       val questionKey      = "usesPersonalData"
       val answer           = "YES"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
-      )
+      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
 
       languages.foreach(language =>
         checkSuccessfulSingleAnswerResult(
@@ -63,9 +59,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "succeed for 'checkbox' type config" in {
       val questionKey      = "legalBasis"
       val answers          = List("CONSENT", "CONTRACT", "SAFEGUARD")
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(multiAnswers =
-        Seq(RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = questionKey, values = answers))
-      )
+      val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = answers)
 
       languages.foreach(language =>
         checkSuccessfulResult(
@@ -80,9 +74,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "succeed for 'select-one' type config" in {
       val questionKey      = "dataQuantity"
       val answer           = "QUANTITY_0_TO_100"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
-      )
+      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
 
       languages.foreach(language =>
         checkSuccessfulSingleAnswerResult(
@@ -97,9 +89,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "fail if the question is not in config" in {
       val questionKey      = "non-existent-key"
       val answer           = "someValue"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
-      )
+      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
       val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
 
       result.fold(_ shouldBe a[QuestionNotFoundInConfig], _ => fail("Expected failure, but got Success"))
@@ -108,9 +98,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "fail if the question is not of the config expected type" in {
       val questionKey      = "usesPersonalData"
       val answer           = "YES"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(multiAnswers =
-        Seq(RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = questionKey, values = List(answer)))
-      )
+      val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = List(answer))
       val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
 
       result.fold(_ shouldBe a[IncompatibleConfig], _ => fail("Expected failure, but got Success"))
@@ -119,9 +107,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "fail if the answer option is not in config" in {
       val questionKey      = "usesPersonalData"
       val answer           = "non-existent-answer"
-      val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = Some(answer)))
-      )
+      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
 
       val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
       result.fold(_ shouldBe a[AnswerNotFoundInConfig], _ => fail("Expected failure, but got Success"))
@@ -145,6 +131,16 @@ object PDFCreatorSpec {
   val dailyCalls                              = 1000
   val dummyRiskAnalysisForm: RiskAnalysisForm =
     RiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
+
+  def makeSingleAnswerForm(key: String, value: String): RiskAnalysisForm =
+    dummyRiskAnalysisForm.copy(singleAnswers =
+      Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = key, value = Some(value)))
+    )
+
+  def makeMultiAnswerForm(key: String, values: List[String]): RiskAnalysisForm =
+    dummyRiskAnalysisForm.copy(multiAnswers =
+      Seq(RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = key, values = values))
+    )
 
   def checkSuccessfulSingleAnswerResult(
     result: Try[Map[String, String]],
