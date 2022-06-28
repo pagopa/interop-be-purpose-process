@@ -172,8 +172,9 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get
     for {
-      producer <- partyManagementService.getInstitutionById(eService.producerId)
-      consumer <- partyManagementService.getInstitutionById(purpose.consumerId)
+      (producer, consumer) <- partyManagementService
+        .getInstitutionById(eService.producerId)
+        .zip(partyManagementService.getInstitutionById(purpose.consumerId))
       eServiceInfo = EServiceInfo(
         name = eService.name,
         producerName = producer.description,
