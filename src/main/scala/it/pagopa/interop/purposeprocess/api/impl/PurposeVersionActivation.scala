@@ -37,7 +37,7 @@ final case class PurposeVersionActivation(
 )(implicit ec: ExecutionContext) {
 
   private[this] val riskAnalysisTemplate = Source
-    .fromResource("riskAnalysisTemplate.html")
+    .fromResource("riskAnalysisTemplate/index.html")
     .getLines()
     .mkString(System.lineSeparator())
 
