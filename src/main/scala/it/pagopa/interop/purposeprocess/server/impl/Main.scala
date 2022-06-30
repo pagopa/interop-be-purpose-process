@@ -18,6 +18,8 @@ import scala.concurrent.ExecutionContext
 import akka.actor.typed.scaladsl.Behaviors
 import buildinfo.BuildInfo
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
+import akka.actor.typed.DispatcherSelector
+import scala.concurrent.ExecutionContextExecutor
 
 object Main extends App with CORSSupport with Dependencies {
 
@@ -30,6 +32,10 @@ object Main extends App with CORSSupport with Dependencies {
       implicit val actorSystem: ActorSystem[_]        = context.system
       implicit val executionContext: ExecutionContext = actorSystem.executionContext
 
+      // TODO Remember to modify ApiInvoker to use a configurable EC in the services that depend on this
+      val selector: DispatcherSelector         = DispatcherSelector.fromConfig("futures-dispatcher")
+      val blockingEc: ExecutionContextExecutor = actorSystem.dispatchers.lookup(selector)
+
       Kamon.init()
       AkkaManagement.get(actorSystem.classicSystem).start()
 
@@ -37,7 +43,7 @@ object Main extends App with CORSSupport with Dependencies {
 
       val serverBinding: Future[Http.ServerBinding] = for {
         jwtReader <- jwtValidator()
-        fManager  <- fileManager
+        fManager   = fileManager(blockingEc)
         controller = new Controller(healthApi, purposeApi(jwtReader, fManager), validationExceptionToRoute.some)(
           actorSystem.classicSystem
         )
