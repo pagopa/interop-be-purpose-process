@@ -265,7 +265,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
-      mockVersionFirstActivation(purposeId, versionId, updatedVersion)
+      mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
 
@@ -657,7 +657,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, purpose)
       mockAssertUserProducerIfNotConsumer(userId, consumerId, eService, SpecData.relationships(userId, producerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
-      mockVersionFirstActivation(purposeId, versionId, updatedVersion)
+      mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
 
@@ -840,6 +840,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockAssertUserConsumer(userId, consumerId, SpecData.relationships(userId, consumerId))
       mockEServiceRetrieve(eServiceId = eServiceId, result = eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
+      mockOrganizationRetrieve(eService.producerId)
+      mockOrganizationRetrieve(purpose.consumerId)
       (() => mockUUIDSupplier.get).expects().returning(documentId).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {

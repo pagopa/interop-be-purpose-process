@@ -1,11 +1,11 @@
 package it.pagopa.interop.purposeprocess.authz
 
 import it.pagopa.interop.commons.files.service.FileManager
-import it.pagopa.interop.commons.files.service.impl.FileManagerImpl
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{
   DraftPurposeVersionUpdateContent,
   PurposeSeed,
@@ -22,8 +22,11 @@ import java.io.File
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
+import org.scalatest.BeforeAndAfterAll
+import java.util.concurrent.{Executors, ExecutorService}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-class PurposeApiAuthzSpec extends AnyWordSpecLike with AuthzScalatestRouteTest {
+class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with AuthzScalatestRouteTest {
 
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
@@ -31,7 +34,12 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with AuthzScalatestRouteTest {
     new FakePurposeManagementService()
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
-  val fakeFileManager: FileManager                                       = new FileManagerImpl()
+
+  private val threadPool: ExecutorService          = Executors.newSingleThreadExecutor()
+  private val blockingEc: ExecutionContextExecutor = ExecutionContext.fromExecutorService(threadPool)
+  val fakeFileManager: FileManager                 = FileManager.get(FileManager.File)(blockingEc)
+
+  override def afterAll(): Unit = { threadPool.shutdown() }
 
   val service: PurposeApiServiceImpl =
     PurposeApiServiceImpl(
@@ -45,7 +53,9 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with AuthzScalatestRouteTest {
         override def createDocument(
           template: String,
           riskAnalysisForm: RiskAnalysisForm,
-          dailyCalls: Int
+          dailyCalls: Int,
+          eServiceInfo: EServiceInfo,
+          language: Language
         ): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {
