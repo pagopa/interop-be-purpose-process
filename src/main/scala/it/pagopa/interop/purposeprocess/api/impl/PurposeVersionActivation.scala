@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.directives.FileInfo
 import cats.implicits._
 import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
 import it.pagopa.interop.catalogmanagement.client.model.EService
-import it.pagopa.interop.commons.files.service.{FileManager, StorageFilePath}
+import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.model.ChangedBy._
@@ -209,7 +209,7 @@ final case class PurposeVersionActivation(
     purpose: Purpose,
     version: PurposeVersion,
     eServiceInfo: EServiceInfo
-  ): Future[StorageFilePath] = {
+  ): Future[String] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
         MissingRiskAnalysis(purpose.id.toString, version.id.toString)

@@ -14,6 +14,7 @@ object ApplicationConfiguration {
   val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
   val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
 
+  val storageKind: String      = config.getString("purpose-process.storage.kind")
   val storageContainer: String = config.getString("purpose-process.storage.container")
   val storagePath: String      = config.getString("purpose-process.storage.risk-analysis-path")
 
