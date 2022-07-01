@@ -43,7 +43,7 @@ object Main extends App with CORSSupport with Dependencies {
 
       val serverBinding: Future[Http.ServerBinding] = for {
         jwtReader <- jwtValidator()
-        fManager   = fileManager(blockingEc)
+        fManager   = getFileManager(blockingEc)
         controller = new Controller(healthApi, purposeApi(jwtReader, fManager), validationExceptionToRoute.some)(
           actorSystem.classicSystem
         )
