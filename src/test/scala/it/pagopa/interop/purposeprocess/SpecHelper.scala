@@ -61,7 +61,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     )(ExecutionContext.global)
 
   def mockFileManagerStore(storageFilePath: String) = (
-    mockfileManager.store(_: String, _: String)(_: UUID, _: (FileInfo, File))
+    mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))
   ).expects(*, *, *, *).once().returns(Future.successful(storageFilePath))
 
   def mockFileManagerGet(filePath: String)(returns: Array[Byte]) =
