@@ -223,7 +223,7 @@ final case class PurposeVersionActivation(
       )
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
-        documentId,
+        documentId.toString,
         (fileInfo, document)
       )
     } yield path
