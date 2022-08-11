@@ -87,7 +87,7 @@ final case class PurposeVersionActivation(
         _       <- authorizationManagementService.updateStateOnClients(
           purposeId = purpose.id,
           versionId = version.id,
-          state = ClientComponentState.ACTIVE
+          state = if (version.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
         )
       } yield version
 
@@ -194,7 +194,11 @@ final case class PurposeVersionActivation(
       )
       updatedVersion <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
       _              <- authorizationManagementService
-        .updateStateOnClients(purposeId = purpose.id, versionId = version.id, state = ClientComponentState.ACTIVE)
+        .updateStateOnClients(
+          purposeId = purpose.id,
+          versionId = version.id,
+          state = if (updatedVersion.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
+        )
     } yield updatedVersion
   }
 
