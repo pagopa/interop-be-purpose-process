@@ -14,7 +14,6 @@ import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVe
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.commons.utils.errors.GenericComponentErrors
 import it.pagopa.interop.commons.utils.service._
 import it.pagopa.interop.commons.utils.service.impl._
 import it.pagopa.interop.purposeprocess.api.impl.{
@@ -22,6 +21,7 @@ import it.pagopa.interop.purposeprocess.api.impl.{
   HealthServiceApiImpl,
   PurposeApiMarshallerImpl,
   PurposeApiServiceImpl,
+  entityMarshallerProblem,
   problemOf
 }
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
@@ -61,11 +61,8 @@ trait Dependencies {
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(
-        StatusCodes.BadRequest,
-        GenericComponentErrors.ValidationRequestError(OpenapiUtils.errorFromRequestValidationReport(report))
-      )
-    complete(error.status, error)(HealthApiMarshallerImpl.toEntityMarshallerProblem)
+      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
+    complete(error.status, error)(entityMarshallerProblem)
   }
 
   val healthApi: HealthApi = new HealthApi(
