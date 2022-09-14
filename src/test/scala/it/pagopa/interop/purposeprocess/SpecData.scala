@@ -144,19 +144,25 @@ object SpecData {
 
   val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
 
-  val agreement: AgreementManagement.Agreement = AgreementManagement.Agreement(
-    id = UUID.randomUUID(),
-    eserviceId = UUID.randomUUID(),
-    descriptorId = UUID.randomUUID(),
-    producerId = UUID.randomUUID(),
-    consumerId = UUID.randomUUID(),
-    state = AgreementManagement.AgreementState.ACTIVE,
-    verifiedAttributes = Seq.empty,
-    suspendedByConsumer = None,
-    suspendedByProducer = None,
-    createdAt = timestamp,
-    updatedAt = None
-  )
+  val agreement: AgreementManagement.Agreement =
+    AgreementManagement.Agreement(
+      id = UUID.randomUUID(),
+      eserviceId = UUID.randomUUID(),
+      descriptorId = UUID.randomUUID(),
+      producerId = UUID.randomUUID(),
+      consumerId = UUID.randomUUID(),
+      state = AgreementManagement.AgreementState.ACTIVE,
+      verifiedAttributes = List.empty,
+      certifiedAttributes = List.empty,
+      declaredAttributes = List.empty,
+      suspendedByConsumer = None,
+      suspendedByProducer = None,
+      suspendedByPlatform = None,
+      consumerDocuments = List.empty,
+      createdAt = timestamp,
+      updatedAt = None,
+      consumerNotes = None
+    )
 
   val client: AuthorizationManagement.Client =
     AuthorizationManagement.Client(

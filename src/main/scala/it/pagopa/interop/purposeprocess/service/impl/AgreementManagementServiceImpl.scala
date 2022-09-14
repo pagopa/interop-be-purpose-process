@@ -32,7 +32,7 @@ final case class AgreementManagementServiceImpl(invoker: AgreementManagementInvo
         xForwardedFor = ip,
         consumerId = Some(consumerId.toString),
         eserviceId = Some(eServiceId.toString),
-        state = None
+        states = List.empty
       )(BearerToken(bearerToken))
       result <- invoker.invoke(request, s"Retrieving Agreements for Consumer $consumerId, EService $eServiceId")
     } yield result

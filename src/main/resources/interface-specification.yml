@@ -577,10 +577,12 @@ components:
       type: string
       description: Agreement State
       enum:
+        - DRAFT
         - ACTIVE
         - PENDING
         - SUSPENDED
-        - INACTIVE
+        - ARCHIVED
+        - MISSING_CERTIFIED_ATTRIBUTES
     Client:
       type: object
       properties:
