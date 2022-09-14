@@ -4,11 +4,14 @@ import it.pagopa.interop.agreementmanagement.client.model.{AgreementState => Dep
 import it.pagopa.interop.purposeprocess.model.AgreementState
 
 object AgreementStateConverter {
-  def dependencyToApi(state: DependencyAgreementState): AgreementState =
+  def dependencyToApi(state: DependencyAgreementState): AgreementState = {
     state match {
-      case DependencyAgreementState.ACTIVE    => AgreementState.ACTIVE
-      case DependencyAgreementState.PENDING   => AgreementState.PENDING
-      case DependencyAgreementState.SUSPENDED => AgreementState.SUSPENDED
-      case DependencyAgreementState.INACTIVE  => AgreementState.INACTIVE
+      case DependencyAgreementState.DRAFT                        => AgreementState.DRAFT
+      case DependencyAgreementState.ACTIVE                       => AgreementState.ACTIVE
+      case DependencyAgreementState.PENDING                      => AgreementState.PENDING
+      case DependencyAgreementState.SUSPENDED                    => AgreementState.SUSPENDED
+      case DependencyAgreementState.ARCHIVED                     => AgreementState.ARCHIVED
+      case DependencyAgreementState.MISSING_CERTIFIED_ATTRIBUTES => AgreementState.MISSING_CERTIFIED_ATTRIBUTES
     }
+  }
 }
