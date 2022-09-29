@@ -159,7 +159,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     val tempFile   = File.createTempFile(UUID.randomUUID().toString, UUID.randomUUID().toString)
     tempFile.deleteOnExit()
 
-    (() => mockUUIDSupplier.get).expects().returning(documentId).once()
+    (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
     (mockPdfCreator
       .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language))
       .expects(*, *, *, *, *)
@@ -176,7 +176,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   ) = {
     mockRiskAnalysisPdfCreation()
 
-    (() => mockDateTimeSupplier.get).expects().returning(SpecData.timestamp).once()
+    (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
     mockOrganizationRetrieve(producerId)
     mockOrganizationRetrieve(consumerId)
