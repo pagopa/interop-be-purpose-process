@@ -892,7 +892,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockOrganizationRetrieve(eService.producerId)
       mockOrganizationRetrieve(purpose.consumerId)
-      (() => mockUUIDSupplier.get).expects().returning(documentId).once()
+      (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.BadRequest

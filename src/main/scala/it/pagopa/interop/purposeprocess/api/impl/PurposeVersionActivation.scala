@@ -170,7 +170,7 @@ final case class PurposeVersionActivation(
     stateChangeDetails: StateChangeDetails,
     eService: EService
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
-    val documentId: UUID = uuidSupplier.get
+    val documentId: UUID = uuidSupplier.get()
     for {
       (producer, consumer) <- partyManagementService
         .getInstitutionById(eService.producerId)
@@ -187,7 +187,7 @@ final case class PurposeVersionActivation(
             id = documentId,
             contentType = MediaTypes.`application/pdf`.toString(),
             path = path,
-            createdAt = dateTimeSupplier.get
+            createdAt = dateTimeSupplier.get()
           )
         ),
         stateChangeDetails = stateChangeDetails

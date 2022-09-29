@@ -15,7 +15,6 @@ import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, S
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service._
-import it.pagopa.interop.commons.utils.service.impl._
 import it.pagopa.interop.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
@@ -36,8 +35,8 @@ trait Dependencies {
 
   implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
 
-  val uuidSupplier: UUIDSupplier               = new UUIDSupplierImpl()
-  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplierImpl
+  val uuidSupplier: UUIDSupplier               = UUIDSupplier
+  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
 
   val pdfCreator: PDFCreatorImpl.type = PDFCreatorImpl
 
