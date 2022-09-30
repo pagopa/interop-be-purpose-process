@@ -37,6 +37,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   // The Map key must correspond to the version field of the risk analysis form
   private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
     "1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json")
+    // TODO Add 2.0
   )
 
   override def createDocument(
@@ -99,8 +100,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   ): Try[String] =
     for {
       questionConfig <- getQuestionConfig(formConfig, answerKey)
-      questionLabel = getLocalizedLabel(questionConfig.label, language)
-      infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
+      questionLabel = getLocalizedLabel(questionConfig.pdfLabel, language)
+      infoLabel     = questionConfig.pdfInfoLabel.map(getLocalizedLabel(_, language))
       answerText <- getText(questionConfig, answer)
     } yield answerToHtml(questionLabel, infoLabel, answerText)
 
@@ -126,14 +127,14 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   ): Try[String] =
     questionConfig match {
-      case _: FreeInputQuestion    => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
-      case question: RadioQuestion =>
+      case _: FreeInputQuestion     => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+      case question: SingleQuestion =>
         for {
           answerValue  <- answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
           labeledValue <- question.options
             .find(_.value == answerValue)
             .toTry(AnswerNotFoundInConfig(answer.key, question.id))
-        } yield getLocalizedLabel(labeledValue.label, language)
+        } yield getLocalizedLabel(labeledValue.pdfLabel, language)
     }
 
   private[this] def getMultiAnswerTextFromConfig(
@@ -142,13 +143,13 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   ): Try[String] =
     questionConfig match {
-      case question: CheckboxQuestion =>
+      case question: MultiQuestion =>
         answer.values
           .traverse(answerValue =>
             question.options
               .find(_.value == answerValue)
               .toTry(AnswerNotFoundInConfig(answer.key, question.id))
-              .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
+              .map(labeledValue => getLocalizedLabel(labeledValue.pdfLabel, language))
           )
           .map(_.mkString(", "))
     }

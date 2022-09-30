@@ -1,6 +1,5 @@
 package it.pagopa.interop.purposeprocess.api.converters.purposemanagement
 
-import cats.implicits._
 import it.pagopa.interop.purposemanagement.client.model.{Purpose => DependencyPurpose}
 import it.pagopa.interop.purposeprocess.model.{Agreement, Client, EService, Purpose}
 
@@ -10,10 +9,8 @@ object PurposeConverter {
     eService: EService,
     agreement: Agreement,
     clients: Seq[Client]
-  ): Either[Throwable, Purpose] = {
-    for {
-      riskAnalysisForm <- purpose.riskAnalysisForm.traverse(RiskAnalysisConverter.dependencyToApi)
-    } yield Purpose(
+  ): Purpose =
+    Purpose(
       id = purpose.id,
       agreement = agreement,
       eservice = eService,
@@ -23,10 +20,9 @@ object PurposeConverter {
       suspendedByConsumer = purpose.suspendedByConsumer,
       suspendedByProducer = purpose.suspendedByProducer,
       title = purpose.title,
-      riskAnalysisForm = riskAnalysisForm,
+      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
       description = purpose.description,
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt
     )
-  }
 }

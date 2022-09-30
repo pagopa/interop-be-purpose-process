@@ -172,10 +172,10 @@ object PDFCreatorSpec {
             case _: FreeInputQuestion =>
               expectedAnswer.size shouldBe 1
               answers should include(expectedAnswer.head)
-            case q: RadioQuestion     =>
+            case q: SingleQuestion    =>
               expectedAnswer.size shouldBe 1
               answers should include(q.options.find(_.value == expectedAnswer.head).map(getValue).get)
-            case q: CheckboxQuestion  =>
+            case q: MultiQuestion     =>
               answers should expectedAnswer
                 .map(a => include(q.options.find(_.value == a).map(getValue).get))
                 .reduce(_ and _)
@@ -183,13 +183,13 @@ object PDFCreatorSpec {
 
         language match {
           case LanguageIt =>
-            answers should include(expectedQuestion.label.it)
-            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.it))
-            checkAnswer(_.label.it)
+            answers should include(expectedQuestion.pdfLabel.it)
+            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.it))
+            checkAnswer(_.pdfLabel.it)
           case LanguageEn =>
-            answers should include(expectedQuestion.label.en)
-            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.en))
-            checkAnswer(_.label.en)
+            answers should include(expectedQuestion.pdfLabel.en)
+            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.en))
+            checkAnswer(_.pdfLabel.en)
         }
 
       case Failure(exception) => fail(exception)

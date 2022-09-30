@@ -600,10 +600,8 @@ final case class PurposeApiServiceImpl(
       producer  = OrganizationConverter.dependencyToApi(depProducer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
       clients  <- clientsByUserType()
-      purpose  <- PurposeConverter
-        .dependencyToApi(purpose = depPurpose, eService = eService, agreement = agreement, clients = clients)
-        .toFuture
-    } yield purpose
+    } yield PurposeConverter
+      .dependencyToApi(purpose = depPurpose, eService = eService, agreement = agreement, clients = clients)
   }
 
   def handleApiError(

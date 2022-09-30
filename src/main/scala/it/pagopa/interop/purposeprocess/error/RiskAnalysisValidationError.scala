@@ -23,10 +23,17 @@ final case class TooManyOccurrences(fieldName: String)                         e
 final case class MissingExpectedField(fieldName: String)                       extends RiskAnalysisValidationError {
   val message: String = s"Expected field $fieldName not found in form"
 }
-final case class UnexpectedFieldValue(fieldName: String, dependentField: String, expectedValue: String)
+final case class UnexpectedFieldValueByDependency(fieldName: String, dependentField: String, expectedValue: String)
     extends RiskAnalysisValidationError {
   val message: String = s"Field $dependentField requires field $fieldName value to be $expectedValue"
 }
+final case class UnexpectedFieldValue(fieldName: String, allowedValues: Option[Set[String]])
+    extends RiskAnalysisValidationError {
+  val message: String = s"Field $fieldName should be one of ${allowedValues.fold("empty")(_.mkString("[", ",", "]"))}"
+}
 final case class UnexpectedFieldFormat(fieldName: String)                      extends RiskAnalysisValidationError {
   val message: String = s"Unexpected format for field $fieldName"
+}
+final case class UnexpectedTemplateVersion(templateVersion: String)            extends RiskAnalysisValidationError {
+  val message: String = s"Unexpected template version $templateVersion"
 }
