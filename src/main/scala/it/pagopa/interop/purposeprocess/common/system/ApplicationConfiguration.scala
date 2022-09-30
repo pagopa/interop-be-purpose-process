@@ -13,6 +13,7 @@ object ApplicationConfiguration {
   val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
   val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
   val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
+  val tenantManagementURL: String        = config.getString("purpose-process.services.tenant-management")
 
   val storageKind: String      = config.getString("purpose-process.storage.kind")
   val storageContainer: String = config.getString("purpose-process.storage.container")

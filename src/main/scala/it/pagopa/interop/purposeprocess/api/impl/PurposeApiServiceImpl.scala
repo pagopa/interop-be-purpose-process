@@ -52,6 +52,7 @@ final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
+  tenantManagementService: TenantManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
@@ -73,6 +74,7 @@ final case class PurposeApiServiceImpl(
     authorizationManagementService,
     partyManagementService,
     purposeManagementService,
+    tenantManagementService,
     fileManager,
     pdfCreator,
     uuidSupplier,
@@ -560,7 +562,8 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)]
   ): Future[PurposeManagementDependency.ChangedBy] =
     for {
-      relationships <- partyManagementService.getActiveRelationships(userId, consumerId)
+      selfcareId    <- tenantManagementService.getTenant(consumerId).flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+      relationships <- partyManagementService.getActiveRelationships(userId, selfcareId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheConsumer(userId)).toFuture
     } yield PurposeManagementDependency.ChangedBy.CONSUMER
 
@@ -571,7 +574,10 @@ final case class PurposeApiServiceImpl(
   ): Future[PurposeManagementDependency.ChangedBy] =
     for {
       eService      <- catalogManagementService.getEServiceById(eServiceId)
-      relationships <- partyManagementService.getActiveRelationships(userId, eService.producerId)
+      selfcareId    <- tenantManagementService
+        .getTenant(eService.producerId)
+        .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+      relationships <- partyManagementService.getActiveRelationships(userId, selfcareId)
       _             <- Either.cond(relationships.items.nonEmpty, (), UserIsNotTheProducer(userId)).toFuture
     } yield PurposeManagementDependency.ChangedBy.PRODUCER
 
@@ -595,7 +601,10 @@ final case class PurposeApiServiceImpl(
         .lastOption
         .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
       depEService   <- catalogManagementService.getEServiceById(depPurpose.eserviceId)
-      depProducer   <- partyManagementService.getInstitutionById(depEService.producerId)
+      selfcareId    <- tenantManagementService
+        .getTenant(depEService.producerId)
+        .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+      depProducer   <- partyManagementService.getInstitutionById(selfcareId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
       producer  = OrganizationConverter.dependencyToApi(depProducer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
@@ -649,6 +658,9 @@ final case class PurposeApiServiceImpl(
       logger.error("The action can be performed only by a Consumer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
       complete(problem.status, problem)
+    case Failure(MissingSelfcareId)         =>
+      logger.error(s"Error while retrieving selfcareId from tenant", MissingSelfcareId)
+      complete(StatusCodes.InternalServerError, problemOf(StatusCodes.InternalServerError, MissingSelfcareId))
     case Failure(err: UserIsNotTheProducer) =>
       logger.error("The action can be performed only by a Producer. User {}", err.userId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyProducerAllowedError)

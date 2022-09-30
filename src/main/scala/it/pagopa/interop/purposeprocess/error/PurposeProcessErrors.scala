@@ -53,4 +53,6 @@ object PurposeProcessErrors {
   final case class PurposeVersionDocumentNotFound(purposeId: String, versionId: String, documentId: String)
       extends ComponentError("0023", s"Document $documentId of version $versionId of Purpose $purposeId not found")
 
+  final case object MissingSelfcareId extends ComponentError("0024", "Missing selfcareId in tenant")
+
 }

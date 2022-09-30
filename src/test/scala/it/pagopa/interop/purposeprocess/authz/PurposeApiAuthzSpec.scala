@@ -34,6 +34,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
     new FakePurposeManagementService()
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
+  val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
 
   private val threadPool: ExecutorService          = Executors.newSingleThreadExecutor()
   private val blockingEc: ExecutionContextExecutor = ExecutionContext.fromExecutorService(threadPool)
@@ -48,6 +49,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeCatalogManagementService,
       fakePartyManagementService,
       fakePurposeManagementService,
+      fakeTenantManagementService,
       fakeFileManager,
       pdfCreator = new PDFCreator {
         override def createDocument(

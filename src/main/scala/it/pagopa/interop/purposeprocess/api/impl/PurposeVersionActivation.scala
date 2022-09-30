@@ -30,6 +30,7 @@ final case class PurposeVersionActivation(
   authorizationManagementService: AuthorizationManagementService,
   partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
+  tenantManagementService: TenantManagementService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
@@ -155,6 +156,12 @@ final case class PurposeVersionActivation(
 
   }
 
+  def getDescription(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+    tenant      <- tenantManagementService.getTenant(tenantId)
+    selfcareId  <- tenant.selfcareId.toFuture(MissingSelfcareId)
+    institution <- partyManagementService.getInstitutionById(selfcareId)
+  } yield institution.description
+
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
     *
@@ -172,13 +179,13 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get()
     for {
-      (producer, consumer) <- partyManagementService
-        .getInstitutionById(eService.producerId)
-        .zip(partyManagementService.getInstitutionById(purpose.consumerId))
+      (producerDescription, consumerDescription) <- getDescription(eService.producerId).zip(
+        getDescription(purpose.consumerId)
+      )
       eServiceInfo = EServiceInfo(
         name = eService.name,
-        producerName = producer.description,
-        consumerName = consumer.description
+        producerName = producerDescription,
+        consumerName = consumerDescription
       )
       path <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)
       payload = ActivatePurposeVersionPayload(

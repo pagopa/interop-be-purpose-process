@@ -7,10 +7,13 @@ import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.selfcare.partymanagement.client.model._
-
+import cats.syntax.all._
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import it.pagopa.interop.tenantmanagement.client.model.Tenant
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.tenantmanagement.client.model.ExternalId
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -182,7 +185,7 @@ object FakeDependencies {
 
   class FakePartyManagementService extends PartyManagementService {
 
-    override def getActiveRelationships(from: UUID, to: UUID)(implicit
+    override def getActiveRelationships(from: UUID, to: String)(implicit
       contexts: Seq[(String, String)],
       ec: ExecutionContext
     ): Future[Relationships] = Future.successful(
@@ -202,7 +205,7 @@ object FakeDependencies {
     )
 
     override def getInstitutionById(
-      id: UUID
+      id: String
     )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] =
       Future.successful(
         Institution(
@@ -242,6 +245,21 @@ object FakeDependencies {
         )
       )
 
+  }
+
+  class FakeTenantManagementService extends TenantManagementService {
+    override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
+      Future.successful(
+        Tenant(
+          id = UUID.randomUUID(),
+          selfcareId = UUID.randomUUID().toString().some,
+          externalId = ExternalId("Foo", "Bar"),
+          features = Nil,
+          attributes = Nil,
+          createdAt = OffsetDateTimeSupplier.get(),
+          updatedAt = None
+        )
+      )
   }
 
 }

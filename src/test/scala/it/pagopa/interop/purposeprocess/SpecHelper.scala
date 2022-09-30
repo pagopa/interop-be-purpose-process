@@ -42,23 +42,24 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
+  val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
   val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
   val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
   val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
 
-  val service: PurposeApiService =
-    PurposeApiServiceImpl(
-      mockAgreementManagementService,
-      mockAuthorizationManagementService,
-      mockCatalogManagementService,
-      mockPartyManagementService,
-      mockPurposeManagementService,
-      mockfileManager,
-      mockPdfCreator,
-      mockUUIDSupplier,
-      mockDateTimeSupplier
-    )(ExecutionContext.global)
+  val service: PurposeApiService = PurposeApiServiceImpl(
+    mockAgreementManagementService,
+    mockAuthorizationManagementService,
+    mockCatalogManagementService,
+    mockPartyManagementService,
+    mockPurposeManagementService,
+    mockTenantManagementService,
+    mockfileManager,
+    mockPdfCreator,
+    mockUUIDSupplier,
+    mockDateTimeSupplier
+  )(ExecutionContext.global)
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))
@@ -82,12 +83,19 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result.copy(id = eServiceId)))
 
-  def mockOrganizationRetrieve(institutionId: UUID) =
-    (mockPartyManagementService
-      .getInstitutionById(_: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(institutionId, *, *)
+  def mockOrganizationRetrieve(tenantId: UUID) = {
+    (mockTenantManagementService
+      .getTenant(_: UUID)(_: Seq[(String, String)]))
+      .expects(tenantId, *)
       .once()
-      .returns(Future.successful(SpecData.institution.copy(id = institutionId)))
+      .returns(Future.successful(SpecData.tenant))
+
+    (mockPartyManagementService
+      .getInstitutionById(_: String)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(SpecData.tenant.selfcareId.get, *, *)
+      .once()
+      .returns(Future.successful(SpecData.institution.copy(id = UUID.fromString(SpecData.tenant.selfcareId.get))))
+  }
 
   def mockPurposeRetrieve(purposeId: UUID, result: PurposeManagement.Purpose = SpecData.purpose)(implicit
     contexts: Seq[(String, String)]
@@ -147,12 +155,20 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     from: UUID,
     to: UUID,
     result: PartyManagement.Relationships = SpecData.relationships()
-  ) =
+  ) = {
+
+    (mockTenantManagementService
+      .getTenant(_: UUID)(_: Seq[(String, String)]))
+      .expects(to, *)
+      .once()
+      .returns(Future.successful(SpecData.tenant))
+
     (mockPartyManagementService
-      .getActiveRelationships(_: UUID, _: UUID)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(from, to, *, *)
+      .getActiveRelationships(_: UUID, _: String)(_: Seq[(String, String)], _: ExecutionContext))
+      .expects(from, SpecData.tenant.selfcareId.get, *, *)
       .once()
       .returns(Future.successful(result))
+  }
 
   def mockRiskAnalysisPdfCreation() = {
     val documentId = UUID.randomUUID()
