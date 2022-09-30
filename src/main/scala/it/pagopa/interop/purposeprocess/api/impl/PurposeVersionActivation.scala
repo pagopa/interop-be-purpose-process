@@ -156,7 +156,7 @@ final case class PurposeVersionActivation(
 
   }
 
-  def getDescription(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+  def getTenantDescription(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
     tenant      <- tenantManagementService.getTenant(tenantId)
     selfcareId  <- tenant.selfcareId.toFuture(MissingSelfcareId)
     institution <- partyManagementService.getInstitutionById(selfcareId)
@@ -179,8 +179,8 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get()
     for {
-      (producerDescription, consumerDescription) <- getDescription(eService.producerId).zip(
-        getDescription(purpose.consumerId)
+      (producerDescription, consumerDescription) <- getTenantDescription(eService.producerId).zip(
+        getTenantDescription(purpose.consumerId)
       )
       eServiceInfo = EServiceInfo(
         name = eService.name,
