@@ -7,26 +7,26 @@ import it.pagopa.interop.purposemanagement.client.model.{
 }
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import spray.json._
 
 import java.util.UUID
-import scala.io.Source
 import scala.util.{Failure, Success, Try}
 
 class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
   import PDFCreatorSpec._
 
-  val testConfig: RiskAnalysisFormConfig = loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/test.json")
+  val testConfig: RiskAnalysisFormConfig =
+    RiskAnalysisService.loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/test.json")
 
   val languages = List(LanguageIt, LanguageEn)
 
   "Risk Analysis PDF creation" should {
-    "succeed for 'text' type config" in {
+    "succeed for 'freeText' type config" in {
       val questionKey      = "purpose"
       val answer           = "My Purpose"
       val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
@@ -41,7 +41,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
       )
     }
 
-    "succeed for 'radio' type config" in {
+    "succeed for 'single' type config" in {
       val questionKey      = "usesPersonalData"
       val answer           = "YES"
       val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
@@ -56,7 +56,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
       )
     }
 
-    "succeed for 'checkbox' type config" in {
+    "succeed for 'multi' type config" in {
       val questionKey      = "legalBasis"
       val answers          = List("CONSENT", "CONTRACT", "SAFEGUARD")
       val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = answers)
@@ -66,21 +66,6 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
           result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language),
           expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
           expectedAnswer = answers,
-          language = language
-        )
-      )
-    }
-
-    "succeed for 'select-one' type config" in {
-      val questionKey      = "dataQuantity"
-      val answer           = "QUANTITY_0_TO_100"
-      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
-
-      languages.foreach(language =>
-        checkSuccessfulSingleAnswerResult(
-          result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language),
-          expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
-          expectedAnswer = answer,
           language = language
         )
       )
@@ -195,11 +180,4 @@ object PDFCreatorSpec {
       case Failure(exception) => fail(exception)
     }
 
-  def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =
-    Source
-      .fromResource(resourcePath)
-      .getLines()
-      .mkString(System.lineSeparator())
-      .parseJson
-      .convertTo[RiskAnalysisFormConfig]
 }

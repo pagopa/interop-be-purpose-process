@@ -71,10 +71,10 @@ object SpecData {
       )
     )
 
-  val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
+  val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
     answers = Map(
-      "purpose"                                         -> List("purpose"),
+      "purpose"                                         -> List("MyPurpose"),
       "usesPersonalData"                                -> List("YES"),
       "usesThirdPartyPersonalData"                      -> Nil,
       "usesConfidentialData"                            -> Nil,
@@ -97,8 +97,34 @@ object SpecData {
     )
   )
 
+  val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "2.0",
+    answers = Map(
+      "purpose"                                         -> List("INSTITUTIONAL"),
+      "institutionalPurpose"                            -> List("MyPurpose"),
+      "personalDataTypes"                               -> List("OTHER"),
+      "otherPersonalDataTypes"                          -> List("MyDataTypes"),
+      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
+      "legalObligationReference"                        -> List("somethingLegal"),
+      "legalBasisPublicInterest"                        -> List("RULE_OF_LAW"),
+      "ruleOfLawText"                                   -> List("TheLaw"),
+      "knowsDataQuantity"                               -> List("NO"),
+      "dataQuantity"                                    -> Nil,
+      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "policyProvided"                                  -> List("NO"),
+      "confirmPricipleIntegrityAndDiscretion"           -> List("true"),
+      "reasonPolicyNotProvided"                         -> List("Because"),
+      "doneDpia"                                        -> List("NO"),
+      "dataRetentionPeriod"                             -> List("true"),
+      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
+      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("true"),
+      "usesThirdPartyData"                              -> List("NO"),
+      "declarationConfirmGDPR"                          -> List("true")
+    )
+  )
+
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(

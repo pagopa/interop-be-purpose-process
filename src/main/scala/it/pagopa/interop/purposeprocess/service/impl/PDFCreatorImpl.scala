@@ -12,15 +12,13 @@ import it.pagopa.interop.purposemanagement.client.model.{
 }
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service.PDFCreator
-import spray.json._
+import it.pagopa.interop.purposeprocess.service.{PDFCreator, RiskAnalysisService}
 
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.concurrent.Future
-import scala.io.Source
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
 
@@ -34,12 +32,6 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   private[this] val printedDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
   private[this] val pdfConfigs: PDFConfiguration = PDFConfiguration(resourcesBaseUrl = Some("/riskAnalysisTemplate/"))
 
-  // The Map key must correspond to the version field of the risk analysis form
-  private[this] val riskAnalysisForms: Map[String, RiskAnalysisFormConfig] = Map(
-    "1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json")
-    // TODO Add 2.0
-  )
-
   override def createDocument(
     template: String,
     riskAnalysisForm: RiskAnalysisForm,
@@ -50,7 +42,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     Future.fromTry {
       for {
         file       <- createTempFile
-        formConfig <- riskAnalysisForms
+        formConfig <- RiskAnalysisService.riskAnalysisForms
           .get(riskAnalysisForm.version)
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language)
@@ -170,14 +162,6 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
        |  <div class="answer">$answer</div>
        |</div>
        |""".stripMargin
-
-  private[this] def loadRiskAnalysisFormConfig(resourcePath: String) =
-    Source
-      .fromResource(resourcePath)
-      .getLines()
-      .mkString(System.lineSeparator())
-      .parseJson
-      .convertTo[RiskAnalysisFormConfig]
 
   private[this] def createTempFile: Try[File] =
     Try {

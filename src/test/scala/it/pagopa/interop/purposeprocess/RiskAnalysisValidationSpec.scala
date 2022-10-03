@@ -21,15 +21,15 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
   "Risk Analysis Validation" should {
     "succeed on correct form 1.0" in {
-      val riskAnalysis = SpecData.validRiskAnalysis
+      val riskAnalysis = SpecData.validRiskAnalysis1_0
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswerSeed("purpose", riskAnalysis.answers("purpose").head.some),
+          SingleAnswerSeed("purpose", "MyPurpose".some),
           SingleAnswerSeed("usesPersonalData", Some("YES")),
-          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers("legalObligationReference").head.some),
-          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers("publicInterestReference").head.some),
+          SingleAnswerSeed("legalObligationReference", "somethingLegal".some),
+          SingleAnswerSeed("publicInterestReference", "somethingPublic".some),
           SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
           SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
           SingleAnswerSeed("accessUnderageData", Some("NO")),
@@ -52,33 +52,38 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "succeed on correct form 2.0" in {
-//      val riskAnalysis = SpecData.validRiskAnalysis
-//
-//      val expected = RiskAnalysisFormSeed(
-//        version = riskAnalysis.version,
-//        singleAnswers = Seq(
-//          SingleAnswerSeed("purpose", Some(riskAnalysis.answers.purpose)),
-//          SingleAnswerSeed("usesPersonalData", Some("YES")),
-//          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers.legalObligationReference),
-//          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers.publicInterestReference),
-//          SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
-//          SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
-//          SingleAnswerSeed("accessUnderageData", Some("NO")),
-//          SingleAnswerSeed("knowsDataQuantity", Some("NO")),
-//          SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
-//          SingleAnswerSeed("doneDpia", Some("NO")),
-//          SingleAnswerSeed("definedDataRetentionPeriod", Some("NO")),
-//          SingleAnswerSeed("purposePursuit", Some("MERE_CORRECTNESS"))
-//        ),
-//        multiAnswers = Seq(
-//          MultiAnswerSeed("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")),
-//          MultiAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Seq("YES"))
-//        )
-//      )
-//
-//      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
-//
-//      verifyValidationFormResult(result, expected)
+      val riskAnalysis = SpecData.validRiskAnalysis2_0
+
+      val expected = RiskAnalysisFormSeed(
+        version = riskAnalysis.version,
+        singleAnswers = Seq(
+          SingleAnswerSeed("purpose", "INSTITUTIONAL".some),
+          SingleAnswerSeed("institutionalPurpose", "MyPurpose".some),
+          SingleAnswerSeed("otherPersonalDataTypes", "MyDataTypes".some),
+          SingleAnswerSeed("legalObligationReference", "somethingLegal".some),
+          SingleAnswerSeed("legalBasisPublicInterest", "RULE_OF_LAW".some),
+          SingleAnswerSeed("ruleOfLawText", "TheLaw".some),
+          SingleAnswerSeed("knowsDataQuantity", "NO".some),
+          SingleAnswerSeed("deliveryMethod", "ANONYMOUS".some),
+          SingleAnswerSeed("policyProvided", "NO".some),
+          SingleAnswerSeed("confirmPricipleIntegrityAndDiscretion", "true".some),
+          SingleAnswerSeed("reasonPolicyNotProvided", "Because".some),
+          SingleAnswerSeed("doneDpia", "NO".some),
+          SingleAnswerSeed("dataRetentionPeriod", "true".some),
+          SingleAnswerSeed("purposePursuit", "MERE_CORRECTNESS".some),
+          SingleAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", "true".some),
+          SingleAnswerSeed("usesThirdPartyData", "NO".some),
+          SingleAnswerSeed("declarationConfirmGDPR", "true".some)
+        ),
+        multiAnswers = Seq(
+          MultiAnswerSeed("personalDataTypes", Seq("OTHER")),
+          MultiAnswerSeed("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST"))
+        )
+      )
+
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+
+      verifyValidationFormResult(result, expected)
 
     }
 

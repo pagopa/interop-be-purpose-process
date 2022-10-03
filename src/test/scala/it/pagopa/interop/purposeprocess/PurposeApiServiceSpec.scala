@@ -93,7 +93,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(

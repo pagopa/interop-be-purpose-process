@@ -10,9 +10,8 @@ import it.pagopa.interop.purposemanagement.client.model.{
 import it.pagopa.interop.purposeprocess.error._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import spray.json._
-
-import scala.io.Source
 
 object RiskAnalysisValidation {
 
@@ -24,17 +23,14 @@ object RiskAnalysisValidation {
     */
   def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
 
-    val configs1_0 = loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json")
-    val configs2_0 = loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/2.0.json")
-
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
-    // TODO Test this
-    val validationRules: ValidationResult[List[ValidationEntry]] = sanitizedForm.version match {
-      // TODO Enum?
-      case "1.0" => configsToRules(configs1_0).validNec
-      case "2.0" => configsToRules(configs2_0).validNec
-      case other => UnexpectedTemplateVersion(other).invalidNec
-    }
+
+    val validationRules: ValidationResult[List[ValidationEntry]] =
+      RiskAnalysisService.riskAnalysisForms
+        .get(sanitizedForm.version)
+        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(sanitizedForm.version).invalidNec)(
+          configsToRules(_).validNec
+        )
 
     validationRules.andThen(validateFormWithRules(_, sanitizedForm))
 
@@ -123,8 +119,6 @@ object RiskAnalysisValidation {
     value: JsValue
   ): Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]] =
     value match {
-//      case str: JsString =>
-//        Left(SingleAnswerSeed(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
       case arr: JsArray if rule.dataType == "single" || rule.dataType == "freeText" =>
         val value: ValidationResult[String] = {
           arr.elements.headOption match {
@@ -215,14 +209,6 @@ object RiskAnalysisValidation {
       .sequence
       .map(_ => ())
 
-  private[this] def loadRiskAnalysisFormConfig(resourcePath: String) =
-    Source
-      .fromResource(resourcePath)
-      .getLines()
-      .mkString(System.lineSeparator())
-      .parseJson
-      .convertTo[RiskAnalysisFormConfig]
-
   def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
     DependencyEntry(fieldName = dependency.id, fieldValue = dependency.value)
 
@@ -267,229 +253,3 @@ final case class ValidationEntry(
   dependencies: Seq[DependencyEntry],
   allowedValues: Option[Set[String]]
 )
-
-//// TODO Move to different file
-//object ValidationRulesV1 {
-//
-//  // Answers
-//  object YesNoAnswer extends Enumeration {
-//    type YesNoAnswer = Value
-//    val YES, NO                = Value
-//    val valuesSet: Set[String] = values.map(_.toString)
-//  }
-//
-//  val YES: String = YesNoAnswer.YES.toString
-//  val NO: String  = YesNoAnswer.NO.toString
-//
-//  object LegalBasisAnswer extends Enumeration {
-//    type FormLegalBasisAnswers = Value
-//    val CONSENT, CONTRACT, LEGAL_OBLIGATION, SAFEGUARD, PUBLIC_INTEREST, LEGITIMATE_INTEREST = Value
-//    val valuesSet: Set[String]                                                               = values.map(_.toString)
-//  }
-//
-//  object DataQuantityAnswer extends Enumeration {
-//    type FormDataQuantityAnswers = Value
-//    val QUANTITY_0_TO_100, QUANTITY_101_TO_500, QUANTITY_500_TO_1000, QUANTITY_1001_TO_5000, QUANTITY_5001_OVER = Value
-//    val valuesSet: Set[String] = values.map(_.toString)
-//  }
-//
-//  object DeliveryMethodAnswer extends Enumeration {
-//    type FormDeliveryMethodAnswers = Value
-//    val CLEARTEXT, AGGREGATE, ANONYMOUS, PSEUDOANONYMOUS = Value
-//    val valuesSet: Set[String]                           = values.map(_.toString)
-//  }
-//
-//  object PurposePursuitAnswer extends Enumeration {
-//    type FormPurposePursuitAnswers = Value
-//    val MERE_CORRECTNESS, NEW_PERSONAL_DATA = Value
-//    val valuesSet: Set[String]              = values.map(_.toString)
-//  }
-//  // End Answers
-//
-//  // Fields names
-//  val PURPOSE: String                                              = "purpose"
-//  val ACCESS_DATA_ART9_GDPR: String                                = "accessDataArt9Gdpr"
-//  val ACCESS_UNDERAGE_DATA: String                                 = "accessUnderageData"
-//  val CHECKED_ALL_DATA_NEEDED: String                              = "checkedAllDataNeeded"
-//  val CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE: String = "checkedExistenceMereCorrectnessInteropCatalogue"
-//  val CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE: String     = "checkedExistenceMinimalDataInteropCatalogue"
-//  val DATA_QUANTITY: String                                        = "dataQuantity"
-//  val DEFINED_DATA_RETENTION_PERIOD: String                        = "definedDataRetentionPeriod"
-//  val DELIVERY_METHOD: String                                      = "deliveryMethod"
-//  val DONE_DPIA: String                                            = "doneDpia"
-//  val KNOWS_ACCESSED_DATA_CATEGORIES: String                       = "knowsAccessedDataCategories"
-//  val KNOWS_DATA_QUANTITY: String                                  = "knowsDataQuantity"
-//  val LEGAL_BASIS: String                                          = "legalBasis"
-//  val LEGAL_OBLIGATION_REFERENCE: String                           = "legalObligationReference"
-//  val PUBLIC_INTEREST_REFERENCE: String                            = "publicInterestReference"
-//  val PURPOSE_PURSUIT: String                                      = "purposePursuit"
-//  val SECURED_DATA_ACCESS: String                                  = "securedDataAccess"
-//  val USES_CONFIDENTIAL_DATA: String                               = "usesConfidentialData"
-//  val USES_PERSONAL_DATA: String                                   = "usesPersonalData"
-//  val USES_THIRD_PARTY_PERSONAL_DATA: String                       = "usesThirdPartyPersonalData"
-//  // End Fields names
-//
-//  val validationRules: List[ValidationEntry] = List(
-//    ValidationEntry(PURPOSE, required = true, Seq.empty, None),
-//    ValidationEntry(USES_PERSONAL_DATA, required = true, Seq.empty, YesNoAnswer.valuesSet.some),
-//    ValidationEntry(
-//      USES_THIRD_PARTY_PERSONAL_DATA,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, NO)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      USES_CONFIDENTIAL_DATA,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, NO), DependencyEntry(USES_THIRD_PARTY_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      SECURED_DATA_ACCESS,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, NO)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      LEGAL_BASIS,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      LEGAL_OBLIGATION_REFERENCE,
-//      required = true,
-//      Seq(DependencyEntry(LEGAL_BASIS, LegalBasisAnswer.LEGAL_OBLIGATION.toString)),
-//      None
-//    ),
-//    ValidationEntry(
-//      PUBLIC_INTEREST_REFERENCE,
-//      required = true,
-//      Seq(DependencyEntry(LEGAL_BASIS, LegalBasisAnswer.PUBLIC_INTEREST.toString)),
-//      None
-//    ),
-//    ValidationEntry(
-//      KNOWS_ACCESSED_DATA_CATEGORIES,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      ACCESS_DATA_ART9_GDPR,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      ACCESS_UNDERAGE_DATA,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      KNOWS_DATA_QUANTITY,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      DATA_QUANTITY,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_DATA_QUANTITY, YES)),
-//      DataQuantityAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      DELIVERY_METHOD,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      DeliveryMethodAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      DONE_DPIA,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      DEFINED_DATA_RETENTION_PERIOD,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      PURPOSE_PURSUIT,
-//      required = true,
-//      Seq(DependencyEntry(USES_PERSONAL_DATA, YES)),
-//      PurposePursuitAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE,
-//      required = true,
-//      Seq(
-//        DependencyEntry(USES_PERSONAL_DATA, YES),
-//        DependencyEntry(PURPOSE_PURSUIT, PurposePursuitAnswer.MERE_CORRECTNESS.toString)
-//      ),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      CHECKED_ALL_DATA_NEEDED,
-//      required = true,
-//      Seq(
-//        DependencyEntry(USES_PERSONAL_DATA, YES),
-//        DependencyEntry(PURPOSE_PURSUIT, PurposePursuitAnswer.NEW_PERSONAL_DATA.toString)
-//      ),
-//      YesNoAnswer.valuesSet.some
-//    ),
-//    ValidationEntry(
-//      CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE,
-//      required = true,
-//      Seq(
-//        DependencyEntry(USES_PERSONAL_DATA, YES),
-//        DependencyEntry(PURPOSE_PURSUIT, PurposePursuitAnswer.NEW_PERSONAL_DATA.toString),
-//        DependencyEntry(CHECKED_ALL_DATA_NEEDED, NO)
-//      ),
-//      YesNoAnswer.valuesSet.some
-//    )
-//  )
-//}
-//
-//object ValidationRulesV2 {
-//
-//  // Answers
-//  object YesNoAnswer extends Enumeration {
-//    type YesNo = Value
-//    val YES, NO = Value
-//  }
-//
-//  val YES: String = YesNoAnswer.YES.toString
-//  val NO: String  = YesNoAnswer.NO.toString
-//
-//  object FormLegalBasisAnswer extends Enumeration {
-//    type FormLegalBasisAnswers = Value
-//    val CONSENT, CONTRACT, LEGAL_OBLIGATION, SAFEGUARD, PUBLIC_INTEREST, LEGITIMATE_INTEREST = Value
-//  }
-//
-//  object FormDataQuantityAnswer extends Enumeration {
-//    type FormDataQuantityAnswers = Value
-//    val QUANTITY_0_TO_100, QUANTITY_101_TO_500, QUANTITY_500_TO_1000, QUANTITY_1001_TO_5000, QUANTITY_5001_OVER = Value
-//  }
-//
-//  object FormDeliveryMethodAnswer extends Enumeration {
-//    type FormDeliveryMethodAnswers = Value
-//    val CLEARTEXT, AGGREGATE, ANONYMOUS, PSEUDOANONYMOUS = Value
-//  }
-//
-//  object FormPurposePursuitAnswer extends Enumeration {
-//    type FormPurposePursuitAnswers = Value
-//    val MERE_CORRECTNESS, NEW_PERSONAL_DATA = Value
-//  }
-//  // End Answers
-//
-//  // Fields names
-//  val PURPOSE: String = "purpose"
-//  // End Fields names
-//
-//  val validationRules: List[ValidationEntry] = List(
-////    ValidationEntry(PURPOSE, required = true, Seq.empty),
-//  )
-//}
