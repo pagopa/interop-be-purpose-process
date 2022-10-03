@@ -13,9 +13,6 @@ sealed trait FormConfigQuestion {
   def dependencies: List[Dependency]
 }
 
-sealed trait SingleAnswerQuestionConfig extends FormConfigQuestion
-sealed trait MultiAnswerQuestionConfig  extends FormConfigQuestion
-
 object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object FormConfigQuestionJsonFormat extends RootJsonFormat[FormConfigQuestion] {
     def write(a: FormConfigQuestion): JsValue = a match {
@@ -43,7 +40,7 @@ final case class FreeInputQuestion(
   dataType: String,
   required: Boolean,
   dependencies: List[Dependency]
-) extends SingleAnswerQuestionConfig
+) extends FormConfigQuestion
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat6(FreeInputQuestion.apply)
@@ -57,7 +54,7 @@ final case class SingleQuestion(
   options: List[LabeledValue],
   required: Boolean,
   dependencies: List[Dependency]
-) extends SingleAnswerQuestionConfig
+) extends FormConfigQuestion
 
 object SingleQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat7(SingleQuestion.apply)
@@ -71,7 +68,7 @@ final case class MultiQuestion(
   options: List[LabeledValue],
   required: Boolean,
   dependencies: List[Dependency]
-) extends MultiAnswerQuestionConfig
+) extends FormConfigQuestion
 
 object MultiQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat7(MultiQuestion.apply)

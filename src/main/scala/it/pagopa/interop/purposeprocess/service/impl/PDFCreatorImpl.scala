@@ -109,36 +109,33 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   )(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
     questionConfig match {
-      case c: SingleAnswerQuestionConfig => getSingleAnswerTextFromConfig(c, answer, language)
-      case c: MultiAnswerQuestionConfig  => Failure(IncompatibleConfig(answer.key, c.id))
+      case _: FreeInputQuestion => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+      case c: SingleQuestion    => getSingleAnswerTextFromConfig(c, answer, language)
+      case c: MultiQuestion     => Failure(IncompatibleConfig(answer.key, c.id))
     }
 
   private[this] def getMultiAnswerText(
     language: Language
   )(questionConfig: FormConfigQuestion, answer: RiskAnalysisMultiAnswer): Try[String] =
     questionConfig match {
-      case c: SingleAnswerQuestionConfig => Failure(IncompatibleConfig(answer.key, c.id))
-      case c: MultiAnswerQuestionConfig  => getMultiAnswerTextFromConfig(c, answer, language)
+      case c: FreeInputQuestion => Failure(IncompatibleConfig(answer.key, c.id))
+      case c: SingleQuestion    => Failure(IncompatibleConfig(answer.key, c.id))
+      case c: MultiQuestion     => getMultiAnswerTextFromConfig(c, answer, language)
     }
 
   private[this] def getSingleAnswerTextFromConfig(
-    questionConfig: SingleAnswerQuestionConfig,
+    questionConfig: SingleQuestion,
     answer: RiskAnalysisSingleAnswer,
     language: Language
-  ): Try[String] =
-    questionConfig match {
-      case _: FreeInputQuestion     => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
-      case question: SingleQuestion =>
-        for {
-          answerValue  <- answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
-          labeledValue <- question.options
-            .find(_.value == answerValue)
-            .toTry(AnswerNotFoundInConfig(answer.key, question.id))
-        } yield getLocalizedLabel(labeledValue.pdfLabel, language)
-    }
+  ): Try[String] = for {
+    answerValue  <- answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
+    labeledValue <- questionConfig.options
+      .find(_.value == answerValue)
+      .toTry(AnswerNotFoundInConfig(answer.key, questionConfig.id))
+  } yield getLocalizedLabel(labeledValue.pdfLabel, language)
 
   private[this] def getMultiAnswerTextFromConfig(
-    questionConfig: MultiAnswerQuestionConfig,
+    questionConfig: MultiQuestion,
     answer: RiskAnalysisMultiAnswer,
     language: Language
   ): Try[String] =

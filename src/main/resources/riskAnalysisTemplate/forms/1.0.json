@@ -676,7 +676,7 @@
     {
       "id": "checkedExistenceMereCorrectnessInteropCatalogue",
       "type": "checkbox",
-      "dataType": "single",
+      "dataType": "multi",
       "label": {
         "it": "Confermare se è stato verificato se sul Catalogo API è presente un altro E-Service in grado di svolgere questa attività di mera verifica (che non preveda ex novo la comunicazione di altri informazioni/dati personali – richiesto)",
         "en": "Have you checked if there is another E-Service in the Catalog that allows you to carry out this simple check task (in case it does not require the ex novo transmission of other information/personal data)? (required)"

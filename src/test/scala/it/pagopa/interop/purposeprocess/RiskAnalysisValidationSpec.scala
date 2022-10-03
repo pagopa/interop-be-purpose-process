@@ -1,9 +1,10 @@
 package it.pagopa.interop.purposeprocess
 
 import cats.data.NonEmptyChain
+import cats.implicits.catsSyntaxOptionId
 import cats.kernel.Eq
 import it.pagopa.interop.purposemanagement.client.model.{
-  RiskAnalysisFormSeed => RiskAnalysisFormSeed,
+  RiskAnalysisFormSeed,
   RiskAnalysisMultiAnswerSeed => MultiAnswerSeed,
   RiskAnalysisSingleAnswerSeed => SingleAnswerSeed
 }
@@ -19,16 +20,16 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   implicit val eqError: Eq[RiskAnalysisValidationError] = Eq.fromUniversalEquals
 
   "Risk Analysis Validation" should {
-    "succeed on correct form" in {
+    "succeed on correct form 1.0" in {
       val riskAnalysis = SpecData.validRiskAnalysis
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswerSeed("purpose", Some(riskAnalysis.answers.purpose)),
+          SingleAnswerSeed("purpose", riskAnalysis.answers("purpose").head.some),
           SingleAnswerSeed("usesPersonalData", Some("YES")),
-          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers.legalObligationReference),
-          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers.publicInterestReference),
+          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers("legalObligationReference").head.some),
+          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers("publicInterestReference").head.some),
           SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
           SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
           SingleAnswerSeed("accessUnderageData", Some("NO")),
@@ -50,14 +51,45 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
+    "succeed on correct form 2.0" in {
+//      val riskAnalysis = SpecData.validRiskAnalysis
+//
+//      val expected = RiskAnalysisFormSeed(
+//        version = riskAnalysis.version,
+//        singleAnswers = Seq(
+//          SingleAnswerSeed("purpose", Some(riskAnalysis.answers.purpose)),
+//          SingleAnswerSeed("usesPersonalData", Some("YES")),
+//          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers.legalObligationReference),
+//          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers.publicInterestReference),
+//          SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
+//          SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
+//          SingleAnswerSeed("accessUnderageData", Some("NO")),
+//          SingleAnswerSeed("knowsDataQuantity", Some("NO")),
+//          SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
+//          SingleAnswerSeed("doneDpia", Some("NO")),
+//          SingleAnswerSeed("definedDataRetentionPeriod", Some("NO")),
+//          SingleAnswerSeed("purposePursuit", Some("MERE_CORRECTNESS"))
+//        ),
+//        multiAnswers = Seq(
+//          MultiAnswerSeed("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")),
+//          MultiAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Seq("YES"))
+//        )
+//      )
+//
+//      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+//
+//      verifyValidationFormResult(result, expected)
+
+    }
+
     "fail if a provided answer depends on a missing field" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
-          usesThirdPartyPersonalData = None,
-          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("YES"),
+          "usesThirdPartyPersonalData" -> Nil,
+          "usesConfidentialData"       -> List("YES")
         )
       )
 
@@ -72,11 +104,11 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     "fail if a provided answer depends on an existing field with an unexpected value" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
-          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.NO),
-          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("NO"),
+          "usesThirdPartyPersonalData" -> List("NO"),
+          "usesConfidentialData"       -> List("YES")
         )
       )
 
@@ -84,19 +116,21 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
       verifyValidationFailure(
         result,
-        _.contains(UnexpectedFieldValue("usesThirdPartyPersonalData", "usesConfidentialData", "YES")) shouldBe true
+        _.contains(
+          UnexpectedFieldValueByDependency("usesThirdPartyPersonalData", "usesConfidentialData", "YES")
+        ) shouldBe true
       )
     }
 
     "fail on missing expected answer (answer tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
-          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.YES),
-          usesConfidentialData = None,
-          securedDataAccess = None
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("NO"),
+          "usesThirdPartyPersonalData" -> List("YES"),
+          "usesConfidentialData"       -> Nil,
+          "securedDataAccess"          -> Nil
         )
       )
 

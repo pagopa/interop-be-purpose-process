@@ -38,6 +38,10 @@
             "it": "Altro",
             "en": "Other"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "OTHER"
         }
       ],
@@ -52,6 +56,10 @@
       "label": {
         "it": "Specificare il fine perseguito per fini istituzionali che non richiedano prestazioni di elaborazioni aggiuntive (richiesto)",
         "en": "TODO (required)"
+      },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
       },
       "defaultValue": "",
       "required": true,
@@ -70,6 +78,10 @@
         "it": "Specificare il fine perseguito (richiesto)",
         "en": "TODO (required)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "defaultValue": "",
       "required": true,
       "dependencies": [
@@ -87,11 +99,19 @@
         "it": "Indicare la tipologia di dati personali cui si avrà accesso attraverso la fruizione del presente E-service, tenuto conto delle definizioni contenute nell’art. 4, nn. 1, 13, 14 e 15 del GDPR (richiesto, scelta multipla)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {
             "it": "Dati personali comuni non identificativi (es. numero di targa)",
             "en": "TODO"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "WITH_NON_IDENTIFYING_DATA"
         },
@@ -100,12 +120,20 @@
             "it": "Dati personali comuni identificativi (es. codice fiscale)",
             "en": "TODO"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "WITH_IDENTIFYING_DATA"
         },
         {
           "label": {
             "it": "Dati di minori ex art. 8 del GDPR (es. nome e cognome di un minore)",
             "en": "TODO"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "GDPR_ART_8"
         },
@@ -114,6 +142,10 @@
             "it": "Dati particolari ex art. 9 del GDPR (es. origine razziale o etnica, opinioni politiche, convinzioni religiose o filosofiche, appartenenza sindacale, nonché dati genetici, biometrici intesi a identificare in modo univoco una persona fisica, dati relativi alla salute o alla vita sessuale o all'orientamento sessuale della persona)",
             "en": "TODO"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "GDPR_ART_9"
         },
         {
@@ -121,12 +153,20 @@
             "it": "Dati giudiziari ex art. 10 del GDPR (es. provvedimenti penali di condanna definitivi, liberazione condizionale, divieto od obbligo di soggiorno, misure alternative alla detenzione)",
             "en": "TODO"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "GDPR_ART_10"
         },
         {
           "label": {
             "it": "Altro",
             "en": "TODO"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "OTHER"
         }
@@ -142,6 +182,10 @@
       "label": {
         "it": "Specificare la tipologia di dati personali (richiesto)",
         "en": "TODO (required)"
+      },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
       },
       "defaultValue": "",
       "required": true,
@@ -160,11 +204,19 @@
         "it": "Indicare sulla base di quale, fra le seguenti basi giuridiche ex art. 6 del GDPR, ritiene di essere titolato ad accedere ai dati personali messi a disposizione con la fruizione dell’E-Service (richiesto, scelta multipla)",
         "en": "Based on GDPR ex art. 6, state on which legal basis you think you are entitled to access the personal data provided with the access to this E-Service (required, multiple choice)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {
             "it": "consenso dell’interessato al trattamento dei dati personali per una o più specifiche finalità",
             "en": "consent of the interested party to the treatment of personal data for one or more purposes"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "CONSENT"
         },
@@ -173,12 +225,20 @@
             "it": "esecuzione di un contratto di cui l'interessato è parte o di misure precontrattuali adottate su richiesta dello stesso",
             "en": "execution of a contract which the party is part of or precontractual measures adopted upon request of said party"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "CONTRACT"
         },
         {
           "label": {
             "it": "adempimento di un obbligo legale",
             "en": "fulfillment of a legal obligation"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "LEGAL_OBLIGATION"
         },
@@ -187,12 +247,20 @@
             "it": "salvaguardia degli interessi vitali di una persona fisica",
             "en": "safeguard of vital interests of a physical person"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "SAFEGUARD"
         },
         {
           "label": {
             "it": "esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito",
             "en": "execution of a task of public interest or connected to the exercise of public authority bestowed upon you"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "PUBLIC_INTEREST"
         }
@@ -213,6 +281,14 @@
         "it": "specificare l’obbligo legale e, laddove possibile, la normativa di riferimento",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "defaultValue": "",
       "required": true,
       "dependencies": [
@@ -230,11 +306,19 @@
         "it": "Specificare le motivazioni di esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito (richiesto)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {
             "it": "norma di legge o di regolamento ai sensi dell’art. 2-ter, comma 1, del Codice Privacy per quanto attiene ai dati personali comuni e ai sensi dell’art. 2- sexies, comma 1 del Codice Privacy per quanto attiene alle categorie particolari di dati",
             "en": "TODO"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "RULE_OF_LAW"
         },
@@ -243,12 +327,20 @@
             "it": "atto amministrativo generale ai sensi dell’art. 2-ter, comma 1, del Codice Privacy per quanto attiene ai dati personali comuni e ai sensi dell’art. 2-sexies, comma 1 del Codice Privacy per quanto attiene alle categorie particolari di dati",
             "en": "TODO"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "ADMINISTRATIVE_ACT"
         },
         {
           "label": {
             "it": "adempimento di un compito svolto nel pubblico interesse o per l’esecuzione di pubblici poteri attribuiti al Fruitore ai sensi dell’art. 2-ter, comma 1 bis, del Codice Privacy",
             "en": "TODO"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "PUBLIC_INTEREST_TASK"
         }
@@ -282,6 +374,14 @@
         "it": "norma di legge o di regolamento ai sensi dell’art. 2-ter, comma 1, del Codice Privacy per quanto attiene ai dati personali comuni e ai sensi dell’art. 2- sexies, comma 1 del Codice Privacy per quanto attiene alle categorie particolari di dati",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "defaultValue": "",
       "required": true,
       "dependencies": [
@@ -302,6 +402,14 @@
       "infoLabel": {
         "it": "atto amministrativo generale ai sensi dell’art. 2-ter, comma 1, del Codice Privacy per quanto attiene ai dati personali comuni e ai sensi dell’art. 2-sexies, comma 1 del Codice Privacy per quanto attiene alle categorie particolari di dati",
         "en": "TODO"
+      },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
       },
       "defaultValue": "",
       "required": true,
@@ -324,6 +432,14 @@
         "it": "adempimento di un compito svolto nel pubblico interesse o per l’esecuzione di pubblici poteri attribuiti al Fruitore ai sensi dell’art. 2-ter, comma 1 bis, del Codice Privacy",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "defaultValue": "",
       "required": true,
       "dependencies": [
@@ -341,13 +457,19 @@
         "it": "Indicare se si conosce la quantità di dati personali di cui si entrerà in possesso attraverso la fruizione del presente E-Service (richiesto)",
         "en": "Do you know how much personal data you will access through the subscription of this E-Service? (required)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "", "en": "" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -367,25 +489,38 @@
         "it": "Si richiede di specificare la fascia di riferimento fra quelle di seguito indicate anche in funzione del periodo di validità del voucher emesso per la fruizione dell’E-Service",
         "en": "You are required to state the reference range among the options given, keeping in mind the expiration of the access token (voucher) emitted for the fruition of the E-Service"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "0-100", "en": "0-100" },
+          "pdfLabel": { "it": "0-100", "en": "0-100" },
           "value": "QUANTITY_0_TO_100"
         },
         {
           "label": { "it": "101-500", "en": "101-500" },
+          "pdfLabel": { "it": "101-500", "en": "101-500" },
           "value": "QUANTITY_101_TO_500"
         },
         {
           "label": { "it": "501-1000", "en": "501-1000" },
+          "pdfLabel": { "it": "501-1000", "en": "501-1000" },
           "value": "QUANTITY_500_TO_1000"
         },
         {
           "label": { "it": "1001-5000", "en": "1001-5000" },
+          "pdfLabel": { "it": "1001-5000", "en": "1001-5000" },
           "value": "QUANTITY_1001_TO_5000"
         },
         {
           "label": { "it": "da 5001 in su", "en": "5001 and up" },
+          "pdfLabel": { "it": "da 5001 in su", "en": "5001 and up" },
           "value": "QUANTITY_5001_OVER"
         }
       ],
@@ -410,11 +545,23 @@
         "it": "Indicare con quali modalità il Fruitore intende ricevere le informazioni dall’Erogatore, d’accordo con quelle già previste dall’Erogatore stesso. NB: si ricorda che ai sensi dell’art. 5, paragrafo 1, lett. c), del GDPR (principio di minimizzazione) il trattamento di dati personali deve essere sempre proporzionale e limitato a quanto strettamente necessario alla finalità perseguita, e possono essere acceduti tramite l’e-service unicamente i dati adeguati, pertinenti e limitati a quanto necessario per il fine perseguito. Pertanto: (i) solo qualora non sia possibile perseguire le finalità dichiarate nel punto 1 sopra sulla base di dati aggregati o anonimi è possibile barrare le opzioni di dati in chiaro e pseudonimizzati e (ii) solo qualora non sia possibile perseguire le predette finalità con dati pseudonimizzati è possibile barrare l’opzione di dati in chiaro.",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {
             "it": "in chiaro",
             "en": "cleartext"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "CLEARTEXT"
         },
@@ -423,6 +570,10 @@
             "it": "in forma pseudoanonimizzata",
             "en": "pseudonymized"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "PSEUDOANONYMOUS"
         },
         {
@@ -430,12 +581,20 @@
             "it": "in forma aggregata",
             "en": "aggregated"
           },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
+          },
           "value": "AGGREGATE"
         },
         {
           "label": {
             "it": "in forma anonimizzata",
             "en": "anonymized"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "ANONYMOUS"
         }
@@ -452,13 +611,19 @@
         "it": "Indicare se è stata fornita un’informativa all’interessato circa l’accesso ai dati cui si intende accedere/che si intende ricevere tramite la fruizione dell’E-Service e le relative attività di trattamento effettuate dal Fruitore: (richiesto)",
         "en": "TODO (required)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -478,6 +643,14 @@
         "it": "Di norma sì fornisce un’informativa all’interessato circa l’accesso ai dati cui si intende accedere/che si intende ricevere tramite la fruizione dell’E-Service e le relative attività di trattamento effettuate dal Fruitore",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "defaultValue": "",
       "required": true,
       "dependencies": [
@@ -495,14 +668,20 @@
         "it": "Confermare se - in linea con il principio di integrità e riservatezza di cui all’art. 5, paragrafo 1, lett. f), del GDPR - sono state adottate tutte le misure tecniche e organizzative necessarie a garantire un’adeguata sicurezza dei dati personali cui si avrà accesso in sede di fruizione del presente E-service, compresa la protezione da trattamenti non autorizzati o illeciti e dalla perdita, dalla distruzione o dal danno accidentali. (richiesto)",
         "en": "TODO (required)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {"it": "Confermo", "en": "Confirm"},
-          "value": true
+          "pdfLabel": {"it": "Confermo", "en": "Confirm"},
+          "value": "true"
         },
         {
           "label": {"it": "Nego", "en": "Deny"},
-          "value": false,
+          "pdfLabel": {"it": "Nego", "en": "Deny"},
+          "value": "false",
           "forceUserCheckEServiceCatalog": true
         }
       ],
@@ -522,13 +701,23 @@
         "it": "Se la risposta a questa domanda è no, si ricorda che la valutazione di impatto è obbligatoria ​​qualora sussistano le condizioni di cui all’art. 35 del GDPR.",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -548,13 +737,23 @@
         "it": "Se la risposta a questa domanda è no, si ricorda che la consultazione preventiva è obbligatoria ​​qualora sussistano le condizioni di cui all’art. 36 del GDPR.",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -579,14 +778,24 @@
         "it": "NB: si ricorda che il download del dato non consente di disporre di un dato aggiornato, e quindi di agire nel rispetto del principio di esattezza dei dati di cui all’art. 5, paragrafo 1, lettera d), del GDPR. Pertanto, si invita a limitare i casi di download del dato alle ipotesi in cui tale download è strettamente necessario e giustificato dalla finalità del trattamento. Si ricorda, altresì, che, ai sensi dell’art. 5, paragrafo 1, lett. b) ed e) del GDPR (principio della limitazione della finalità e della conservazione) , i dati possono essere conservati unicamente per il tempo strettamente necessario al perseguimento delle finalità per cui sono stati raccolti, e che le stesse siano determinate, esplicite e legittime.",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {"it": "Confermo", "en": "Confirm"},
-          "value": true
+          "pdfLabel": {"it": "Confermo", "en": "Confirm"},
+          "value": "true"
         },
         {
           "label": {"it": "Nego", "en": "Deny"},
-          "value": false,
+          "pdfLabel": {"it": "Nego", "en": "Deny"},
+          "value": "false",
           "forceUserCheckEServiceCatalog": true
         }
       ],
@@ -602,11 +811,19 @@
         "it": "Ai sensi del principio di minimizzazione di cui all’art. 5, paragrafo 1, let. c) del GDPR, per perseguire la finalità di cui al punto 1, indicare se (richiesto)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {
             "it": "è sufficiente che l’Erogatore verifichi la mera correttezza di una/o determinata/o informazione/dato personale già in suo possesso",
             "en": "it is sufficient for the Provider to check the mere correctedness of a particular information or personal data they already own"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "MERE_CORRECTNESS"
         },
@@ -614,6 +831,10 @@
           "label": {
             "it": "è necessario ricevere ex novo una/o determinata/o informazione/dato personale",
             "en": "it is necessary to receive the information or personal data ex novo"
+          },
+          "pdfLabel": {
+            "it": "",
+            "en": ""
           },
           "value": "NEW_PERSONAL_DATA"
         }
@@ -630,14 +851,20 @@
         "it": "Confermare se è stato verificato se sul Catalogo API è presente un altro E-Service in grado di svolgere questa attività di mera verifica (che non preveda ex novo la comunicazione di altri informazioni/dati personali – richiesto)",
         "en": "Have you checked if there is another E-Service in the Catalog that allows you to carry out this simple check task (in case it does not require the ex novo transmission of other information/personal data)? (required)"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {"it": "Confermo", "en": "Confirm"},
-          "value": true
+          "pdfLabel": {"it": "Confermo", "en": "Confirm"},
+          "value": "true"
         },
         {
           "label": {"it": "Nego", "en": "Deny"},
-          "value": false,
+          "pdfLabel": {"it": "Nego", "en": "Deny"},
+          "value": "false",
           "forceUserCheckEServiceCatalog": true,
           "blockedAlert": {
             "it": "Prima di procedere con l’invio della richiesta di accesso al presente E-service per la finalità indicata al punto 1, si invita a verificare se sul Catalogo API è presente un altro E-service che consenta di svolgere la mera attività di verifica di informazioni/dati personali di cui si necessita",
@@ -666,13 +893,23 @@
         "it": "Se la risposta a questa domanda è no, si invita a verificare se sul Catalogo API è presente un altro E-service che consenta di accedere alle sole informazioni/dati personali di cui si necessita.",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
+      "pdfInfoLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO",
           "forceUserCheckEServiceCatalog": true,
           "blockedAlert": {
@@ -698,13 +935,19 @@
         "it": "Indicare se si accede a dati su richiesta/per conto di terzi soggetti (richiesto)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -720,13 +963,19 @@
         "it": "Indicare se si accede a dati per conto di un soggetto di cui all’art. 2, comma 2, lett. a) del CAD (richiesto)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
+          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
+          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -747,14 +996,20 @@
         "it": "Dichiara di essere consapevole degli obblighi di cui al GDPR in tema di trattamento di dati personali e ​​dichiara di essere in grado di comprovarne il rispetto (principio di responsabilizzazione di cui all’art. 5, paragrafo 2, del GDPR). (richiesto)",
         "en": "TODO"
       },
+      "pdfLabel": {
+        "it": "",
+        "en": ""
+      },
       "options": [
         {
           "label": {"it": "Confermo", "en": "Confirm"},
-          "value": true
+          "pdfLabel": {"it": "Confermo", "en": "Confirm"},
+          "value": "true"
         },
         {
           "label": {"it": "Nego", "en": "Deny"},
-          "value": false
+          "pdfLabel": {"it": "Nego", "en": "Deny"},
+          "value": "false"
         }
       ],
       "defaultValue": false,

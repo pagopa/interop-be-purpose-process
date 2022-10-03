@@ -73,27 +73,27 @@ object SpecData {
 
   val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
-    answers = RiskAnalysisFormAnswers(
-      purpose = "purpose",
-      usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
-      usesThirdPartyPersonalData = None,
-      usesConfidentialData = None,
-      securedDataAccess = None,
-      legalBasis = Some(Seq(FormLegalBasisAnswers.LEGAL_OBLIGATION, FormLegalBasisAnswers.PUBLIC_INTEREST)),
-      legalObligationReference = Some("something"),
-      publicInterestReference = Some("something"),
-      knowsAccessedDataCategories = Some(RiskAnalysisFormYesNoAnswer.YES),
-      accessDataArt9Gdpr = Some(RiskAnalysisFormYesNoAnswer.NO),
-      accessUnderageData = Some(RiskAnalysisFormYesNoAnswer.NO),
-      knowsDataQuantity = Some(RiskAnalysisFormYesNoAnswer.NO),
-      dataQuantity = None,
-      deliveryMethod = Some(FormDeliveryMethodAnswers.ANONYMOUS),
-      doneDpia = Some(RiskAnalysisFormYesNoAnswer.NO),
-      definedDataRetentionPeriod = Some(RiskAnalysisFormYesNoAnswer.NO),
-      purposePursuit = Some(FormPurposePursuitAnswers.MERE_CORRECTNESS),
-      checkedExistenceMereCorrectnessInteropCatalogue = Some(Seq(RiskAnalysisFormYesAnswer.YES)),
-      checkedAllDataNeeded = None,
-      checkedExistenceMinimalDataInteropCatalogue = None
+    answers = Map(
+      "purpose"                                         -> List("purpose"),
+      "usesPersonalData"                                -> List("YES"),
+      "usesThirdPartyPersonalData"                      -> Nil,
+      "usesConfidentialData"                            -> Nil,
+      "securedDataAccess"                               -> Nil,
+      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
+      "legalObligationReference"                        -> List("somethingLegal"),
+      "publicInterestReference"                         -> List("somethingPublic"),
+      "knowsAccessedDataCategories"                     -> List("YES"),
+      "accessDataArt9Gdpr"                              -> List("NO"),
+      "accessUnderageData"                              -> List("NO"),
+      "knowsDataQuantity"                               -> List("NO"),
+      "dataQuantity"                                    -> Nil,
+      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "doneDpia"                                        -> List("NO"),
+      "definedDataRetentionPeriod"                      -> List("NO"),
+      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
+      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("YES"),
+      "checkedAllDataNeeded"                            -> Nil,
+      "checkedExistenceMinimalDataInteropCatalogue"     -> Nil
     )
   )
 

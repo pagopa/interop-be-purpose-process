@@ -135,10 +135,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
 
-      val incorrectRiskAnalysis = RiskAnalysisForm(
-        version = "1.0",
-        answers = RiskAnalysisFormAnswers(purpose = "purpose", usesPersonalData = RiskAnalysisFormYesNoAnswer.YES)
-      )
+      val incorrectRiskAnalysis =
+        RiskAnalysisForm(
+          version = "1.0",
+          answers = Map("purpose" -> List("purpose"), "usesPersonalData" -> List("YES"))
+        )
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
