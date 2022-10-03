@@ -202,12 +202,11 @@ object RiskAnalysisValidation {
 
   def jsArrayIsSubset(fieldName: String, arr: JsArray, values: Set[String]): ValidationResult[Unit] =
     arr.elements
-      .map {
+      .traverse {
         case v: JsString if values.contains(v.value) => ().validNec
         case _                                       => UnexpectedFieldValue(fieldName, values.some).invalidNec
       }
-      .sequence
-      .map(_ => ())
+      .as(())
 
   def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
     DependencyEntry(fieldName = dependency.id, fieldValue = dependency.value)
