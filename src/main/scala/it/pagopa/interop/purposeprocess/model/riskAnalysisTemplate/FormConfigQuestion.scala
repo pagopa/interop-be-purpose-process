@@ -8,7 +8,7 @@ sealed trait FormConfigQuestion {
   def id: String
   def pdfLabel: LocalizedText
   def pdfInfoLabel: Option[LocalizedText]
-  def dataType: String
+  def dataType: DataType
   def required: Boolean
   def dependencies: List[Dependency]
 }
@@ -37,7 +37,7 @@ final case class FreeInputQuestion(
   id: String,
   pdfLabel: LocalizedText,
   pdfInfoLabel: Option[LocalizedText],
-  dataType: String,
+  dataType: DataType,
   required: Boolean,
   dependencies: List[Dependency]
 ) extends FormConfigQuestion
@@ -50,7 +50,7 @@ final case class SingleQuestion(
   id: String,
   pdfLabel: LocalizedText,
   pdfInfoLabel: Option[LocalizedText],
-  dataType: String,
+  dataType: DataType,
   options: List[LabeledValue],
   required: Boolean,
   dependencies: List[Dependency]
@@ -64,7 +64,7 @@ final case class MultiQuestion(
   id: String,
   pdfLabel: LocalizedText,
   pdfInfoLabel: Option[LocalizedText],
-  dataType: String,
+  dataType: DataType,
   options: List[LabeledValue],
   required: Boolean,
   dependencies: List[Dependency]

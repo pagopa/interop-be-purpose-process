@@ -33,7 +33,6 @@ object RiskAnalysisValidation {
         )
 
     validationRules.andThen(validateFormWithRules(_, sanitizedForm))
-
   }
 
   def validateFormWithRules(
@@ -118,8 +117,8 @@ object RiskAnalysisValidation {
     fieldName: String,
     value: JsValue
   ): Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]] =
-    value match {
-      case arr: JsArray if rule.dataType == "single" || rule.dataType == "freeText" =>
+    (value, rule.dataType) match {
+      case (arr: JsArray, Single | FreeText) =>
         val value: ValidationResult[String] = {
           arr.elements.headOption match {
             case Some(str: JsString) => str.value.validNec
@@ -127,7 +126,7 @@ object RiskAnalysisValidation {
           }
         }
         Left(value.map(v => SingleAnswerSeed(fieldName, v.some)))
-      case arr: JsArray if rule.dataType == "multi"                                 =>
+      case (arr: JsArray, Multi)             =>
         val values: Seq[ValidationResult[String]] = {
           arr.elements.map {
             case str: JsString => str.value.validNec
@@ -135,7 +134,7 @@ object RiskAnalysisValidation {
           }
         }
         Right(values.sequence.map(MultiAnswerSeed(fieldName, _)))
-      case _                                                                        =>
+      case _                                 =>
         Left(UnexpectedFieldFormat(fieldName).invalidNec)
     }
 
@@ -248,7 +247,7 @@ object RiskAnalysisValidation {
 final case class DependencyEntry(fieldName: String, fieldValue: String)
 final case class ValidationEntry(
   fieldName: String,
-  dataType: String, // TODO Enum?
+  dataType: DataType,
   required: Boolean,
   dependencies: Seq[DependencyEntry],
   allowedValues: Option[Set[String]]
