@@ -9,6 +9,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
 }
 import it.pagopa.interop.purposeprocess.error._
 import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisRules.{DependencyEntry, ValidationEntry}
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import spray.json._
@@ -151,7 +152,7 @@ object RiskAnalysisValidation {
     validationRules.find(_.fieldName == fieldName) match {
       case Some(rule) =>
         validateAllowedValue(rule, value)
-          .andThen(_ => rule.dependencies.map(validateDependency(answersJson, rule.fieldName)).sequence)
+          .andThen(_ => rule.dependencies.traverse(validateDependency(answersJson, rule.fieldName)))
           .as(rule)
       case None       =>
         UnexpectedField(fieldName).invalidNec
@@ -243,12 +244,3 @@ object RiskAnalysisValidation {
     config.questions.map(questionToValidationEntry)
 
 }
-
-final case class DependencyEntry(fieldName: String, fieldValue: String)
-final case class ValidationEntry(
-  fieldName: String,
-  dataType: DataType,
-  required: Boolean,
-  dependencies: Seq[DependencyEntry],
-  allowedValues: Option[Set[String]]
-)
