@@ -584,14 +584,13 @@ final case class PurposeApiServiceImpl(
   def enhancePurpose(depPurpose: PurposeManagementDependency.Purpose, userType: PurposeManagementDependency.ChangedBy)(
     implicit contexts: Seq[(String, String)]
   ): Future[Purpose] = {
-    def clientsByUserType(): Future[Seq[Client]] =
+    def clientsByUserType(): Future[List[Client]] =
       userType match {
-        case PurposeManagementDependency.ChangedBy.PRODUCER => Future.successful(Seq.empty[Client])
+        case PurposeManagementDependency.ChangedBy.PRODUCER => List.empty[Client].pure[Future]
         case PurposeManagementDependency.ChangedBy.CONSUMER =>
-          for {
-            depClients <- authorizationManagementService.getClients(purposeId = Some(depPurpose.id))
-            clients = depClients.map(ClientConverter.dependencyToApi)
-          } yield clients
+          authorizationManagementService
+            .getClients(purposeId = depPurpose.id.some)
+            .map(_.toList.map(ClientConverter.dependencyToApi))
       }
 
     for {
