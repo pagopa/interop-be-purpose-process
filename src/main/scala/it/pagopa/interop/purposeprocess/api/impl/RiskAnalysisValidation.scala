@@ -3,16 +3,18 @@ package it.pagopa.interop.purposeprocess.api.impl
 import cats.data._
 import cats.implicits._
 import it.pagopa.interop.purposemanagement.client.model.{
-  RiskAnalysisFormSeed => RiskAnalysisFormSeed,
+  RiskAnalysisFormSeed,
   RiskAnalysisMultiAnswerSeed => MultiAnswerSeed,
   RiskAnalysisSingleAnswerSeed => SingleAnswerSeed
 }
 import it.pagopa.interop.purposeprocess.error._
 import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposeprocess.model.riskAnalysisRules.{DependencyEntry, ValidationEntry}
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import spray.json._
 
 object RiskAnalysisValidation {
-  import ValidationRules._
 
   type ValidationResult[A] = ValidatedNec[RiskAnalysisValidationError, A]
 
@@ -21,9 +23,25 @@ object RiskAnalysisValidation {
     * @return Validated risk analysis
     */
   def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
-    val answersJson: JsObject = form.answers.toJson.asJsObject
 
-    val validations = validateForm(answersJson, validationRules)
+    val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
+
+    val validationRules: ValidationResult[List[ValidationEntry]] =
+      RiskAnalysisService.riskAnalysisForms
+        .get(sanitizedForm.version)
+        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(sanitizedForm.version).invalidNec)(
+          configsToRules(_).validNec
+        )
+
+    validationRules.andThen(validateFormWithRules(_, sanitizedForm))
+  }
+
+  def validateFormWithRules(
+    validationRules: List[ValidationEntry],
+    form: RiskAnalysisForm
+  ): ValidationResult[RiskAnalysisFormSeed] = {
+    val answersJson: JsObject = form.answers.toJson.asJsObject
+    val validations           = validateForm(answersJson, validationRules)
 
     val singleAnswers: ValidationResult[Seq[SingleAnswerSeed]] = validations.collect { case Left(s) => s }.sequence
     val multiAnswers: ValidationResult[Seq[MultiAnswerSeed]]   = validations.collect { case Right(m) => m }.sequence
@@ -83,9 +101,9 @@ object RiskAnalysisValidation {
     validationRules: List[ValidationEntry]
   ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
     answersJson.fields.map { case (key, value) =>
-      validateField(answersJson, validationRules)(key).fold(
+      validateField(answersJson, validationRules)(key, value).fold(
         err => Left[ValidationResult[SingleAnswerSeed], Nothing](err.invalid),
-        _ => answerToDependency(key, value)
+        rule => answerToDependency(rule, key, value)
       )
     }.toSeq
   }
@@ -96,13 +114,20 @@ object RiskAnalysisValidation {
     * @return Either for the validation of the SingleAnswer (Left) or MultiAnswer (Right)
     */
   def answerToDependency(
+    rule: ValidationEntry,
     fieldName: String,
     value: JsValue
   ): Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]] =
-    value match {
-      case str: JsString =>
-        Left(SingleAnswerSeed(fieldName, Some(str.value)).validNec[RiskAnalysisValidationError])
-      case arr: JsArray  =>
+    (value, rule.dataType) match {
+      case (arr: JsArray, Single | FreeText) =>
+        val value: ValidationResult[String] = {
+          arr.elements.headOption match {
+            case Some(str: JsString) => str.value.validNec
+            case _                   => UnexpectedFieldFormat(fieldName).invalidNec
+          }
+        }
+        Left(value.map(v => SingleAnswerSeed(fieldName, v.some)))
+      case (arr: JsArray, Multi)             =>
         val values: Seq[ValidationResult[String]] = {
           arr.elements.map {
             case str: JsString => str.value.validNec
@@ -110,7 +135,7 @@ object RiskAnalysisValidation {
           }
         }
         Right(values.sequence.map(MultiAnswerSeed(fieldName, _)))
-      case _             =>
+      case _                                 =>
         Left(UnexpectedFieldFormat(fieldName).invalidNec)
     }
 
@@ -120,12 +145,15 @@ object RiskAnalysisValidation {
     * @param fieldName field name
     * @return
     */
-  def validateField(answersJson: JsObject, validationRules: List[ValidationEntry])(
-    fieldName: String
-  ): ValidationResult[Seq[Unit]] =
+  def validateField(
+    answersJson: JsObject,
+    validationRules: List[ValidationEntry]
+  )(fieldName: String, value: JsValue): ValidationResult[ValidationEntry] =
     validationRules.find(_.fieldName == fieldName) match {
       case Some(rule) =>
-        rule.dependencies.map(validateDependency(answersJson: JsObject, rule.fieldName)).sequence
+        validateAllowedValue(rule, value)
+          .andThen(_ => rule.dependencies.traverse(validateDependency(answersJson, rule.fieldName)))
+          .as(rule)
       case None       =>
         UnexpectedField(fieldName).invalidNec
     }
@@ -148,9 +176,20 @@ object RiskAnalysisValidation {
           case arr: JsArray if jsArrayContains(arr, dependency.fieldValue) =>
             ().validNec
           case _                                                           =>
-            UnexpectedFieldValue(dependency.fieldName, dependentField, dependency.fieldValue).invalidNec
+            UnexpectedFieldValueByDependency(dependency.fieldName, dependentField, dependency.fieldValue).invalidNec
         }
       case _        => TooManyOccurrences(dependency.fieldName).invalidNec
+    }
+
+  def validateAllowedValue(rule: ValidationEntry, value: JsValue): ValidationResult[Unit] =
+    value match {
+      case str: JsString =>
+        if (rule.allowedValues.forall(_.contains(str.value))) ().validNec
+        else UnexpectedFieldValue(rule.fieldName, rule.allowedValues).invalidNec
+      case arr: JsArray  =>
+        rule.allowedValues.fold[ValidationResult[Unit]](().validNec)(jsArrayIsSubset(rule.fieldName, arr, _))
+      case _             =>
+        UnexpectedFieldValue(rule.fieldName, rule.allowedValues).invalidNec
     }
 
   /** Check if a JsArray contains a specific String (JsString)
@@ -161,105 +200,44 @@ object RiskAnalysisValidation {
   def jsArrayContains(arr: JsArray, value: String): Boolean =
     arr.elements.collectFirst { case v: JsString if v.value == value => () }.nonEmpty
 
-}
+  def jsArrayIsSubset(fieldName: String, arr: JsArray, values: Set[String]): ValidationResult[Unit] =
+    arr.elements.traverse {
+      case v: JsString if values.contains(v.value) => ().validNec
+      case _                                       => UnexpectedFieldValue(fieldName, values.some).invalidNec
+    }.void
 
-object ValidationRules {
+  def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
+    DependencyEntry(fieldName = dependency.id, fieldValue = dependency.value)
 
-  final case class DependencyEntry(fieldName: String, fieldValue: String)
-  final case class ValidationEntry(fieldName: String, required: Boolean, dependencies: Seq[DependencyEntry])
+  def questionToValidationEntry(question: FormConfigQuestion): ValidationEntry =
+    question match {
+      case c: FreeInputQuestion =>
+        ValidationEntry(
+          fieldName = c.id,
+          dataType = c.dataType,
+          required = c.required,
+          dependencies = c.dependencies.map(dependencyConfigToRule),
+          allowedValues = None
+        )
+      case c: SingleQuestion    =>
+        ValidationEntry(
+          fieldName = c.id,
+          dataType = c.dataType,
+          required = c.required,
+          dependencies = c.dependencies.map(dependencyConfigToRule),
+          allowedValues = c.options.map(_.value).toSet.some
+        )
+      case c: MultiQuestion     =>
+        ValidationEntry(
+          fieldName = c.id,
+          dataType = c.dataType,
+          required = c.required,
+          dependencies = c.dependencies.map(dependencyConfigToRule),
+          allowedValues = c.options.map(_.value).toSet.some
+        )
+    }
 
-  val YES: String = RiskAnalysisFormYesNoAnswer.YES.toString
-  val NO: String  = RiskAnalysisFormYesNoAnswer.NO.toString
+  def configsToRules(config: RiskAnalysisFormConfig): List[ValidationEntry] =
+    config.questions.map(questionToValidationEntry)
 
-  // Fields names
-  val PURPOSE: String                                              = "purpose"
-  val ACCESS_DATA_ART9_GDPR: String                                = "accessDataArt9Gdpr"
-  val ACCESS_UNDERAGE_DATA: String                                 = "accessUnderageData"
-  val CHECKED_ALL_DATA_NEEDED: String                              = "checkedAllDataNeeded"
-  val CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE: String = "checkedExistenceMereCorrectnessInteropCatalogue"
-  val CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE: String     = "checkedExistenceMinimalDataInteropCatalogue"
-  val DATA_QUANTITY: String                                        = "dataQuantity"
-  val DEFINED_DATA_RETENTION_PERIOD: String                        = "definedDataRetentionPeriod"
-  val DELIVERY_METHOD: String                                      = "deliveryMethod"
-  val DONE_DPIA: String                                            = "doneDpia"
-  val KNOWS_ACCESSED_DATA_CATEGORIES: String                       = "knowsAccessedDataCategories"
-  val KNOWS_DATA_QUANTITY: String                                  = "knowsDataQuantity"
-  val LEGAL_BASIS: String                                          = "legalBasis"
-  val LEGAL_OBLIGATION_REFERENCE: String                           = "legalObligationReference"
-  val PUBLIC_INTEREST_REFERENCE: String                            = "publicInterestReference"
-  val PURPOSE_PURSUIT: String                                      = "purposePursuit"
-  val SECURED_DATA_ACCESS: String                                  = "securedDataAccess"
-  val USES_CONFIDENTIAL_DATA: String                               = "usesConfidentialData"
-  val USES_PERSONAL_DATA: String                                   = "usesPersonalData"
-  val USES_THIRD_PARTY_PERSONAL_DATA: String                       = "usesThirdPartyPersonalData"
-  // End Fields names
-
-  val validationRules: List[ValidationEntry] = List(
-    ValidationEntry(PURPOSE, required = true, Seq.empty),
-    ValidationEntry(USES_PERSONAL_DATA, required = true, Seq.empty),
-    ValidationEntry(USES_THIRD_PARTY_PERSONAL_DATA, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, NO))),
-    ValidationEntry(
-      USES_CONFIDENTIAL_DATA,
-      required = true,
-      Seq(DependencyEntry(USES_PERSONAL_DATA, NO), DependencyEntry(USES_THIRD_PARTY_PERSONAL_DATA, YES))
-    ),
-    ValidationEntry(SECURED_DATA_ACCESS, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, NO))),
-    ValidationEntry(LEGAL_BASIS, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(
-      LEGAL_OBLIGATION_REFERENCE,
-      required = true,
-      Seq(DependencyEntry(LEGAL_BASIS, FormLegalBasisAnswers.LEGAL_OBLIGATION.toString))
-    ),
-    ValidationEntry(
-      PUBLIC_INTEREST_REFERENCE,
-      required = true,
-      Seq(DependencyEntry(LEGAL_BASIS, FormLegalBasisAnswers.PUBLIC_INTEREST.toString))
-    ),
-    ValidationEntry(KNOWS_ACCESSED_DATA_CATEGORIES, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(
-      ACCESS_DATA_ART9_GDPR,
-      required = true,
-      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES))
-    ),
-    ValidationEntry(
-      ACCESS_UNDERAGE_DATA,
-      required = true,
-      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_ACCESSED_DATA_CATEGORIES, YES))
-    ),
-    ValidationEntry(KNOWS_DATA_QUANTITY, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(
-      DATA_QUANTITY,
-      required = true,
-      Seq(DependencyEntry(USES_PERSONAL_DATA, YES), DependencyEntry(KNOWS_DATA_QUANTITY, YES))
-    ),
-    ValidationEntry(DELIVERY_METHOD, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(DONE_DPIA, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(DEFINED_DATA_RETENTION_PERIOD, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(PURPOSE_PURSUIT, required = true, Seq(DependencyEntry(USES_PERSONAL_DATA, YES))),
-    ValidationEntry(
-      CHECKED_EXISTENCE_MERE_CORRECTNESS_INTEROP_CATALOGUE,
-      required = true,
-      Seq(
-        DependencyEntry(USES_PERSONAL_DATA, YES),
-        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.MERE_CORRECTNESS.toString)
-      )
-    ),
-    ValidationEntry(
-      CHECKED_ALL_DATA_NEEDED,
-      required = true,
-      Seq(
-        DependencyEntry(USES_PERSONAL_DATA, YES),
-        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString)
-      )
-    ),
-    ValidationEntry(
-      CHECKED_EXISTENCE_MINIMAL_DATA_INTEROP_CATALOGUE,
-      required = true,
-      Seq(
-        DependencyEntry(USES_PERSONAL_DATA, YES),
-        DependencyEntry(PURPOSE_PURSUIT, FormPurposePursuitAnswers.NEW_PERSONAL_DATA.toString),
-        DependencyEntry(CHECKED_ALL_DATA_NEEDED, NO)
-      )
-    )
-  )
 }

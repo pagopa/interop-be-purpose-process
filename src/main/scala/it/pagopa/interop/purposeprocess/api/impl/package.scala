@@ -24,19 +24,17 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def eServiceFormat: RootJsonFormat[EService]             = jsonFormat4(EService)
   implicit def agreementFormat: RootJsonFormat[Agreement]           = jsonFormat2(Agreement)
 
-  implicit def riskAnalysisFormAnswersFormat: RootJsonFormat[RiskAnalysisFormAnswers] =
-    jsonFormat20(RiskAnalysisFormAnswers)
-  implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm]               = jsonFormat2(RiskAnalysisForm)
-  implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument]   =
+  implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm]             = jsonFormat2(RiskAnalysisForm)
+  implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
     jsonFormat3(PurposeVersionDocument)
-  implicit def purposeFormat: RootJsonFormat[Purpose]                                 = jsonFormat13(Purpose)
-  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]                   = jsonFormat8(PurposeVersion)
-  implicit def purposesFormat: RootJsonFormat[Purposes]                               = jsonFormat1(Purposes)
-  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                         = jsonFormat5(PurposeSeed)
-  implicit def purposeUpdateContentFormat: RootJsonFormat[PurposeUpdateContent] = jsonFormat3(PurposeUpdateContent)
-  implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed]     = jsonFormat1(PurposeVersionSeed)
-  implicit def problemErrorFormat: RootJsonFormat[ProblemError]                 = jsonFormat2(ProblemError)
-  implicit def problemFormat: RootJsonFormat[Problem]                           = jsonFormat5(Problem)
+  implicit def purposeFormat: RootJsonFormat[Purpose]                               = jsonFormat13(Purpose)
+  implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]                 = jsonFormat8(PurposeVersion)
+  implicit def purposesFormat: RootJsonFormat[Purposes]                             = jsonFormat1(Purposes)
+  implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                       = jsonFormat5(PurposeSeed)
+  implicit def purposeUpdateContentFormat: RootJsonFormat[PurposeUpdateContent]     = jsonFormat3(PurposeUpdateContent)
+  implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed]         = jsonFormat1(PurposeVersionSeed)
+  implicit def problemErrorFormat: RootJsonFormat[ProblemError]                     = jsonFormat2(ProblemError)
+  implicit def problemFormat: RootJsonFormat[Problem]                               = jsonFormat5(Problem)
   implicit def waitingForApprovalPurposeVersionUpdateFormat
     : RootJsonFormat[WaitingForApprovalPurposeVersionUpdateContent] = jsonFormat1(
     WaitingForApprovalPurposeVersionUpdateContent

@@ -16,4 +16,7 @@ object RiskAnalysisTemplateErrors {
   final case class QuestionNotFoundInConfig(questionId: String, configVersion: String)
       extends Throwable(s"Question $questionId not found in configuration with version $configVersion")
 
+  final case class UnexpectedQuestionType(questionType: String)
+      extends Throwable(s"Unexpected question type in template: $questionType")
+
 }

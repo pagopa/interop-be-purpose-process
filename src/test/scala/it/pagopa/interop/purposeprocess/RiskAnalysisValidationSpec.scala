@@ -1,9 +1,10 @@
 package it.pagopa.interop.purposeprocess
 
 import cats.data.NonEmptyChain
+import cats.implicits.catsSyntaxOptionId
 import cats.kernel.Eq
 import it.pagopa.interop.purposemanagement.client.model.{
-  RiskAnalysisFormSeed => RiskAnalysisFormSeed,
+  RiskAnalysisFormSeed,
   RiskAnalysisMultiAnswerSeed => MultiAnswerSeed,
   RiskAnalysisSingleAnswerSeed => SingleAnswerSeed
 }
@@ -19,16 +20,16 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   implicit val eqError: Eq[RiskAnalysisValidationError] = Eq.fromUniversalEquals
 
   "Risk Analysis Validation" should {
-    "succeed on correct form" in {
-      val riskAnalysis = SpecData.validRiskAnalysis
+    "succeed on correct form 1.0" in {
+      val riskAnalysis = SpecData.validRiskAnalysis1_0
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswerSeed("purpose", Some(riskAnalysis.answers.purpose)),
+          SingleAnswerSeed("purpose", "MyPurpose".some),
           SingleAnswerSeed("usesPersonalData", Some("YES")),
-          SingleAnswerSeed("legalObligationReference", riskAnalysis.answers.legalObligationReference),
-          SingleAnswerSeed("publicInterestReference", riskAnalysis.answers.publicInterestReference),
+          SingleAnswerSeed("legalObligationReference", "somethingLegal".some),
+          SingleAnswerSeed("publicInterestReference", "somethingPublic".some),
           SingleAnswerSeed("knowsAccessedDataCategories", Some("YES")),
           SingleAnswerSeed("accessDataArt9Gdpr", Some("NO")),
           SingleAnswerSeed("accessUnderageData", Some("NO")),
@@ -50,14 +51,50 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
+    "succeed on correct form 2.0" in {
+      val riskAnalysis = SpecData.validRiskAnalysis2_0
+
+      val expected = RiskAnalysisFormSeed(
+        version = riskAnalysis.version,
+        singleAnswers = Seq(
+          SingleAnswerSeed("purpose", "INSTITUTIONAL".some),
+          SingleAnswerSeed("institutionalPurpose", "MyPurpose".some),
+          SingleAnswerSeed("otherPersonalDataTypes", "MyDataTypes".some),
+          SingleAnswerSeed("legalObligationReference", "somethingLegal".some),
+          SingleAnswerSeed("legalBasisPublicInterest", "RULE_OF_LAW".some),
+          SingleAnswerSeed("ruleOfLawText", "TheLaw".some),
+          SingleAnswerSeed("knowsDataQuantity", "NO".some),
+          SingleAnswerSeed("deliveryMethod", "ANONYMOUS".some),
+          SingleAnswerSeed("policyProvided", "NO".some),
+          SingleAnswerSeed("confirmPricipleIntegrityAndDiscretion", "true".some),
+          SingleAnswerSeed("reasonPolicyNotProvided", "Because".some),
+          SingleAnswerSeed("doneDpia", "NO".some),
+          SingleAnswerSeed("dataRetentionPeriod", "true".some),
+          SingleAnswerSeed("purposePursuit", "MERE_CORRECTNESS".some),
+          SingleAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", "true".some),
+          SingleAnswerSeed("usesThirdPartyData", "NO".some),
+          SingleAnswerSeed("declarationConfirmGDPR", "true".some)
+        ),
+        multiAnswers = Seq(
+          MultiAnswerSeed("personalDataTypes", Seq("OTHER")),
+          MultiAnswerSeed("legalBasis", Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST"))
+        )
+      )
+
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+
+      verifyValidationFormResult(result, expected)
+
+    }
+
     "fail if a provided answer depends on a missing field" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
-          usesThirdPartyPersonalData = None,
-          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("YES"),
+          "usesThirdPartyPersonalData" -> Nil,
+          "usesConfidentialData"       -> List("YES")
         )
       )
 
@@ -72,11 +109,11 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     "fail if a provided answer depends on an existing field with an unexpected value" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
-          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.NO),
-          usesConfidentialData = Some(RiskAnalysisFormYesNoAnswer.YES)
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("NO"),
+          "usesThirdPartyPersonalData" -> List("NO"),
+          "usesConfidentialData"       -> List("YES")
         )
       )
 
@@ -84,19 +121,21 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
       verifyValidationFailure(
         result,
-        _.contains(UnexpectedFieldValue("usesThirdPartyPersonalData", "usesConfidentialData", "YES")) shouldBe true
+        _.contains(
+          UnexpectedFieldValueByDependency("usesThirdPartyPersonalData", "usesConfidentialData", "YES")
+        ) shouldBe true
       )
     }
 
     "fail on missing expected answer (answer tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
-        answers = RiskAnalysisFormAnswers(
-          purpose = "purpose",
-          usesPersonalData = RiskAnalysisFormYesNoAnswer.NO,
-          usesThirdPartyPersonalData = Some(RiskAnalysisFormYesNoAnswer.YES),
-          usesConfidentialData = None,
-          securedDataAccess = None
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("NO"),
+          "usesThirdPartyPersonalData" -> List("YES"),
+          "usesConfidentialData"       -> Nil,
+          "securedDataAccess"          -> Nil
         )
       )
 

@@ -71,34 +71,60 @@ object SpecData {
       )
     )
 
-  val validRiskAnalysis: RiskAnalysisForm = RiskAnalysisForm(
+  val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
-    answers = RiskAnalysisFormAnswers(
-      purpose = "purpose",
-      usesPersonalData = RiskAnalysisFormYesNoAnswer.YES,
-      usesThirdPartyPersonalData = None,
-      usesConfidentialData = None,
-      securedDataAccess = None,
-      legalBasis = Some(Seq(FormLegalBasisAnswers.LEGAL_OBLIGATION, FormLegalBasisAnswers.PUBLIC_INTEREST)),
-      legalObligationReference = Some("something"),
-      publicInterestReference = Some("something"),
-      knowsAccessedDataCategories = Some(RiskAnalysisFormYesNoAnswer.YES),
-      accessDataArt9Gdpr = Some(RiskAnalysisFormYesNoAnswer.NO),
-      accessUnderageData = Some(RiskAnalysisFormYesNoAnswer.NO),
-      knowsDataQuantity = Some(RiskAnalysisFormYesNoAnswer.NO),
-      dataQuantity = None,
-      deliveryMethod = Some(FormDeliveryMethodAnswers.ANONYMOUS),
-      doneDpia = Some(RiskAnalysisFormYesNoAnswer.NO),
-      definedDataRetentionPeriod = Some(RiskAnalysisFormYesNoAnswer.NO),
-      purposePursuit = Some(FormPurposePursuitAnswers.MERE_CORRECTNESS),
-      checkedExistenceMereCorrectnessInteropCatalogue = Some(Seq(RiskAnalysisFormYesAnswer.YES)),
-      checkedAllDataNeeded = None,
-      checkedExistenceMinimalDataInteropCatalogue = None
+    answers = Map(
+      "purpose"                                         -> List("MyPurpose"),
+      "usesPersonalData"                                -> List("YES"),
+      "usesThirdPartyPersonalData"                      -> Nil,
+      "usesConfidentialData"                            -> Nil,
+      "securedDataAccess"                               -> Nil,
+      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
+      "legalObligationReference"                        -> List("somethingLegal"),
+      "publicInterestReference"                         -> List("somethingPublic"),
+      "knowsAccessedDataCategories"                     -> List("YES"),
+      "accessDataArt9Gdpr"                              -> List("NO"),
+      "accessUnderageData"                              -> List("NO"),
+      "knowsDataQuantity"                               -> List("NO"),
+      "dataQuantity"                                    -> Nil,
+      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "doneDpia"                                        -> List("NO"),
+      "definedDataRetentionPeriod"                      -> List("NO"),
+      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
+      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("YES"),
+      "checkedAllDataNeeded"                            -> Nil,
+      "checkedExistenceMinimalDataInteropCatalogue"     -> Nil
+    )
+  )
+
+  val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "2.0",
+    answers = Map(
+      "purpose"                                         -> List("INSTITUTIONAL"),
+      "institutionalPurpose"                            -> List("MyPurpose"),
+      "personalDataTypes"                               -> List("OTHER"),
+      "otherPersonalDataTypes"                          -> List("MyDataTypes"),
+      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
+      "legalObligationReference"                        -> List("somethingLegal"),
+      "legalBasisPublicInterest"                        -> List("RULE_OF_LAW"),
+      "ruleOfLawText"                                   -> List("TheLaw"),
+      "knowsDataQuantity"                               -> List("NO"),
+      "dataQuantity"                                    -> Nil,
+      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "policyProvided"                                  -> List("NO"),
+      "confirmPricipleIntegrityAndDiscretion"           -> List("true"),
+      "reasonPolicyNotProvided"                         -> List("Because"),
+      "doneDpia"                                        -> List("NO"),
+      "dataRetentionPeriod"                             -> List("true"),
+      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
+      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("true"),
+      "usesThirdPartyData"                              -> List("NO"),
+      "declarationConfirmGDPR"                          -> List("true")
     )
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(

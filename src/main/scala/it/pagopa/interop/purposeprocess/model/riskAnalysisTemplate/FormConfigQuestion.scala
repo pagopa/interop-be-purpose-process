@@ -1,66 +1,75 @@
 package it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors.UnexpectedQuestionType
 import spray.json._
 
 sealed trait FormConfigQuestion {
   def id: String
-  def label: LocalizedText
-  def infoLabel: Option[LocalizedText]
-  def `type`: String
+  def pdfLabel: LocalizedText
+  def pdfInfoLabel: Option[LocalizedText]
+  def dataType: DataType
+  def required: Boolean
+  def dependencies: List[Dependency]
 }
-
-sealed trait SingleAnswerQuestionConfig extends FormConfigQuestion
-sealed trait MultiAnswerQuestionConfig  extends FormConfigQuestion
 
 object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
   implicit object FormConfigQuestionJsonFormat extends RootJsonFormat[FormConfigQuestion] {
     def write(a: FormConfigQuestion): JsValue = a match {
       case q: FreeInputQuestion => q.toJson
-      case q: CheckboxQuestion  => q.toJson
-      case q: RadioQuestion     => q.toJson
+      case q: SingleQuestion    => q.toJson
+      case q: MultiQuestion     => q.toJson
     }
 
     def read(value: JsValue): FormConfigQuestion =
-      value.asJsObject.fields("type") match {
-        case JsString("text")       => value.convertTo[FreeInputQuestion]
-        case JsString("checkbox")   => value.convertTo[CheckboxQuestion]
-        case JsString("radio")      => value.convertTo[RadioQuestion]
-        case JsString("select-one") => value.convertTo[RadioQuestion] // This has the same behaviour of radio
-        case v                      => throw new RuntimeException(s"Failed to decode $v")
+      value.asJsObject.fields("dataType") match {
+        case JsString("freeText") => value.convertTo[FreeInputQuestion]
+        case JsString("multi")    => value.convertTo[MultiQuestion]
+        case JsString("single")   => value.convertTo[SingleQuestion]
+        case other                => throw UnexpectedQuestionType(other.compactPrint)
       }
   }
 
   implicit val format: RootJsonFormat[FormConfigQuestion] = FormConfigQuestionJsonFormat
 }
 
-final case class FreeInputQuestion(id: String, label: LocalizedText, infoLabel: Option[LocalizedText], `type`: String)
-    extends SingleAnswerQuestionConfig
+final case class FreeInputQuestion(
+  id: String,
+  pdfLabel: LocalizedText,
+  pdfInfoLabel: Option[LocalizedText],
+  dataType: DataType,
+  required: Boolean,
+  dependencies: List[Dependency]
+) extends FormConfigQuestion
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat4(FreeInputQuestion.apply)
+  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat6(FreeInputQuestion.apply)
 }
 
-final case class RadioQuestion(
+final case class SingleQuestion(
   id: String,
-  label: LocalizedText,
-  infoLabel: Option[LocalizedText],
-  `type`: String,
-  options: Seq[LabeledValue]
-) extends SingleAnswerQuestionConfig
+  pdfLabel: LocalizedText,
+  pdfInfoLabel: Option[LocalizedText],
+  dataType: DataType,
+  options: List[LabeledValue],
+  required: Boolean,
+  dependencies: List[Dependency]
+) extends FormConfigQuestion
 
-object RadioQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[RadioQuestion] = jsonFormat5(RadioQuestion.apply)
+object SingleQuestion extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat7(SingleQuestion.apply)
 }
 
-final case class CheckboxQuestion(
+final case class MultiQuestion(
   id: String,
-  label: LocalizedText,
-  infoLabel: Option[LocalizedText],
-  `type`: String,
-  options: Seq[LabeledValue]
-) extends MultiAnswerQuestionConfig
+  pdfLabel: LocalizedText,
+  pdfInfoLabel: Option[LocalizedText],
+  dataType: DataType,
+  options: List[LabeledValue],
+  required: Boolean,
+  dependencies: List[Dependency]
+) extends FormConfigQuestion
 
-object CheckboxQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[CheckboxQuestion] = jsonFormat5(CheckboxQuestion.apply)
+object MultiQuestion extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat7(MultiQuestion.apply)
 }
