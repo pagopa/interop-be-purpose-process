@@ -7,9 +7,12 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
-
+import cats.syntax.all._
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
+import it.pagopa.interop.tenantmanagement.client.model.Tenant
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.tenantmanagement.client.model.ExternalId
 
 object SpecData {
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
@@ -49,6 +52,16 @@ object SpecData {
     attributes = Seq.empty,
     zipCode = "00000",
     institutionType = "PUBLIC"
+  )
+
+  val tenant: Tenant = Tenant(
+    UUID.randomUUID(),
+    selfcareId = institution.id.toString.some,
+    externalId = ExternalId("foo", "bar"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = OffsetDateTimeSupplier.get(),
+    updatedAt = None
   )
 
   def relationships(from: UUID = UUID.randomUUID(), to: UUID = UUID.randomUUID()): PartyManagement.Relationships =

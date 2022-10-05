@@ -82,6 +82,7 @@ trait Dependencies {
         catalogManagement(blockingEc),
         partyManagement(),
         purposeManagement(blockingEc),
+        new TenantManagementServiceImpl(ApplicationConfiguration.tenantManagementURL, blockingEc),
         fileManager,
         pdfCreator,
         uuidSupplier,
@@ -100,9 +101,9 @@ trait Dependencies {
     ApplicationConfiguration.agreementManagementURL
   )
 
-  def agreementManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): AgreementManagementService =
+  def agreementManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): AgreementManagementService =
     AgreementManagementServiceImpl(agreementManagementInvoker(blockingEc), agreementManagementApi)
 
   private def authorizationManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
@@ -131,10 +132,9 @@ trait Dependencies {
     ApplicationConfiguration.catalogManagementURL
   )
 
-  def catalogManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): CatalogManagementService =
-    CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
+  def catalogManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): CatalogManagementService = CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
 
   private def partyManagementInvoker()(implicit actorSystem: ActorSystem[_]): PartyManagementInvoker =
     PartyManagementInvoker()(actorSystem.classicSystem)
@@ -153,9 +153,8 @@ trait Dependencies {
     ApplicationConfiguration.purposeManagementURL
   )
 
-  def purposeManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_], ec: ExecutionContext): PurposeManagementService =
-    PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)
+  def purposeManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): PurposeManagementService = PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)
 
 }
