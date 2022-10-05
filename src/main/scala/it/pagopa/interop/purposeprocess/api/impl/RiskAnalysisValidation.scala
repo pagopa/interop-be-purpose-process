@@ -201,12 +201,10 @@ object RiskAnalysisValidation {
     arr.elements.collectFirst { case v: JsString if v.value == value => () }.nonEmpty
 
   def jsArrayIsSubset(fieldName: String, arr: JsArray, values: Set[String]): ValidationResult[Unit] =
-    arr.elements
-      .traverse {
-        case v: JsString if values.contains(v.value) => ().validNec
-        case _                                       => UnexpectedFieldValue(fieldName, values.some).invalidNec
-      }
-      .as(())
+    arr.elements.traverse {
+      case v: JsString if values.contains(v.value) => ().validNec
+      case _                                       => UnexpectedFieldValue(fieldName, values.some).invalidNec
+    }.void
 
   def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
     DependencyEntry(fieldName = dependency.id, fieldValue = dependency.value)
