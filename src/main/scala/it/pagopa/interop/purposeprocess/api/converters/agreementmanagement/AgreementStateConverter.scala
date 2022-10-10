@@ -11,5 +11,6 @@ object AgreementStateConverter {
     case DependencyAgreementState.SUSPENDED                    => AgreementState.SUSPENDED
     case DependencyAgreementState.ARCHIVED                     => AgreementState.ARCHIVED
     case DependencyAgreementState.MISSING_CERTIFIED_ATTRIBUTES => AgreementState.MISSING_CERTIFIED_ATTRIBUTES
+    case DependencyAgreementState.REJECTED                     => AgreementState.REJECTED
   }
 }
