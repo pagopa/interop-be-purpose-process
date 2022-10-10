@@ -37,7 +37,8 @@ object SpecData {
     dailyCallsTotal = 100000,
     interface = None,
     docs = Seq.empty,
-    state = CatalogManagement.EServiceDescriptorState.PUBLISHED
+    state = CatalogManagement.EServiceDescriptorState.PUBLISHED,
+    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC
   )
 
   val institution: PartyManagement.Institution = PartyManagement.Institution(

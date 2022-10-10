@@ -583,6 +583,7 @@ components:
         - SUSPENDED
         - ARCHIVED
         - MISSING_CERTIFIED_ATTRIBUTES
+        - REJECTED
     Client:
       type: object
       properties:
