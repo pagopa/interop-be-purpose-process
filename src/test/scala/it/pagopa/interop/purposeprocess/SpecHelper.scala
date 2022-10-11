@@ -332,6 +332,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
     mockEServiceRetrieve(purpose.eserviceId, actualEService)
     mockOrganizationRetrieve(actualEService.producerId)
+    mockOrganizationRetrieve(purpose.consumerId)
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
   }
 

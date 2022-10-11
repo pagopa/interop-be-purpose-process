@@ -594,22 +594,33 @@ final case class PurposeApiServiceImpl(
       }
 
     for {
-      depAgreements <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId)
-      depAgreement  <- depAgreements
+      depAgreements      <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId)
+      depAgreement       <- depAgreements
         .sortBy(_.createdAt)
         .lastOption
         .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
-      depEService   <- catalogManagementService.getEServiceById(depPurpose.eserviceId)
-      selfcareId    <- tenantManagementService
+      depEService        <- catalogManagementService.getEServiceById(depPurpose.eserviceId)
+      producerSelfcareId <- tenantManagementService
         .getTenant(depEService.producerId)
         .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-      depProducer   <- partyManagementService.getInstitutionById(selfcareId)
+      consumerSelfcareId <- tenantManagementService
+        .getTenant(depPurpose.consumerId)
+        .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
+      depProducer        <- partyManagementService.getInstitutionById(producerSelfcareId)
+      depConsumer        <- partyManagementService.getInstitutionById(consumerSelfcareId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
       producer  = OrganizationConverter.dependencyToApi(depProducer)
+      consumer  = OrganizationConverter.dependencyToApi(depConsumer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
       clients  <- clientsByUserType()
     } yield PurposeConverter
-      .dependencyToApi(purpose = depPurpose, eService = eService, agreement = agreement, clients = clients)
+      .dependencyToApi(
+        purpose = depPurpose,
+        eService = eService,
+        agreement = agreement,
+        consumer = consumer,
+        clients = clients
+      )
   }
 
   def handleApiError(

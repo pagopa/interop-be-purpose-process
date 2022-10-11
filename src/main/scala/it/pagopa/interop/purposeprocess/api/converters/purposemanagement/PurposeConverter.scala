@@ -1,20 +1,21 @@
 package it.pagopa.interop.purposeprocess.api.converters.purposemanagement
 
 import it.pagopa.interop.purposemanagement.client.model.{Purpose => DependencyPurpose}
-import it.pagopa.interop.purposeprocess.model.{Agreement, Client, EService, Purpose}
+import it.pagopa.interop.purposeprocess.model.{Agreement, Client, EService, Organization, Purpose}
 
 object PurposeConverter {
   def dependencyToApi(
     purpose: DependencyPurpose,
     eService: EService,
     agreement: Agreement,
+    consumer: Organization,
     clients: Seq[Client]
   ): Purpose = Purpose(
     id = purpose.id,
     agreement = agreement,
     eservice = eService,
     clients = clients,
-    consumerId = purpose.consumerId,
+    consumer = consumer,
     versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
     suspendedByConsumer = purpose.suspendedByConsumer,
     suspendedByProducer = purpose.suspendedByProducer,

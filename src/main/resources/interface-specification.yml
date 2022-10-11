@@ -664,9 +664,8 @@ components:
           $ref: '#/components/schemas/Agreement'
         eservice:
           $ref: '#/components/schemas/EService'
-        consumerId:
-          type: string
-          format: uuid
+        consumer:
+          $ref: '#/components/schemas/Organization'
         clients:
           $ref: '#/components/schemas/Clients'
         versions:
@@ -694,7 +693,7 @@ components:
         - agreement
         - eservice
         - clients
-        - consumerId
+        - consumer
         - versions
         - title
         - description
