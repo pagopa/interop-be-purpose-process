@@ -8,6 +8,8 @@ import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagemen
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import cats.syntax.all._
+import it.pagopa.interop.agreementmanagement.client.model.Stamps
+
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import it.pagopa.interop.tenantmanagement.client.model.Tenant
@@ -201,7 +203,8 @@ object SpecData {
       consumerDocuments = List.empty,
       createdAt = timestamp,
       updatedAt = None,
-      consumerNotes = None
+      consumerNotes = None,
+      stamps = Stamps()
     )
 
   val client: AuthorizationManagement.Client =
