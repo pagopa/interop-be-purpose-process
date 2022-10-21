@@ -609,8 +609,8 @@ final case class PurposeApiServiceImpl(
       depProducer        <- partyManagementService.getInstitutionById(producerSelfcareId)
       depConsumer        <- partyManagementService.getInstitutionById(consumerSelfcareId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
-      producer  = OrganizationConverter.dependencyToApi(depProducer)
-      consumer  = OrganizationConverter.dependencyToApi(depConsumer)
+      producer  = OrganizationConverter.dependencyToApi(depEService.producerId, depProducer)
+      consumer  = OrganizationConverter.dependencyToApi(depPurpose.consumerId, depConsumer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
       clients  <- clientsByUserType()
     } yield PurposeConverter
