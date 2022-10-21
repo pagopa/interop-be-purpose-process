@@ -95,7 +95,7 @@ final case class PurposeApiServiceImpl(
       document     <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-      byteStream   <- fileManager.get(ApplicationConfiguration.storagePath)(document.path)
+      byteStream   <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
     } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray())
 
     val defaultProblem: Problem =
