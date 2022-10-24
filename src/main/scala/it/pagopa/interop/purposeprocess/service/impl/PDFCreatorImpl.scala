@@ -92,8 +92,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
   ): Try[String] =
     for {
       questionConfig <- getQuestionConfig(formConfig, answerKey)
-      questionLabel = getLocalizedLabel(questionConfig.pdfLabel, language)
-      infoLabel     = questionConfig.pdfInfoLabel.map(getLocalizedLabel(_, language))
+      questionLabel = getLocalizedLabel(questionConfig.label, language)
+      infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
       answerText <- getText(questionConfig, answer)
     } yield answerToHtml(questionLabel, infoLabel, answerText)
 
@@ -124,7 +124,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     labeledValue <- questionConfig.options
       .find(_.value == answerValue)
       .toTry(AnswerNotFoundInConfig(answer.key, questionConfig.id))
-  } yield getLocalizedLabel(labeledValue.pdfLabel, language)
+  } yield getLocalizedLabel(labeledValue.label, language)
 
   private[this] def getMultiAnswerTextFromConfig(
     questionConfig: MultiQuestion,
@@ -138,7 +138,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
             question.options
               .find(_.value == answerValue)
               .toTry(AnswerNotFoundInConfig(answer.key, question.id))
-              .map(labeledValue => getLocalizedLabel(labeledValue.pdfLabel, language))
+              .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
           )
           .map(_.mkString(", "))
     }

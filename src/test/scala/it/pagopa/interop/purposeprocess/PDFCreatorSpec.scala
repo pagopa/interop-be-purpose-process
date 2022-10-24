@@ -168,13 +168,13 @@ object PDFCreatorSpec {
 
         language match {
           case LanguageIt =>
-            answers should include(expectedQuestion.pdfLabel.it)
-            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.it))
-            checkAnswer(_.pdfLabel.it)
+            answers should include(expectedQuestion.label.it)
+            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.it))
+            checkAnswer(_.label.it)
           case LanguageEn =>
-            answers should include(expectedQuestion.pdfLabel.en)
-            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.en))
-            checkAnswer(_.pdfLabel.en)
+            answers should include(expectedQuestion.label.en)
+            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.en))
+            checkAnswer(_.label.en)
         }
 
       case Failure(exception) => fail(exception)
