@@ -140,10 +140,6 @@
         {
           "id": "usesPersonalData",
           "value": "YES"
-        },
-        {
-          "id": "knowsDataQuantity",
-          "value": "YES"
         }
       ]
     }
