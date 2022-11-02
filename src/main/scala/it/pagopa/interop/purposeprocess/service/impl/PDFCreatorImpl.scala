@@ -58,44 +58,46 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     language: Language
   ): Try[Map[String, String]] =
     for {
-      singleAnswers <- riskAnalysisForm.singleAnswers.traverse(formatSingleAnswer(formConfig, language))
-      multiAnswers  <- riskAnalysisForm.multiAnswers.traverse(formatMultiAnswer(formConfig, language))
+      answers <- sortedAnswers(formConfig, riskAnalysisForm, language)
     } yield Map(
       "dailyCalls"   -> dailyCalls.toString,
-      "answers"      ->
-        s"""
-           | ${singleAnswers.mkString("\n")}
-           | ${multiAnswers.mkString("\n")}
-        """.stripMargin,
+      "answers"      -> answers.mkString("\n"),
       "eServiceName" -> eServiceInfo.name,
       "producerName" -> eServiceInfo.producerName,
       "consumerName" -> eServiceInfo.consumerName,
       "date"         -> LocalDateTime.now().format(printedDateFormatter)
     )
 
-  private[this] def formatSingleAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
-    answer: RiskAnalysisSingleAnswer
-  ): Try[String] =
-    formatAnswer(formConfig, language, answer, answer.key, getSingleAnswerText(language))
+  def sortedAnswers(
+    formConfig: RiskAnalysisFormConfig,
+    riskAnalysisForm: RiskAnalysisForm,
+    language: Language
+  ): Try[List[String]] =
+    formConfig.questions
+      .flatMap(config =>
+        riskAnalysisForm.singleAnswers.find(_.key == config.id).map(formatSingleAnswer(config, language)) orElse
+          riskAnalysisForm.multiAnswers.find(_.key == config.id).map(formatMultiAnswer(config, language))
+      )
+      .sequence
 
-  private[this] def formatMultiAnswer(formConfig: RiskAnalysisFormConfig, language: Language)(
+  private[this] def formatSingleAnswer(formConfig: FormConfigQuestion, language: Language)(
+    answer: RiskAnalysisSingleAnswer
+  ): Try[String] = formatAnswer(formConfig, language, answer, getSingleAnswerText(language))
+
+  private[this] def formatMultiAnswer(formConfig: FormConfigQuestion, language: Language)(
     answer: RiskAnalysisMultiAnswer
-  ): Try[String] =
-    formatAnswer(formConfig, language, answer, answer.key, getMultiAnswerText(language))
+  ): Try[String] = formatAnswer(formConfig, language, answer, getMultiAnswerText(language))
 
   private[this] def formatAnswer[T](
-    formConfig: RiskAnalysisFormConfig,
+    questionConfig: FormConfigQuestion,
     language: Language,
     answer: T,
-    answerKey: String,
     getText: (FormConfigQuestion, T) => Try[String]
-  ): Try[String] =
-    for {
-      questionConfig <- getQuestionConfig(formConfig, answerKey)
-      questionLabel = getLocalizedLabel(questionConfig.pdfLabel, language)
-      infoLabel     = questionConfig.pdfInfoLabel.map(getLocalizedLabel(_, language))
-      answerText <- getText(questionConfig, answer)
-    } yield answerToHtml(questionLabel, infoLabel, answerText)
+  ): Try[String] = {
+    val questionLabel = getLocalizedLabel(questionConfig.label, language)
+    val infoLabel     = questionConfig.infoLabel.map(getLocalizedLabel(_, language))
+    getText(questionConfig, answer).map(answerToHtml(questionLabel, infoLabel, _))
+  }
 
   private[this] def getSingleAnswerText(
     language: Language
@@ -124,7 +126,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     labeledValue <- questionConfig.options
       .find(_.value == answerValue)
       .toTry(AnswerNotFoundInConfig(answer.key, questionConfig.id))
-  } yield getLocalizedLabel(labeledValue.pdfLabel, language)
+  } yield getLocalizedLabel(labeledValue.label, language)
 
   private[this] def getMultiAnswerTextFromConfig(
     questionConfig: MultiQuestion,
@@ -138,7 +140,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
             question.options
               .find(_.value == answerValue)
               .toTry(AnswerNotFoundInConfig(answer.key, question.id))
-              .map(labeledValue => getLocalizedLabel(labeledValue.pdfLabel, language))
+              .map(labeledValue => getLocalizedLabel(labeledValue.label, language))
           )
           .map(_.mkString(", "))
     }
@@ -148,11 +150,6 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       case LanguageIt => text.it
       case LanguageEn => text.en
     }
-
-  private[this] def getQuestionConfig(formConfig: RiskAnalysisFormConfig, answerKey: String): Try[FormConfigQuestion] =
-    formConfig.questions
-      .find(_.id == answerKey)
-      .toTry(QuestionNotFoundInConfig(answerKey, formConfig.version))
 
   private[this] def answerToHtml(questionLabel: String, questionInfoLabel: Option[String], answer: String): String =
     s"""

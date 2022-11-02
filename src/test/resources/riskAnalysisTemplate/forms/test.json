@@ -13,14 +13,6 @@
         "it": "Indicare per quale finalità si intende accedere ai dati messi a disposizione con la fruizione del presente E-Service",
         "en": "State what is your purpose in accessing the data provided with this E-Service"
       },
-      "pdfLabel": {
-        "it": "Finalità (richiesto)",
-        "en": "Purpose (required)"
-      },
-      "pdfInfoLabel": {
-        "it": "Indicare per quale finalità si intende accedere ai dati messi a disposizione con la fruizione del presente E-Service",
-        "en": "State what is your purpose in accessing the data provided with this E-Service"
-      },
       "defaultValue": "",
       "required": true,
       "dependencies": []
@@ -33,19 +25,13 @@
         "it": "Indicare se si accede a dati personali (richiesto)",
         "en": "Will you have access to personal data? (required)"
       },
-      "pdfLabel": {
-        "it": "Indicare se si accede a dati personali (richiesto)",
-        "en": "Will you have access to personal data? (required)"
-      },
       "options": [
         {
           "label": { "it": "Sì", "en": "Yes" },
-          "pdfLabel": { "it": "Sì", "en": "Yes" },
           "value": "YES"
         },
         {
           "label": { "it": "No", "en": "No" },
-          "pdfLabel": { "it": "No", "en": "No" },
           "value": "NO"
         }
       ],
@@ -61,17 +47,9 @@
         "it": "Indicare sulla base di quale, fra le seguenti basi giuridiche ex art. 6 del GDPR, ritiene di essere titolato ad accedere ai dati personali messi a disposizione con la fruizione dell’E-Service (richiesto, scelta multipla)",
         "en": "Based on GDPR ex art. 6, state on which legal basis you think you are entitled to access the personal data provided with the access to this E-Service (required, multiple choice)"
       },
-      "pdfLabel": {
-        "it": "Indicare sulla base di quale, fra le seguenti basi giuridiche ex art. 6 del GDPR, ritiene di essere titolato ad accedere ai dati personali messi a disposizione con la fruizione dell’E-Service (richiesto, scelta multipla)",
-        "en": "Based on GDPR ex art. 6, state on which legal basis you think you are entitled to access the personal data provided with the access to this E-Service (required, multiple choice)"
-      },
       "options": [
         {
           "label": {
-            "it": "consenso dell’interessato al trattamento dei dati personali per una o più specifiche finalità",
-            "en": "consent of the interested party to the treatment of personal data for one or more purposes"
-          },
-          "pdfLabel": {
             "it": "consenso dell’interessato al trattamento dei dati personali per una o più specifiche finalità",
             "en": "consent of the interested party to the treatment of personal data for one or more purposes"
           },
@@ -82,18 +60,10 @@
             "it": "esecuzione di un contratto di cui l'interessato è parte o di misure precontrattuali adottate su richiesta dello stesso",
             "en": "execution of a contract which the party is part of or precontractual measures adopted upon request of said party"
           },
-          "pdfLabel": {
-            "it": "esecuzione di un contratto di cui l'interessato è parte o di misure precontrattuali adottate su richiesta dello stesso",
-            "en": "execution of a contract which the party is part of or precontractual measures adopted upon request of said party"
-          },
           "value": "CONTRACT"
         },
         {
           "label": {
-            "it": "adempimento di un obbligo legale",
-            "en": "fulfillment of a legal obligation"
-          },
-          "pdfLabel": {
             "it": "adempimento di un obbligo legale",
             "en": "fulfillment of a legal obligation"
           },
@@ -104,10 +74,6 @@
             "it": "salvaguardia degli interessi vitali di una persona fisica",
             "en": "safeguard of vital interests of a physical person"
           },
-          "pdfLabel": {
-            "it": "salvaguardia degli interessi vitali di una persona fisica",
-            "en": "safeguard of vital interests of a physical person"
-          },
           "value": "SAFEGUARD"
         },
         {
@@ -115,18 +81,10 @@
             "it": "esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito",
             "en": "execution of a task of public interest or connected to the exercise of public authority bestowed upon you"
           },
-          "pdfLabel": {
-            "it": "esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito",
-            "en": "execution of a task of public interest or connected to the exercise of public authority bestowed upon you"
-          },
           "value": "PUBLIC_INTEREST"
         },
         {
           "label": {
-            "it": "perseguimento del legittimo interesse del titolare del trattamento o di terzi, a condizione che non prevalgano gli interessi o i diritti e le libertà fondamentali dell'interessato che richiedono la protezione dei dati personali, in particolare se l'interessato è un minore",
-            "en": "pursue of a legitimate interest of the owner of the treatment or of a third party, on condition that the interest, rights and fundamental freedoms of the interested party that require personal data protection not prevail, with particular interests in case of a minor"
-          },
-          "pdfLabel": {
             "it": "perseguimento del legittimo interesse del titolare del trattamento o di terzi, a condizione che non prevalgano gli interessi o i diritti e le libertà fondamentali dell'interessato che richiedono la protezione dei dati personali, in particolare se l'interessato è un minore",
             "en": "pursue of a legitimate interest of the owner of the treatment or of a third party, on condition that the interest, rights and fundamental freedoms of the interested party that require personal data protection not prevail, with particular interests in case of a minor"
           },
@@ -154,38 +112,25 @@
         "it": "Si richiede di specificare la fascia di riferimento fra quelle di seguito indicate anche in funzione del periodo di validità del voucher emesso per la fruizione dell’E-Service",
         "en": "You are required to state the reference range among the options given, keeping in mind the expiration of the access token (voucher) emitted for the fruition of the E-Service"
       },
-      "pdfLabel": {
-        "it": "Fascia di riferimento (richiesto)",
-        "en": "Reference range (required)"
-      },
-      "pdfInfoLabel": {
-        "it": "Si richiede di specificare la fascia di riferimento fra quelle di seguito indicate anche in funzione del periodo di validità del voucher emesso per la fruizione dell’E-Service",
-        "en": "You are required to state the reference range among the options given, keeping in mind the expiration of the access token (voucher) emitted for the fruition of the E-Service"
-      },
       "options": [
         {
           "label": { "it": "0-100", "en": "0-100" },
-          "pdfLabel": { "it": "0-100", "en": "0-100" },
           "value": "QUANTITY_0_TO_100"
         },
         {
           "label": { "it": "101-500", "en": "101-500" },
-          "pdfLabel": { "it": "101-500", "en": "101-500" },
           "value": "QUANTITY_101_TO_500"
         },
         {
           "label": { "it": "501-1000", "en": "501-1000" },
-          "pdfLabel": { "it": "501-1000", "en": "501-1000" },
           "value": "QUANTITY_500_TO_1000"
         },
         {
           "label": { "it": "1001-5000", "en": "1001-5000" },
-          "pdfLabel": { "it": "1001-5000", "en": "1001-5000" },
           "value": "QUANTITY_1001_TO_5000"
         },
         {
           "label": { "it": "da 5001 in su", "en": "5001 and above" },
-          "pdfLabel": { "it": "da 5001 in su", "en": "5001 and above" },
           "value": "QUANTITY_5001_OVER"
         }
       ],
@@ -194,10 +139,6 @@
       "dependencies": [
         {
           "id": "usesPersonalData",
-          "value": "YES"
-        },
-        {
-          "id": "knowsDataQuantity",
           "value": "YES"
         }
       ]

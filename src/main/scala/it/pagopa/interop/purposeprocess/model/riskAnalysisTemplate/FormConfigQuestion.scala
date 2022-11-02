@@ -6,8 +6,8 @@ import spray.json._
 
 sealed trait FormConfigQuestion {
   def id: String
-  def pdfLabel: LocalizedText
-  def pdfInfoLabel: Option[LocalizedText]
+  def label: LocalizedText
+  def infoLabel: Option[LocalizedText]
   def dataType: DataType
   def required: Boolean
   def dependencies: List[Dependency]
@@ -35,8 +35,8 @@ object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
 
 final case class FreeInputQuestion(
   id: String,
-  pdfLabel: LocalizedText,
-  pdfInfoLabel: Option[LocalizedText],
+  label: LocalizedText,
+  infoLabel: Option[LocalizedText],
   dataType: DataType,
   required: Boolean,
   dependencies: List[Dependency]
@@ -48,8 +48,8 @@ object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
 
 final case class SingleQuestion(
   id: String,
-  pdfLabel: LocalizedText,
-  pdfInfoLabel: Option[LocalizedText],
+  label: LocalizedText,
+  infoLabel: Option[LocalizedText],
   dataType: DataType,
   options: List[LabeledValue],
   required: Boolean,
@@ -62,8 +62,8 @@ object SingleQuestion extends DefaultJsonProtocol with SprayJsonSupport {
 
 final case class MultiQuestion(
   id: String,
-  pdfLabel: LocalizedText,
-  pdfInfoLabel: Option[LocalizedText],
+  label: LocalizedText,
+  infoLabel: Option[LocalizedText],
   dataType: DataType,
   options: List[LabeledValue],
   required: Boolean,

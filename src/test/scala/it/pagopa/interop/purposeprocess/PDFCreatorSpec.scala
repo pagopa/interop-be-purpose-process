@@ -71,13 +71,45 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
       )
     }
 
-    "fail if the question is not in config" in {
-      val questionKey      = "non-existent-key"
-      val answer           = "someValue"
-      val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
-      val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+    "keep the template questions sorting" in {
+      val freeQuestionKey = "purpose"
+      val freeAnswer      = "My Purpose"
+      val freeLabel       =
+        answerHtmlLabel(testConfig.questions.find(_.id == freeQuestionKey).get, List(freeAnswer), _.label.it)
+      val freeForm        = makeSingleAnswerForm(key = freeQuestionKey, value = freeAnswer)
 
-      result.fold(_ shouldBe a[QuestionNotFoundInConfig], _ => fail("Expected failure, but got Success"))
+      val singleQuestionKey1 = "usesPersonalData"
+      val singleAnswer1      = "YES"
+      val singleLabel1       =
+        answerHtmlLabel(testConfig.questions.find(_.id == singleQuestionKey1).get, List(singleAnswer1), _.label.it)
+      val singleForm1        = makeSingleAnswerForm(key = singleQuestionKey1, value = singleAnswer1)
+
+      val multiQuestionKey = "legalBasis"
+      val multiAnswers     = List("CONSENT", "CONTRACT", "SAFEGUARD")
+      val multiLabel       =
+        answerHtmlLabel(testConfig.questions.find(_.id == multiQuestionKey).get, multiAnswers, _.label.it)
+      val multiForm        = makeMultiAnswerForm(key = multiQuestionKey, values = multiAnswers)
+
+      val singleQuestionKey2 = "dataQuantity"
+      val singleAnswer2      = "QUANTITY_101_TO_500"
+      val singleLabel2       =
+        answerHtmlLabel(testConfig.questions.find(_.id == singleQuestionKey2).get, List(singleAnswer2), _.label.it)
+      val singleForm2        = makeSingleAnswerForm(key = singleQuestionKey2, value = singleAnswer2)
+
+      val riskAnalysisForm = dummyRiskAnalysisForm.copy(
+        singleAnswers = freeForm.singleAnswers ++ singleForm1.singleAnswers ++ singleForm2.singleAnswers,
+        multiAnswers = multiForm.multiAnswers
+      )
+
+      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+
+      result shouldBe a[Success[_]]
+      val answers = result.get("answers")
+
+      answers.indexOf(freeLabel) should be > -1
+      answers.indexOf(freeLabel) should be < answers.indexOf(singleLabel1)
+      answers.indexOf(singleLabel1) should be < answers.indexOf(multiLabel)
+      answers.indexOf(multiLabel) should be < answers.indexOf(singleLabel2)
     }
 
     "fail if the question is not of the config expected type" in {
@@ -152,32 +184,39 @@ object PDFCreatorSpec {
         value.get("answers") should not be empty
         val answers = value("answers")
 
-        def checkAnswer(getValue: LabeledValue => String): Assertion =
-          expectedQuestion match {
-            case _: FreeInputQuestion =>
-              expectedAnswer.size shouldBe 1
-              answers should include(expectedAnswer.head)
-            case q: SingleQuestion    =>
-              expectedAnswer.size shouldBe 1
-              answers should include(q.options.find(_.value == expectedAnswer.head).map(getValue).get)
-            case q: MultiQuestion     =>
-              answers should expectedAnswer
-                .map(a => include(q.options.find(_.value == a).map(getValue).get))
-                .reduce(_ and _)
-          }
+        def checkAnswer(getValue: LabeledValue => String): Assertion = {
+          val labels = answerHtmlLabel(expectedQuestion, expectedAnswer, getValue)
+          answers should include(labels)
+        }
 
         language match {
           case LanguageIt =>
-            answers should include(expectedQuestion.pdfLabel.it)
-            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.it))
-            checkAnswer(_.pdfLabel.it)
+            answers should include(expectedQuestion.label.it)
+            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.it))
+            checkAnswer(_.label.it)
           case LanguageEn =>
-            answers should include(expectedQuestion.pdfLabel.en)
-            expectedQuestion.pdfInfoLabel.fold(succeed)(l => answers should include(l.en))
-            checkAnswer(_.pdfLabel.en)
+            answers should include(expectedQuestion.label.en)
+            expectedQuestion.infoLabel.fold(succeed)(l => answers should include(l.en))
+            checkAnswer(_.label.en)
         }
 
       case Failure(exception) => fail(exception)
+    }
+
+  def answerHtmlLabel(
+    question: FormConfigQuestion,
+    answers: List[String],
+    localizedValue: LabeledValue => String
+  ): String =
+    question match {
+      case _: FreeInputQuestion =>
+        s"""<div class="answer">${answers.head}</div>"""
+      case q: SingleQuestion    =>
+        val a = q.options.find(_.value == answers.head).map(localizedValue).get
+        s"""<div class="answer">$a</div>"""
+      case q: MultiQuestion     =>
+        val a = q.options.filter(o => answers.contains(o.value)).map(localizedValue)
+        s"""<div class="answer">${a.mkString(", ")}</div>"""
     }
 
 }
