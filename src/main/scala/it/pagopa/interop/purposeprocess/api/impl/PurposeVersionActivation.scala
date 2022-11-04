@@ -96,16 +96,21 @@ final case class PurposeVersionActivation(
 
     (version.state, userType) match {
       case (DRAFT, CONSUMER)                =>
-        isLoadAllowed(eService, purpose, version).ifM(
-          firstVersionActivation(purpose, version, changeDetails, eService),
-          waitForApproval()
-        )
+        if (eService.producerId == purpose.consumerId)
+          firstVersionActivation(purpose, version, changeDetails, eService)
+        else
+          isLoadAllowed(eService, purpose, version).ifM(
+            firstVersionActivation(purpose, version, changeDetails, eService),
+            waitForApproval()
+          )
       case (DRAFT, PRODUCER)                => Future.failed(UserIsNotTheConsumer(userId))
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
       case (WAITING_FOR_APPROVAL, PRODUCER) => firstVersionActivation(purpose, version, changeDetails, eService)
-      case (SUSPENDED, CONSUMER) => isLoadAllowed(eService, purpose, version).ifM(activate(), waitForApproval())
-      case (SUSPENDED, PRODUCER) => activate()
-      case _                     => Future.failed(UserNotAllowed(userId))
+      case (SUSPENDED, CONSUMER)            =>
+        if (eService.producerId == purpose.consumerId) activate()
+        else isLoadAllowed(eService, purpose, version).ifM(activate(), waitForApproval())
+      case (SUSPENDED, PRODUCER)            => activate()
+      case _                                => Future.failed(UserNotAllowed(userId))
     }
   }
 
