@@ -64,7 +64,9 @@ object SpecData {
     features = Nil,
     attributes = Nil,
     createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name"
   )
 
   def relationships(from: UUID = UUID.randomUUID(), to: UUID = UUID.randomUUID()): PartyManagement.Relationships =
