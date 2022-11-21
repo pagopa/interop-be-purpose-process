@@ -6,7 +6,7 @@ import it.pagopa.interop.commons.utils.{UID, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.interop.purposeprocess.SpecData.timestamp
+import it.pagopa.interop.purposeprocess.SpecData.{timestamp}
 import it.pagopa.interop.purposeprocess.api.converters._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
@@ -22,6 +22,7 @@ import cats.implicits._
 import akka.http.scaladsl.model.{ContentType, MediaTypes}
 import org.scalatest.concurrent.ScalaFutures
 import akka.util.ByteString
+
 import scala.util.Random
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.api.impl.problemOf

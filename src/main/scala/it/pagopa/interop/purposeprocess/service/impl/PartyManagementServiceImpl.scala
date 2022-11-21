@@ -10,7 +10,7 @@ import it.pagopa.interop.purposeprocess.service.{
   PartyManagementInvoker,
   PartyManagementService
 }
-import it.pagopa.interop.selfcare.partymanagement.client.model.{Institution, RelationshipState, Relationships}
+import it.pagopa.interop.selfcare.partymanagement.client.model.{RelationshipState, Relationships}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,15 +21,6 @@ final case class PartyManagementServiceImpl(invoker: PartyManagementInvoker, api
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
-
-  override def getInstitutionById(
-    selfcareId: String
-  )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] = withUid { uid =>
-    selfcareId.toFutureUUID.flatMap { selfcareUUID =>
-      val request = api.getInstitutionById(selfcareUUID)(uid)
-      invoker.invoke(request, s"Retrieving Institution $selfcareUUID")
-    }
-  }
 
   override def getActiveRelationships(from: UUID, to: String)(implicit
     contexts: Seq[(String, String)],

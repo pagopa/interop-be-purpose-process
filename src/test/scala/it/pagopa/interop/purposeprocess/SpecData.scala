@@ -43,23 +43,9 @@ object SpecData {
     agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC
   )
 
-  val institution: PartyManagement.Institution = PartyManagement.Institution(
-    id = UUID.randomUUID(),
-    origin = "yadayada",
-    originId = "yadayada",
-    externalId = "yadayada",
-    description = "Organization description",
-    digitalAddress = "address",
-    address = "address",
-    taxCode = "taxCode",
-    attributes = Seq.empty,
-    zipCode = "00000",
-    institutionType = "PUBLIC"
-  )
-
   val tenant: Tenant = Tenant(
     UUID.randomUUID(),
-    selfcareId = institution.id.toString.some,
+    selfcareId = UUID.randomUUID.toString().some,
     externalId = ExternalId("foo", "bar"),
     features = Nil,
     attributes = Nil,

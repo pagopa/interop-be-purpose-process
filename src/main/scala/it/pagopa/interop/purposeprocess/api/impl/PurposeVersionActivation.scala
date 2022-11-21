@@ -162,10 +162,8 @@ final case class PurposeVersionActivation(
   }
 
   def getTenantDescription(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
-    tenant      <- tenantManagementService.getTenant(tenantId)
-    selfcareId  <- tenant.selfcareId.toFuture(MissingSelfcareId)
-    institution <- partyManagementService.getInstitutionById(selfcareId)
-  } yield institution.description
+    tenant <- tenantManagementService.getTenant(tenantId)
+  } yield tenant.name
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.

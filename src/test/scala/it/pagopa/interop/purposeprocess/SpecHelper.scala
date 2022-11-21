@@ -89,12 +89,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(tenantId, *)
       .once()
       .returns(Future.successful(SpecData.tenant.copy(id = tenantId)))
-
-    (mockPartyManagementService
-      .getInstitutionById(_: String)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(SpecData.tenant.selfcareId.get, *, *)
-      .once()
-      .returns(Future.successful(SpecData.institution.copy(id = UUID.fromString(SpecData.tenant.selfcareId.get))))
   }
 
   def mockPurposeRetrieve(purposeId: UUID, result: PurposeManagement.Purpose = SpecData.purpose)(implicit
@@ -331,8 +325,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     val actualEService = eService.getOrElse(SpecData.eService).copy(descriptors = Seq(descriptor))
     mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
     mockEServiceRetrieve(purpose.eserviceId, actualEService)
-    mockOrganizationRetrieve(actualEService.producerId)
-    mockOrganizationRetrieve(purpose.consumerId)
+    mockOrganizationRetrieve(agreement.producerId)
+    mockOrganizationRetrieve(agreement.consumerId)
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
   }
 

@@ -203,26 +203,6 @@ object FakeDependencies {
         )
       )
     )
-
-    override def getInstitutionById(
-      id: String
-    )(implicit contexts: Seq[(String, String)], ec: ExecutionContext): Future[Institution] =
-      Future.successful(
-        Institution(
-          id = UUID.randomUUID(),
-          externalId = "test",
-          originId = "test",
-          description = "test",
-          digitalAddress = "???",
-          address = "???",
-          zipCode = "???",
-          taxCode = "???",
-          origin = "???",
-          institutionType = "???",
-          attributes = Seq.empty
-        )
-      )
-
   }
 
   class FakeAgreementManagementService extends AgreementManagementService {
