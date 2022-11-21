@@ -45,7 +45,7 @@ object SpecData {
 
   val tenant: Tenant = Tenant(
     UUID.randomUUID(),
-    selfcareId = UUID.randomUUID.toString().some,
+    selfcareId = UUID.randomUUID.toString.some,
     externalId = ExternalId("foo", "bar"),
     features = Nil,
     attributes = Nil,

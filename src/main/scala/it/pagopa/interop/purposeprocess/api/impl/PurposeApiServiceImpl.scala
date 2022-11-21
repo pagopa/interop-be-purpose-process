@@ -603,8 +603,8 @@ final case class PurposeApiServiceImpl(
       depProducer   <- tenantManagementService.getTenant(depAgreement.producerId)
       depConsumer   <- tenantManagementService.getTenant(depAgreement.consumerId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
-      producer  = OrganizationConverter.dependencyToApi(depAgreement.producerId, depProducer)
-      consumer  = OrganizationConverter.dependencyToApi(depAgreement.consumerId, depConsumer)
+      producer  = OrganizationConverter.dependencyToApi(depEService.producerId, depProducer)
+      consumer  = OrganizationConverter.dependencyToApi(depPurpose.consumerId, depConsumer)
       eService <- EServiceConverter.dependencyToApi(depEService, depAgreement.descriptorId, producer).toFuture
       clients  <- clientsByUserType()
     } yield PurposeConverter

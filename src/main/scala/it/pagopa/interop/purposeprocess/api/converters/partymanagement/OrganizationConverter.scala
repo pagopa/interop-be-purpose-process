@@ -7,6 +7,6 @@ import java.util.UUID
 
 object OrganizationConverter {
   def dependencyToApi(id: UUID, tenant: Tenant): Organization =
-    Organization(id = id, name = tenant.externalId.origin)
+    Organization(id = id, name = tenant.name)
 
 }
