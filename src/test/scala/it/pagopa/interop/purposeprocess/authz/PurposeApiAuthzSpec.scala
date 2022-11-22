@@ -30,8 +30,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
 
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
   val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
-  val fakePurposeManagementService: PurposeManagementService             =
-    new FakePurposeManagementService()
+  val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
@@ -69,7 +68,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
     )
 
   "Purpose api operation authorization spec" should {
-
     "accept authorized roles for createPurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("createPurpose")
       val fakeSeed = PurposeSeed(

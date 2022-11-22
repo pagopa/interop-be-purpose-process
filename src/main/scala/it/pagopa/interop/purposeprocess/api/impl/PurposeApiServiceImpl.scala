@@ -594,20 +594,14 @@ final case class PurposeApiServiceImpl(
       }
 
     for {
-      depAgreements      <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId)
-      depAgreement       <- depAgreements
+      depAgreements <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId)
+      depAgreement  <- depAgreements
         .sortBy(_.createdAt)
         .lastOption
         .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
-      depEService        <- catalogManagementService.getEServiceById(depPurpose.eserviceId)
-      producerSelfcareId <- tenantManagementService
-        .getTenant(depEService.producerId)
-        .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-      consumerSelfcareId <- tenantManagementService
-        .getTenant(depPurpose.consumerId)
-        .flatMap(_.selfcareId.toFuture(MissingSelfcareId))
-      depProducer        <- partyManagementService.getInstitutionById(producerSelfcareId)
-      depConsumer        <- partyManagementService.getInstitutionById(consumerSelfcareId)
+      depEService   <- catalogManagementService.getEServiceById(depPurpose.eserviceId)
+      depProducer   <- tenantManagementService.getTenant(depAgreement.producerId)
+      depConsumer   <- tenantManagementService.getTenant(depAgreement.consumerId)
       agreement = AgreementConverter.dependencyToApi(depAgreement)
       producer  = OrganizationConverter.dependencyToApi(depEService.producerId, depProducer)
       consumer  = OrganizationConverter.dependencyToApi(depPurpose.consumerId, depConsumer)

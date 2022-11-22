@@ -161,11 +161,9 @@ final case class PurposeVersionActivation(
 
   }
 
-  def getTenantDescription(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
-    tenant      <- tenantManagementService.getTenant(tenantId)
-    selfcareId  <- tenant.selfcareId.toFuture(MissingSelfcareId)
-    institution <- partyManagementService.getInstitutionById(selfcareId)
-  } yield institution.description
+  def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+    tenant <- tenantManagementService.getTenant(tenantId)
+  } yield tenant.name
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
@@ -184,8 +182,8 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get()
     for {
-      (producerDescription, consumerDescription) <- getTenantDescription(eService.producerId).zip(
-        getTenantDescription(purpose.consumerId)
+      (producerDescription, consumerDescription) <- getTenantName(eService.producerId).zip(
+        getTenantName(purpose.consumerId)
       )
       eServiceInfo = EServiceInfo(
         name = eService.name,
