@@ -160,3 +160,4 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: 'sbt ++${{ matrix.scala }} docker:publish'
+
