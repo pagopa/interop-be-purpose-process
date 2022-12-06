@@ -8,14 +8,15 @@ import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.model.ChangedBy._
+import it.pagopa.interop.purposemanagement.client.model.ChangedBy
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
+import it.pagopa.interop.purposeprocess.api.impl.OrganizationRole.{CONSUMER, PRODUCER, PRODUCER_OF_ITSELF}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.InternalErrors.{
-  UserIsNotTheConsumer,
-  UserIsNotTheProducer,
-  UserNotAllowed
+  OrganizationIsNotTheConsumer,
+  OrganizationIsNotTheProducer,
+  OrganizationNotAllowed
 }
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
@@ -28,7 +29,6 @@ import scala.io.Source
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
   authorizationManagementService: AuthorizationManagementService,
-  partyManagementService: PartyManagementService,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
   fileManager: FileManager,
@@ -42,7 +42,7 @@ final case class PurposeVersionActivation(
     .getLines()
     .mkString(System.lineSeparator())
 
-  /** Activate or Wait for Approval for the given version based on current status and requester relationships.
+  /** Activate or Wait for Approval for the given version based on current status.
     *
     * Validations
     * <table>
@@ -61,30 +61,34 @@ final case class PurposeVersionActivation(
     * @param eService EService of the Agreement related to the Purpose
     * @param purpose Purpose of the Version
     * @param version Version to activate
-    * @param userType Indicates the relationship of user with the Consumer or the Producer
-    * @param userId User ID
+    * @param organizationId Organization ID
+    * @param organizationRole The rule assumed by the organization
     * @return the updated Version
     */
   def activateOrWaitForApproval(
     eService: EService,
     purpose: Purpose,
     version: PurposeVersion,
-    userType: ChangedBy,
-    userId: UUID
+    organizationId: UUID,
+    organizationRole: OrganizationRole
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
-    val changeDetails = StateChangeDetails(changedBy = userType)
-
     def waitForApproval(): Future[PurposeVersion] =
-      purposeManagementService
-        .waitForApprovalPurposeVersion(purpose.id, version.id, changeDetails)
-    def activate(): Future[PurposeVersion]        = {
-      val payload =
-        ActivatePurposeVersionPayload(riskAnalysis = version.riskAnalysis, stateChangeDetails = changeDetails)
+      purposeManagementService.waitForApprovalPurposeVersion(
+        purpose.id,
+        version.id,
+        StateChangeDetails(ChangedBy.CONSUMER)
+      )
+
+    def activate(changedBy: ChangedBy): Future[PurposeVersion] = {
+      val payload: ActivatePurposeVersionPayload =
+        ActivatePurposeVersionPayload(
+          riskAnalysis = version.riskAnalysis,
+          stateChangeDetails = StateChangeDetails(changedBy)
+        )
 
       for {
-        version <- purposeManagementService
-          .activatePurposeVersion(purpose.id, version.id, payload)
+        version <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
         _       <- authorizationManagementService.updateStateOnClients(
           purposeId = purpose.id,
           versionId = version.id,
@@ -94,23 +98,27 @@ final case class PurposeVersionActivation(
 
     }
 
-    (version.state, userType) match {
-      case (DRAFT, CONSUMER)                =>
-        if (eService.producerId == purpose.consumerId)
-          firstVersionActivation(purpose, version, changeDetails, eService)
-        else
-          isLoadAllowed(eService, purpose, version).ifM(
-            firstVersionActivation(purpose, version, changeDetails, eService),
-            waitForApproval()
-          )
-      case (DRAFT, PRODUCER)                => Future.failed(UserIsNotTheConsumer(userId))
-      case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(UserIsNotTheProducer(userId))
-      case (WAITING_FOR_APPROVAL, PRODUCER) => firstVersionActivation(purpose, version, changeDetails, eService)
-      case (SUSPENDED, CONSUMER)            =>
-        if (eService.producerId == purpose.consumerId) activate()
-        else isLoadAllowed(eService, purpose, version).ifM(activate(), waitForApproval())
-      case (SUSPENDED, PRODUCER)            => activate()
-      case _                                => Future.failed(UserNotAllowed(userId))
+    (version.state, organizationRole) match {
+      case (DRAFT, CONSUMER)           =>
+        isLoadAllowed(eService, purpose, version).ifM(
+          firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
+          waitForApproval()
+        )
+      case (DRAFT, PRODUCER)           => Future.failed(OrganizationIsNotTheConsumer(organizationId))
+      case (DRAFT, PRODUCER_OF_ITSELF) =>
+        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
+
+      case (WAITING_FOR_APPROVAL, CONSUMER)           => Future.failed(OrganizationIsNotTheProducer(organizationId))
+      case (WAITING_FOR_APPROVAL, PRODUCER)           =>
+        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
+      case (WAITING_FOR_APPROVAL, PRODUCER_OF_ITSELF) =>
+        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
+
+      case (SUSPENDED, CONSUMER)           =>
+        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval())
+      case (SUSPENDED, PRODUCER)           => activate(ChangedBy.PRODUCER)
+      case (SUSPENDED, PRODUCER_OF_ITSELF) => activate(ChangedBy.PRODUCER)
+      case _                               => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
 

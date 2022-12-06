@@ -3,33 +3,25 @@ package it.pagopa.interop.purposeprocess.authz
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
-import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
+import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
+import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{
-  DraftPurposeVersionUpdateContent,
-  PurposeSeed,
-  PurposeUpdateContent,
-  PurposeVersionSeed,
-  WaitingForApprovalPurposeVersionUpdateContent
-}
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
 import it.pagopa.interop.purposeprocess.util.FakeDependencies._
+import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.io.File
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
-import org.scalatest.BeforeAndAfterAll
-import java.util.concurrent.{Executors, ExecutorService}
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import java.util.concurrent.{ExecutorService, Executors}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with AuthzScalatestRouteTest {
 
   val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
-  val fakePartyManagementService: PartyManagementService                 = new FakePartyManagementService()
   val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
@@ -46,7 +38,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeAgreementManagementService,
       fakeAuthorizationManagementService,
       fakeCatalogManagementService,
-      fakePartyManagementService,
       fakePurposeManagementService,
       fakeTenantManagementService,
       fakeFileManager,
