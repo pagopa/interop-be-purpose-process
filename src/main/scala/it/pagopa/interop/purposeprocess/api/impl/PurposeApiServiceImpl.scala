@@ -98,7 +98,7 @@ final case class PurposeApiServiceImpl(
       problemOf(StatusCodes.BadRequest, GetPurposeVersionDocumentBadRequest(purposeId, versionId, documentId))
 
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(response)                          => complete(response)
         case Failure(e: PurposeVersionNotFound)         =>
           logger.error("Error while downloading Risk Analysis Document", e)
@@ -131,7 +131,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(purpose)                          =>
           createPurpose201(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
@@ -162,7 +162,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeVersionBadRequest(purposeId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(purpose) =>
           createPurposeVersion201(purpose)
         case Failure(ex)      =>
@@ -190,7 +190,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, UpdatePurposeBadRequest(purposeId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(purpose)                          =>
           updatePurpose200(purpose)
         case Failure(ex: RiskAnalysisValidationFailed) =>
@@ -220,7 +220,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(purpose) =>
           getPurpose200(purpose)
         case Failure(ex)      =>
@@ -237,7 +237,7 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     logger.info("Retrieving Purposes for EService {}, Consumer {} and States {}", eServiceId, consumerId, states)
 
-    def filterPurposeByUserType(
+    def filterPurposeByOrganizationRole(
       purposes: PurposeManagementDependency.Purposes,
       organizationId: UUID
     ): Future[Seq[Purpose]] = {
@@ -262,7 +262,7 @@ final case class PurposeApiServiceImpl(
       organizationId    <- getOrganizationIdFutureUUID(contexts)
       states            <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
       purposes          <- purposeManagementService.getPurposes(eServiceUUID, consumerUUID, states)
-      convertedPurposes <- filterPurposeByUserType(purposes, organizationId)
+      convertedPurposes <- filterPurposeByOrganizationRole(purposes, organizationId)
     } yield Purposes(purposes = convertedPurposes)
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposesBadRequest)
@@ -312,7 +312,7 @@ final case class PurposeApiServiceImpl(
       val defaultProblem: Problem = problemOf(StatusCodes.InternalServerError, DeletePurposeBadRequest)
 
       onComplete(result) {
-        handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+        handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
           case Success(_)                           => deletePurpose204
           case Failure(ex: UndeletableVersionError) =>
             logger.error(s"Error while deleting purpose $id", ex)
@@ -343,7 +343,7 @@ final case class PurposeApiServiceImpl(
       problemOf(StatusCodes.InternalServerError, DeletePurposeVersionError(purposeId, versionId))
 
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(_)  => deletePurposeVersion204
         case Failure(ex) =>
           logger.error(s"Error while deleting version $versionId of purpose $purposeId", ex)
@@ -379,7 +379,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ActivatePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(result)                             =>
           activatePurposeVersion200(result)
         case Failure(ex: ActivatePurposeVersionNotFound) =>
@@ -428,7 +428,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, SuspendPurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(r)  =>
           suspendPurposeVersion200(r)
         case Failure(ex) =>
@@ -461,7 +461,7 @@ final case class PurposeApiServiceImpl(
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(r)  =>
           archivePurposeVersion200(r)
         case Failure(ex) =>
@@ -493,7 +493,7 @@ final case class PurposeApiServiceImpl(
     val defaultProblem: Problem =
       problemOf(StatusCodes.InternalServerError, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(r)  =>
           updateDraftPurposeVersion200(r)
         case Failure(ex) =>
@@ -525,7 +525,7 @@ final case class PurposeApiServiceImpl(
     val defaultProblem: Problem =
       problemOf(StatusCodes.InternalServerError, ArchivePurposeBadRequest(purposeId, versionId))
     onComplete(result) {
-      handleApiError(defaultProblem) orElse handleUserTypeError orElse {
+      handleApiError(defaultProblem) orElse handleOrganizationRoleError orElse {
         case Success(r)  =>
           updateWaitingForApprovalPurposeVersion200(r)
         case Failure(ex) =>
@@ -628,7 +628,7 @@ final case class PurposeApiServiceImpl(
       complete(problem.status, problem)
   }
 
-  def handleUserTypeError(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
+  def handleOrganizationRoleError(implicit contexts: Seq[(String, String)]): PartialFunction[Try[_], StandardRoute] = {
     case Failure(err: OrganizationIsNotTheConsumer) =>
       logger.error("The action can be performed only by a Consumer. User {}", err.organizationId)
       val problem = problemOf(StatusCodes.Forbidden, OnlyConsumerAllowedError)
@@ -641,8 +641,8 @@ final case class PurposeApiServiceImpl(
       val problem = problemOf(StatusCodes.Forbidden, OnlyProducerAllowedError)
       complete(problem.status, problem)
     case Failure(err: OrganizationNotAllowed)       =>
-      logger.error("User is neither a Consumer or a Producer. User {}", err.organizationId)
-      val problem = problemOf(StatusCodes.Forbidden, UserNotAllowedError)
+      logger.error("Organization is neither a Consumer or a Producer. User {}", err.organizationId)
+      val problem = problemOf(StatusCodes.Forbidden, OrganizationNotAllowedError)
       complete(problem.status, problem)
   }
 }

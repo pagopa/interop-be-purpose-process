@@ -391,7 +391,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(purposes))
 
       mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
-      mockAssertProducer(ownEService)
+      mockEServiceRetrieve(ownEService.id, ownEService)
       mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
@@ -549,7 +549,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if the user is not a consumer" in {
+    "fail if the organization is not a consumer" in {
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -659,7 +659,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if the user is not a consumer" in {
+    "fail if the organization is not a consumer" in {
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -952,7 +952,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.purposeVersion.copy(expectedApprovalDate = Some(timestamp))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertProducer(SpecData.eService.copy(id = eserviceId, producerId = producerId))
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       (
         mockPurposeManagementService
@@ -1021,7 +1021,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertProducer(SpecData.eService.copy(id = eserviceId, producerId = producerId))
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       Post() ~> service.updateWaitingForApprovalPurposeVersion(
         purposeId.toString,
@@ -1051,7 +1051,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertProducer(SpecData.eService.copy(id = eserviceId, producerId = producerId))
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       (
         mockPurposeManagementService

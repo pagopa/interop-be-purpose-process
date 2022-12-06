@@ -1,6 +1,7 @@
 package it.pagopa.interop.purposeprocess
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.server.directives.FileInfo
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
@@ -9,6 +10,8 @@ import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
+import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
@@ -18,14 +21,10 @@ import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
 import spray.json._
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
-import akka.http.scaladsl.server.directives.FileInfo
-import java.io.ByteArrayOutputStream
-import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
-import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
@@ -241,9 +240,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(purposeId, versionId, *, context)
       .once()
       .returns(Future.successful(result))
-
-  def mockAssertProducer(eService: CatalogManagement.EService)(implicit contexts: Seq[(String, String)]) =
-    mockEServiceRetrieve(eService.id, eService)
 
   def mockClientStateUpdate(purposeId: UUID, versionId: UUID, state: AuthorizationManagement.ClientComponentState)(
     implicit contexts: Seq[(String, String)]

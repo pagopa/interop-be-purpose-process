@@ -99,26 +99,21 @@ final case class PurposeVersionActivation(
     }
 
     (version.state, organizationRole) match {
-      case (DRAFT, CONSUMER)           =>
+      case (DRAFT, CONSUMER | PRODUCER_OF_ITSELF) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
           waitForApproval()
         )
-      case (DRAFT, PRODUCER)           => Future.failed(OrganizationIsNotTheConsumer(organizationId))
-      case (DRAFT, PRODUCER_OF_ITSELF) =>
+      case (DRAFT, PRODUCER)                      => Future.failed(OrganizationIsNotTheConsumer(organizationId))
+
+      case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
+      case (WAITING_FOR_APPROVAL, PRODUCER | PRODUCER_OF_ITSELF) =>
         firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
 
-      case (WAITING_FOR_APPROVAL, CONSUMER)           => Future.failed(OrganizationIsNotTheProducer(organizationId))
-      case (WAITING_FOR_APPROVAL, PRODUCER)           =>
-        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
-      case (WAITING_FOR_APPROVAL, PRODUCER_OF_ITSELF) =>
-        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
-
-      case (SUSPENDED, CONSUMER)           =>
+      case (SUSPENDED, CONSUMER)                      =>
         isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval())
-      case (SUSPENDED, PRODUCER)           => activate(ChangedBy.PRODUCER)
-      case (SUSPENDED, PRODUCER_OF_ITSELF) => activate(ChangedBy.PRODUCER)
-      case _                               => Future.failed(OrganizationNotAllowed(organizationId))
+      case (SUSPENDED, PRODUCER | PRODUCER_OF_ITSELF) => activate(ChangedBy.PRODUCER)
+      case _                                          => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
 
@@ -179,7 +174,7 @@ final case class PurposeVersionActivation(
     * @param contexts Request contexts
     * @param purpose Purpose of the Version
     * @param version Version to activate
-    * @param stateChangeDetails Details on the user that is performing the action
+    * @param stateChangeDetails Details on the organization that is performing the action
     * @return The updated Version
     */
   def firstVersionActivation(
