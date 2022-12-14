@@ -121,6 +121,16 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .once()
         .returns(Future.successful(updatedVersion))
 
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)

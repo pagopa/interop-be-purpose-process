@@ -1,22 +1,34 @@
 package it.pagopa.interop.purposeprocess.api.impl
 
+import cats.implicits._
+import it.pagopa.interop.purposemanagement.client.model.ChangedBy
 import it.pagopa.interop.purposeprocess.error.InternalErrors.OrganizationNotAllowed
 
 import java.util.UUID
-import scala.concurrent.Future
 
-sealed trait OrganizationRole
+sealed trait OrganizationRole {
+  def toChangedBy: ChangedBy = this match {
+    case OrganizationRole.CONSUMER      => ChangedBy.CONSUMER
+    case OrganizationRole.PRODUCER      => ChangedBy.PRODUCER
+    case OrganizationRole.SELF_CONSUMER => ChangedBy.PRODUCER
+  }
+}
 
 object OrganizationRole {
 
-  final case object CONSUMER           extends OrganizationRole
-  final case object PRODUCER           extends OrganizationRole
-  final case object PRODUCER_OF_ITSELF extends OrganizationRole
+  final case object CONSUMER      extends OrganizationRole
+  final case object PRODUCER      extends OrganizationRole
+  final case object SELF_CONSUMER extends OrganizationRole
 
-  def apply(organizationId: UUID, producerId: UUID, consumerId: UUID): Future[OrganizationRole] = {
-    if (producerId == consumerId && organizationId == producerId) Future.successful(PRODUCER_OF_ITSELF)
-    else if (producerId != consumerId && organizationId == consumerId) Future.successful(CONSUMER)
-    else if (producerId != consumerId && organizationId == producerId) Future.successful(PRODUCER)
-    else Future.failed(OrganizationNotAllowed(organizationId))
+  def getOrganizationRole(
+    organizationId: UUID,
+    producerId: UUID,
+    consumerId: UUID
+  ): Either[OrganizationNotAllowed, OrganizationRole] = {
+    if (producerId == consumerId && organizationId == producerId) SELF_CONSUMER.asRight
+    else if (producerId != consumerId && organizationId == consumerId) CONSUMER.asRight
+    else if (producerId != consumerId && organizationId == producerId) PRODUCER.asRight
+    else OrganizationNotAllowed(organizationId).asLeft
   }
+
 }

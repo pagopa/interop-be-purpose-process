@@ -268,16 +268,11 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .returning(Future.unit)
       .once()
 
-  def mockPurposeEnhancement(
-    purpose: PurposeManagement.Purpose,
-    isConsumer: Boolean,
-    eService: Option[CatalogManagement.EService] = None
-  )(implicit contexts: Seq[(String, String)]): Unit = {
-    val agreement      = SpecData.agreement
-    val descriptor     = SpecData.descriptor.copy(id = agreement.descriptorId)
-    val actualEService = eService.getOrElse(SpecData.eService).copy(descriptors = Seq(descriptor))
+  def mockPurposeEnhancement(purpose: PurposeManagement.Purpose, isConsumer: Boolean)(implicit
+    contexts: Seq[(String, String)]
+  ): Unit = {
+    val agreement = SpecData.agreement
     mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
-    mockEServiceRetrieve(purpose.eserviceId, actualEService)
     mockOrganizationRetrieve(agreement.producerId)
     mockOrganizationRetrieve(agreement.consumerId)
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()

@@ -67,6 +67,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
+      mockEServiceRetrieve(
+        managementResponse.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       mockPurposeEnhancement(managementResponse, isConsumer = true)
 
       Get() ~> service.createPurpose(seed) ~> check {
@@ -113,6 +122,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(PurposeSeedConverter.apiToDependency(seed).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
+
+      mockEServiceRetrieve(
+        managementResponse.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
 
       mockPurposeEnhancement(managementResponse, isConsumer = true)
 
@@ -231,6 +249,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       mockPurposeEnhancement(SpecData.purpose, isConsumer = true)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -256,7 +284,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purpose))
 
-      mockEServiceRetrieve(purpose.eserviceId, SpecData.eService.copy(producerId = producerId))
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
 
       mockPurposeEnhancement(purpose, isConsumer = false)
 
@@ -303,6 +338,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
@@ -341,6 +386,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(purposes))
 
       purposes.purposes.foreach { purpose =>
+        mockEServiceRetrieve(
+          purpose.eserviceId,
+          SpecData.eService
+            .copy(
+              producerId = SpecData.agreement.producerId,
+              descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+            )
+        )
         mockPurposeEnhancement(purpose, isConsumer = true)
       }
 
@@ -363,13 +416,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val otherConsumerId2 = UUID.randomUUID()
       val otherEServiceId1 = UUID.randomUUID()
       val otherEServiceId2 = UUID.randomUUID()
-//      val otherProducerId  = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> ownOrganizationId.toString)
 
-      val ownEService         = SpecData.eService.copy(id = ownEServiceId, producerId = ownOrganizationId)
-//      val otherEService1      = SpecData.eService.copy(id = otherEServiceId1, producerId = otherProducerId)
+      val ownEService         = SpecData.eService.copy(
+        id = ownEServiceId,
+        producerId = ownOrganizationId,
+        descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+      )
       val purposeAsConsumer   =
         SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownOrganizationId, eserviceId = otherEServiceId2)
       val purposeAsProducer   =
@@ -390,9 +445,29 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposes))
 
+      mockEServiceRetrieve(
+        purposeAsConsumer.eserviceId,
+        SpecData.eService
+          .copy(
+            id = purposeAsConsumer.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
       mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
+
       mockEServiceRetrieve(ownEService.id, ownEService)
-      mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
+
+      mockEServiceRetrieve(
+        purposeUnauthorized.eserviceId,
+        SpecData.eService
+          .copy(
+            id = purposeUnauthorized.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+      mockPurposeEnhancement(purposeAsProducer, isConsumer = false)
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
         status shouldEqual StatusCodes.OK

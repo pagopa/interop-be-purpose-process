@@ -11,7 +11,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.model.ChangedBy
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
-import it.pagopa.interop.purposeprocess.api.impl.OrganizationRole.{CONSUMER, PRODUCER, PRODUCER_OF_ITSELF}
+import it.pagopa.interop.purposeprocess.api.impl.OrganizationRole.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.InternalErrors.{
   OrganizationIsNotTheConsumer,
@@ -99,21 +99,21 @@ final case class PurposeVersionActivation(
     }
 
     (version.state, organizationRole) match {
-      case (DRAFT, CONSUMER | PRODUCER_OF_ITSELF) =>
+      case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
           waitForApproval()
         )
-      case (DRAFT, PRODUCER)                      => Future.failed(OrganizationIsNotTheConsumer(organizationId))
+      case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
-      case (WAITING_FOR_APPROVAL, PRODUCER | PRODUCER_OF_ITSELF) =>
+      case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
         firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
 
-      case (SUSPENDED, CONSUMER)                      =>
+      case (SUSPENDED, CONSUMER)                 =>
         isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval())
-      case (SUSPENDED, PRODUCER | PRODUCER_OF_ITSELF) => activate(ChangedBy.PRODUCER)
-      case _                                          => Future.failed(OrganizationNotAllowed(organizationId))
+      case (SUSPENDED, PRODUCER | SELF_CONSUMER) => activate(ChangedBy.PRODUCER)
+      case _                                     => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
 
