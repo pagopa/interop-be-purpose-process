@@ -82,7 +82,7 @@ object Dependencies {
 
   object Jars {
     lazy val overrides: Seq[ModuleID] =
-      Seq(jackson.annotations % Compile, jackson.core % Compile, jackson.databind % Compile)
+      Seq(jackson.annotations % Compile, jackson.core % Compile, jackson.databind % Compile, pagopa.commons % Compile)
     lazy val `server`: Seq[ModuleID]  = Seq(
       // For making Java 12 happy
       "javax.annotation"                   % "javax.annotation-api" % "1.3.2" % "compile",

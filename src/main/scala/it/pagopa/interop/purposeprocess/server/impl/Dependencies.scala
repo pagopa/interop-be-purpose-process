@@ -28,8 +28,9 @@ import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.service.impl._
 import it.pagopa.interop.purposeprocess.service._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import com.typesafe.scalalogging.Logger
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
 
@@ -89,7 +90,7 @@ trait Dependencies {
         dateTimeSupplier
       ),
       PurposeApiMarshallerImpl,
-      jwtReader.OAuth2JWTValidatorAsContexts
+      jwtReader.OAuth2JWTValidatorAsContexts(Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts"))
     )
 
   private def agreementManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit

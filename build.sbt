@@ -1,14 +1,14 @@
 import ProjectSettings.ProjectFrom
 import com.typesafe.sbt.packager.docker.Cmd
 
-ThisBuild / scalaVersion      := "2.13.10"
-ThisBuild / organization      := "it.pagopa"
-ThisBuild / organizationName  := "Pagopa S.p.A."
-ThisBuild / dependencyOverrides ++= Dependencies.Jars.overrides
-ThisBuild / version           := ComputeVersion.version
-Global / onChangedBuildSource := ReloadOnSourceChanges
-ThisBuild / githubOwner       := "pagopa"
-ThisBuild / githubRepository  := "interop-be-purpose-process"
+ThisBuild / scalaVersion        := "2.13.10"
+ThisBuild / organization        := "it.pagopa"
+ThisBuild / organizationName    := "Pagopa S.p.A."
+ThisBuild / dependencyOverrides := Dependencies.Jars.overrides
+ThisBuild / version             := ComputeVersion.version
+Global / onChangedBuildSource   := ReloadOnSourceChanges
+ThisBuild / githubOwner         := "pagopa"
+ThisBuild / githubRepository    := "interop-be-purpose-process"
 ThisBuild / resolvers += Resolver.githubPackages("pagopa")
 
 lazy val generateCode = taskKey[Unit]("A task for generating the code starting from the swagger definition")
