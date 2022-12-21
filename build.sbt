@@ -8,8 +8,9 @@ ThisBuild / dependencyOverrides ++= Dependencies.Jars.overrides
 ThisBuild / version           := ComputeVersion.version
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-ThisBuild / resolvers += "Pagopa Nexus Snapshots" at s"https://${System.getenv("MAVEN_REPO")}/nexus/repository/maven-snapshots/"
-ThisBuild / resolvers += "Pagopa Nexus Releases" at s"https://${System.getenv("MAVEN_REPO")}/nexus/repository/maven-releases/"
+ThisBuild / githubOwner      := "pagopa"
+ThisBuild / githubRepository := "interop-be-purpose-process"
+ThisBuild / resolvers += Resolver.githubPackages("pagopa")
 
 lazy val generateCode = taskKey[Unit]("A task for generating the code starting from the swagger definition")
 
@@ -75,7 +76,15 @@ runStandalone := {
 
 lazy val generated = project
   .in(file("generated"))
-  .settings(scalacOptions := Seq(), scalafmtOnCompile := true, libraryDependencies := Dependencies.Jars.`server`)
+  .settings(
+    scalacOptions       := Seq(),
+    scalafmtOnCompile   := true,
+    libraryDependencies := Dependencies.Jars.`server`,
+    publish / skip      := true,
+    publish             := (()),
+    publishLocal        := (()),
+    publishTo           := None
+  )
   .setupBuildInfo
 
 lazy val client = project
@@ -86,15 +95,7 @@ lazy val client = project
     scalafmtOnCompile   := true,
     libraryDependencies := Dependencies.Jars.client,
     updateOptions       := updateOptions.value.withGigahorse(false),
-    Docker / publish    := {},
-    publishTo           := {
-      val nexus = s"https://${System.getenv("MAVEN_REPO")}/nexus/repository/"
-
-      if (isSnapshot.value)
-        Some("snapshots" at nexus + "maven-snapshots/")
-      else
-        Some("releases" at nexus + "maven-releases/")
-    }
+    Docker / publish    := {}
   )
 
 lazy val root = (project in file("."))
@@ -103,7 +104,7 @@ lazy val root = (project in file("."))
     Test / parallelExecution    := false,
     scalafmtOnCompile           := true,
     dockerBuildOptions ++= Seq("--network=host"),
-    dockerRepository            := Some(System.getenv("DOCKER_REPO")),
+    dockerRepository            := Some(System.getenv("ECR_R")),
     dockerBaseImage             := "adoptopenjdk:11-jdk-hotspot",
     daemonUser                  := "daemon",
     Docker / version            := (ThisBuild / version).value.replaceAll("-SNAPSHOT", "-latest").toLowerCase,
@@ -117,6 +118,8 @@ lazy val root = (project in file("."))
   .dependsOn(generated)
   .enableContractTest
   .enablePlugins(JavaAppPackaging)
+  .enablePlugins(DockerPlugin)
+  .enablePlugins(NoPublishPlugin)
   .setupBuildInfo
 
 Test / fork := true
