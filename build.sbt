@@ -66,8 +66,6 @@ cleanFiles += baseDirectory.value / "client" / "src"
 
 cleanFiles += baseDirectory.value / "client" / "target"
 
-ThisBuild / credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
 val runStandalone = inputKey[Unit]("Run the app using standalone configuration")
 runStandalone := {
   task(System.setProperty("config.file", "src/main/resources/application-standalone.conf")).value
