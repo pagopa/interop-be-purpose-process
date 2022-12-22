@@ -40,6 +40,7 @@
     <logger name="akka.persistence" level="WARN" />
     <logger name="akka.discovery.kubernetes" level="WARN" />
     <logger name="com.zaxxer.hikari" level="WARN" />
+    <logger name="org.mongodb" level="WARN" />
 
     <logger name="it.pagopa.interop" level="INFO" />
 
