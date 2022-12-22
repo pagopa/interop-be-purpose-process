@@ -11,7 +11,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.model.ChangedBy
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
-import it.pagopa.interop.purposeprocess.api.impl.OrganizationRole.{CONSUMER, PRODUCER, SELF_CONSUMER}
+import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.InternalErrors.{
   OrganizationIsNotTheConsumer,
@@ -62,7 +62,7 @@ final case class PurposeVersionActivation(
     * @param purpose Purpose of the Version
     * @param version Version to activate
     * @param organizationId Organization ID
-    * @param organizationRole The rule assumed by the organization
+    * @param ownership The rule assumed by the organization
     * @return the updated Version
     */
   def activateOrWaitForApproval(
@@ -70,7 +70,7 @@ final case class PurposeVersionActivation(
     purpose: Purpose,
     version: PurposeVersion,
     organizationId: UUID,
-    organizationRole: OrganizationRole
+    ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
     def waitForApproval(): Future[PurposeVersion] =
@@ -98,7 +98,7 @@ final case class PurposeVersionActivation(
 
     }
 
-    (version.state, organizationRole) match {
+    (version.state, ownership) match {
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),

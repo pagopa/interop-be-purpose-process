@@ -6,25 +6,25 @@ import it.pagopa.interop.purposeprocess.error.InternalErrors.OrganizationNotAllo
 
 import java.util.UUID
 
-sealed trait OrganizationRole {
+sealed trait Ownership {
   def toChangedBy: ChangedBy = this match {
-    case OrganizationRole.CONSUMER      => ChangedBy.CONSUMER
-    case OrganizationRole.PRODUCER      => ChangedBy.PRODUCER
-    case OrganizationRole.SELF_CONSUMER => ChangedBy.PRODUCER
+    case Ownership.CONSUMER      => ChangedBy.CONSUMER
+    case Ownership.PRODUCER      => ChangedBy.PRODUCER
+    case Ownership.SELF_CONSUMER => ChangedBy.PRODUCER
   }
 }
 
-object OrganizationRole {
+object Ownership {
 
-  final case object CONSUMER      extends OrganizationRole
-  final case object PRODUCER      extends OrganizationRole
-  final case object SELF_CONSUMER extends OrganizationRole
+  final case object CONSUMER      extends Ownership
+  final case object PRODUCER      extends Ownership
+  final case object SELF_CONSUMER extends Ownership
 
   def getOrganizationRole(
     organizationId: UUID,
     producerId: UUID,
     consumerId: UUID
-  ): Either[OrganizationNotAllowed, OrganizationRole] = {
+  ): Either[OrganizationNotAllowed, Ownership] = {
     if (producerId == consumerId && organizationId == producerId) SELF_CONSUMER.asRight
     else if (producerId != consumerId && organizationId == consumerId) CONSUMER.asRight
     else if (producerId != consumerId && organizationId == producerId) PRODUCER.asRight

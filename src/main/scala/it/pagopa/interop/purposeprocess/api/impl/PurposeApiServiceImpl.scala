@@ -121,14 +121,14 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Creating Purpose {}", seed)
     val result: Future[Purpose] = for {
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      organizationRole <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed       <- PurposeSeedConverter.apiToDependency(seed).toFuture
-      agreements       <- agreementManagementService.getAgreements(seed.eserviceId, seed.consumerId)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      ownership      <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
+      agreements     <- agreementManagementService.getAgreements(seed.eserviceId, seed.consumerId)
       _        <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose  <- purposeManagementService.createPurpose(clientSeed)
       eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      result   <- enhancePurpose(purpose, eService, organizationRole)
+      result   <- enhancePurpose(purpose, eService, ownership)
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, CreatePurposeBadRequest)
@@ -181,14 +181,14 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Updating Purpose {}", purposeId)
     val result: Future[Purpose] = for {
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      purposeUUID      <- purposeId.toFutureUUID
-      purpose          <- purposeManagementService.getPurpose(purposeUUID)
-      organizationRole <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload       <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
-      updatedPurpose   <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-      eService         <- catalogManagementService.getEServiceById(updatedPurpose.eserviceId)
-      enhancedPurpose  <- enhancePurpose(updatedPurpose, eService, organizationRole)
+      organizationId  <- getOrganizationIdFutureUUID(contexts)
+      purposeUUID     <- purposeId.toFutureUUID
+      purpose         <- purposeManagementService.getPurpose(purposeUUID)
+      ownership       <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      depPayload      <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
+      updatedPurpose  <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
+      eService        <- catalogManagementService.getEServiceById(updatedPurpose.eserviceId)
+      enhancedPurpose <- enhancePurpose(updatedPurpose, eService, ownership)
     } yield enhancedPurpose
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, UpdatePurposeBadRequest(purposeId))
@@ -214,14 +214,14 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     logger.info("Retrieving Purpose {}", id)
     val result: Future[Purpose] = for {
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      uuid             <- id.toFutureUUID
-      purpose          <- purposeManagementService.getPurpose(uuid)
-      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      organizationRole <- OrganizationRole
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      uuid           <- id.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(uuid)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      ownership      <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
-      result           <- enhancePurpose(purpose, eService, organizationRole)
+      result         <- enhancePurpose(purpose, eService, ownership)
     } yield result
 
     val defaultProblem: Problem = problemOf(StatusCodes.BadRequest, GetPurposeBadRequest(id))
@@ -253,13 +253,13 @@ final case class PurposeApiServiceImpl(
         ps <- Future
           .traverse(purposes.purposes)(purpose =>
             for {
-              eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
-              organizationRole <- OrganizationRole
+              eService        <- catalogManagementService.getEServiceById(purpose.eserviceId)
+              ownership       <- Ownership
                 .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
                 .toFuture
                 .map(Some(_))
                 .recover(_ => None)
-              enhancedPurpose  <- organizationRole.traverse(enhancePurpose(purpose, eService, _))
+              enhancedPurpose <- ownership.traverse(enhancePurpose(purpose, eService, _))
             } yield enhancedPurpose
           )
       } yield ps.flatten
@@ -368,23 +368,23 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Activating Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
-      purposeUUID      <- purposeId.toFutureUUID
-      versionUUID      <- versionId.toFutureUUID
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      purpose          <- purposeManagementService.getPurpose(purposeUUID)
-      version          <- purpose.versions
+      purposeUUID    <- purposeId.toFutureUUID
+      versionUUID    <- versionId.toFutureUUID
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      version        <- purpose.versions
         .find(_.id == versionUUID)
         .toFuture(ActivatePurposeVersionNotFound(purposeId, versionId))
-      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      organizationRole <- OrganizationRole
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      ownership      <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
-      updatedVersion   <- purposeVersionActivation.activateOrWaitForApproval(
+      updatedVersion <- purposeVersionActivation.activateOrWaitForApproval(
         eService,
         purpose,
         version,
         organizationId,
-        organizationRole
+        ownership
       )
     } yield PurposeVersionConverter.dependencyToApi(updatedVersion)
 
@@ -423,15 +423,15 @@ final case class PurposeApiServiceImpl(
   ): Route = authorize(ADMIN_ROLE) {
     logger.info("Suspending Version {} of Purpose {}", versionId, purposeId)
     val result: Future[PurposeVersion] = for {
-      purposeUUID      <- purposeId.toFutureUUID
-      versionUUID      <- versionId.toFutureUUID
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
-      purpose          <- purposeManagementService.getPurpose(purposeUUID)
-      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      organizationRole <- OrganizationRole
+      purposeUUID    <- purposeId.toFutureUUID
+      versionUUID    <- versionId.toFutureUUID
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      ownership      <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
-      stateDetails = PurposeManagementDependency.StateChangeDetails(organizationRole.toChangedBy)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy)
       response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
@@ -549,27 +549,27 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[OrganizationRole] =
-    if (organizationId == consumerId) Future.successful(OrganizationRole.CONSUMER)
+  def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
+    if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)
     else Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
   def assertOrganizationIsAProducer(organizationId: UUID, eServiceId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[OrganizationRole] =
+  ): Future[Ownership] =
     for {
       eService <- catalogManagementService.getEServiceById(eServiceId)
       _ <- Future.failed(OrganizationIsNotTheProducer(organizationId)).unlessA(organizationId == eService.producerId)
-    } yield OrganizationRole.PRODUCER
+    } yield Ownership.PRODUCER
 
   def enhancePurpose(
     depPurpose: PurposeManagementDependency.Purpose,
     eService: CatalogManagementDependency.EService,
-    organizationRole: OrganizationRole
+    ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[Purpose] = {
     def clientsByUserType(): Future[List[Client]] =
-      organizationRole match {
-        case OrganizationRole.PRODUCER                                  => List.empty[Client].pure[Future]
-        case OrganizationRole.CONSUMER | OrganizationRole.SELF_CONSUMER =>
+      ownership match {
+        case Ownership.PRODUCER                           => List.empty[Client].pure[Future]
+        case Ownership.CONSUMER | Ownership.SELF_CONSUMER =>
           authorizationManagementService
             .getClients(purposeId = depPurpose.id.some)
             .map(_.toList.map(ClientConverter.dependencyToApi))

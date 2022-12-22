@@ -38,7 +38,8 @@ object SpecData {
     interface = None,
     docs = Seq.empty,
     state = CatalogManagement.EServiceDescriptorState.PUBLISHED,
-    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC
+    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC,
+    serverUrls = List.empty
   )
 
   val tenant: Tenant = Tenant(
