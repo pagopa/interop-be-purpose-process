@@ -112,7 +112,8 @@ final case class PurposeVersionActivation(
 
       case (SUSPENDED, CONSUMER)                 =>
         isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval())
-      case (SUSPENDED, PRODUCER | SELF_CONSUMER) => activate(ChangedBy.PRODUCER)
+      case (SUSPENDED, PRODUCER | SELF_CONSUMER) =>
+        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.PRODUCER), waitForApproval())
       case _                                     => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
