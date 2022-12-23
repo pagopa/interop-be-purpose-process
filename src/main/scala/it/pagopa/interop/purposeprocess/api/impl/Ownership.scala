@@ -2,7 +2,7 @@ package it.pagopa.interop.purposeprocess.api.impl
 
 import cats.implicits._
 import it.pagopa.interop.purposemanagement.client.model.ChangedBy
-import it.pagopa.interop.purposeprocess.error.InternalErrors.OrganizationNotAllowed
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.OrganizationNotAllowed
 
 import java.util.UUID
 

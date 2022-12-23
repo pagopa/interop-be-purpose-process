@@ -10,11 +10,10 @@ import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
-import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
 import it.pagopa.interop.purposeprocess.service._
@@ -96,11 +95,11 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result.copy(id = purposeId)))
 
-  def mockPurposeRetrieveError(problem: PurposeProblem) = (mockPurposeManagementService
+  def mockPurposeRetrieveError(purposeId: UUID) = (mockPurposeManagementService
     .getPurpose(_: UUID)(_: Seq[(String, String)]))
     .expects(*, *)
     .once()
-    .returns(Future.failed(PurposeApiError[String](problem.status, "Some error", Some(problem.toJson.prettyPrint))))
+    .returns(Future.failed(PurposeNotFound(purposeId)))
 
   def mockPurposeDelete(purposeId: UUID)(implicit contexts: Seq[(String, String)]) =
     (mockPurposeManagementService

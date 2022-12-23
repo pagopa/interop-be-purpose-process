@@ -1,59 +1,44 @@
 package it.pagopa.interop.purposeprocess.error
 
+import cats.data.NonEmptyChain
 import it.pagopa.interop.commons.utils.errors.ComponentError
+
+import java.util.UUID
 
 object PurposeProcessErrors {
 
-  object CreatePurposeBadRequest extends ComponentError("0001", s"Error creating purpose")
-  final case class GetPurposeBadRequest(purposeId: String)
-      extends ComponentError("0002", s"Error retrieving purpose $purposeId")
-  object GetPurposesBadRequest   extends ComponentError("0003", s"Error retrieving purposes")
+  final case class OrganizationIsNotTheConsumer(organizationId: UUID)
+      extends ComponentError("0001", s"Organization $organizationId is not allowed to perform the operation")
+  final case class OrganizationIsNotTheProducer(organizationId: UUID)
+      extends ComponentError("0002", s"Organization $organizationId is not allowed to perform the operation")
+  final case class OrganizationNotAllowed(organizationId: UUID)
+      extends ComponentError("0003", s"Organization $organizationId is not allowed to perform the operation")
 
-  final case class SuspendPurposeBadRequest(purposeId: String, versionId: String)
-      extends ComponentError("0004", s"Error suspending version $versionId of purpose $purposeId")
-  final case class ArchivePurposeBadRequest(purposeId: String, versionId: String)
-      extends ComponentError("0006", s"Error archiving version $versionId of purpose $purposeId")
+  final case class RiskAnalysisValidationFailed(reason: String)
+      extends ComponentError("0004", s"Risk analysis validation failed. Reasons: $reason")
+  object RiskAnalysisValidationFailed {
+    def apply(failures: NonEmptyChain[RiskAnalysisValidationError]): RiskAnalysisValidationFailed =
+      RiskAnalysisValidationFailed(failures.map(_.message).distinct.iterator.mkString("[", ", ", "]"))
+  }
 
-  object OnlyConsumerAllowedError
-      extends ComponentError("0007", s"Only the Consumer is allowed to perform this operation")
-  object OnlyProducerAllowedError
-      extends ComponentError("0008", s"Only the Producer is allowed to perform this operation")
-  object OrganizationNotAllowedError
-      extends ComponentError("0009", s"Organization is not allowed to perform this operation")
-
-  final case class RiskAnalysisFormError(errorMessage: String)
-      extends ComponentError("0010", s"Risk analysis validation failed. $errorMessage")
-
-  final case class CreatePurposeVersionBadRequest(purposeId: String)
-      extends ComponentError("0011", s"Error creating version for purpose $purposeId")
-
-  final case class ActivatePurposeBadRequest(purposeId: String, versionId: String)
-      extends ComponentError("0012", s"Error activating version $versionId for purpose $purposeId")
-  final case class ActivatePurposeVersionNotFound(purposeId: String, versionId: String)
-      extends ComponentError("0013", s"Version $versionId of Purpose $purposeId not found")
   final case class AgreementNotFound(eServiceId: String, consumerId: String)
-      extends ComponentError("0014", s"No Agreement found for EService $eServiceId and Consumer $consumerId")
+      extends ComponentError("0005", s"No Agreement found for EService $eServiceId and Consumer $consumerId")
   final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
-      extends ComponentError("0015", s"Descriptor $descriptorId not found for EService $eServiceId")
+      extends ComponentError("0006", s"Descriptor $descriptorId not found for EService $eServiceId")
 
-  final case class MissingRiskAnalysis(purposeId: String, versionId: String)
-      extends ComponentError("0016", s"Version $versionId of Purpose $purposeId must contain a valid risk analysis")
-  final case class UpdatePurposeBadRequest(purposeId: String)
-      extends ComponentError("0017", s"Error updating Purpose $purposeId")
+  final case class MissingRiskAnalysis(purposeId: UUID, versionId: UUID)
+      extends ComponentError("0007", s"Version $versionId of Purpose $purposeId must contain a valid risk analysis")
 
-  final case class UndeletableVersionError(purposeId: String)
-      extends ComponentError("0018", s"Purpose $purposeId versions are not drafts or are more than one")
-  object DeletePurposeBadRequest extends ComponentError("0019", s"Error deleting purpose")
-  final case class DeletePurposeVersionError(purposeId: String, versionId: String)
-      extends ComponentError("0020", s"Error deleting version $versionId of purpose $purposeId")
+  final case class PurposeCannotBeDeleted(purposeId: String)
+      extends ComponentError("0008", s"Versions in Purpose $purposeId do not allow deletion")
+  final case class PurposeVersionCannotBeDeleted(purposeId: String, versionId: String)
+      extends ComponentError("0009", s"Version $versionId of Purpose $purposeId cannot be deleted")
 
-  final case class GetPurposeVersionDocumentBadRequest(purposeId: String, versionId: String, documentId: String)
-      extends ComponentError("0021", s"Error retrieving purpose version document $purposeId/$versionId/$documentId")
-  final case class PurposeVersionNotFound(purposeId: String, versionId: String)
-      extends ComponentError("0022", s"Version $versionId of Purpose $purposeId not found")
+  final case class PurposeVersionNotFound(purposeId: UUID, versionId: UUID)
+      extends ComponentError("0010", s"Version $versionId of Purpose $purposeId not found")
   final case class PurposeVersionDocumentNotFound(purposeId: String, versionId: String, documentId: String)
-      extends ComponentError("0023", s"Document $documentId of version $versionId of Purpose $purposeId not found")
+      extends ComponentError("0011", s"Document $documentId of version $versionId of Purpose $purposeId not found")
 
-  final case object MissingSelfcareId extends ComponentError("0024", "Missing selfcareId in tenant")
+  final case class PurposeNotFound(purposeId: UUID) extends ComponentError("0012", s"Purpose $purposeId not found")
 
 }

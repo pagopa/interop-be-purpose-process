@@ -4,15 +4,13 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
-import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
-import it.pagopa.interop.purposeprocess.api.converters._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.{Problem, PurposeVersion}
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import spray.json._
 
 import java.util.UUID
 import scala.concurrent.Future
@@ -31,9 +29,10 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ARCHIVED)
+      val version = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ARCHIVED)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
@@ -60,20 +59,17 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
-      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
-      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
-      val apiError                                  =
-        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
-
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purposeId, *)
         .once()
-        .returns(Future.failed(apiError))
+        .returns(Future.failed(PurposeNotFound(purposeId)))
 
       Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
-        responseAs[Problem] shouldEqual expectedProblem
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.NotFound.intValue
+        problem.errors.head.code shouldBe "012-0012"
       }
     }
 
@@ -91,7 +87,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0007"
+        problem.errors.head.code shouldBe "012-0001"
       }
     }
   }
@@ -105,9 +101,10 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
+      val version = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (mockPurposeManagementService
@@ -147,9 +144,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
 
-      val updatedVersion = SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
+      val version = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId))
+      mockPurposeRetrieve(
+        purposeId,
+        SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId, versions = Seq(version))
+      )
       mockEServiceRetrieve(eServiceId, SpecData.eService.copy(producerId = producerId))
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
@@ -177,20 +178,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
-      val purposeProblem: PurposeManagement.Problem = SpecData.purposeProblem.copy(status = 404)
-      val expectedProblem: Problem                  = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
-      val apiError                                  =
-        PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
-
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purposeId, *)
         .once()
-        .returns(Future.failed(apiError))
+        .returns(Future.failed(PurposeNotFound(purposeId)))
 
       Get() ~> service.suspendPurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
-        responseAs[Problem] shouldEqual expectedProblem
       }
     }
 
@@ -214,7 +209,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0009"
+        problem.errors.head.code shouldBe "012-0003"
       }
     }
   }
@@ -293,7 +288,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0007"
+        problem.errors.head.code shouldBe "012-0001"
       }
     }
 
@@ -776,7 +771,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0008"
+        problem.errors.head.code shouldBe "012-0002"
       }
     }
 
@@ -899,7 +894,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0009"
+        problem.errors.head.code shouldBe "012-0003"
       }
     }
 
@@ -933,7 +928,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0009"
+        problem.errors.head.code shouldBe "012-0003"
       }
     }
 
@@ -968,7 +963,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0009"
+        problem.errors.head.code shouldBe "012-0003"
       }
     }
 
@@ -1002,7 +997,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0009"
+        problem.errors.head.code shouldBe "012-0003"
       }
     }
 
@@ -1047,7 +1042,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
-        problem.errors.head.code shouldBe "012-0016"
+        problem.errors.head.code shouldBe "012-0007"
       }
     }
   }

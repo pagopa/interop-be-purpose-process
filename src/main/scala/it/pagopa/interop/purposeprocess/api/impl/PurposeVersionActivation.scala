@@ -8,16 +8,10 @@ import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.model.ChangedBy
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
-import it.pagopa.interop.purposeprocess.error.InternalErrors.{
-  OrganizationIsNotTheConsumer,
-  OrganizationIsNotTheProducer,
-  OrganizationNotAllowed
-}
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service._
@@ -225,9 +219,7 @@ final case class PurposeVersionActivation(
     eServiceInfo: EServiceInfo
   ): Future[String] = {
     for {
-      riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(
-        MissingRiskAnalysis(purpose.id.toString, version.id.toString)
-      )
+      riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
         riskAnalysisTemplate,
         riskAnalysisForm,
