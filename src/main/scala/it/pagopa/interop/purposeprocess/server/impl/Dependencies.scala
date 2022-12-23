@@ -29,8 +29,13 @@ import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.impl._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
+
+  implicit val loggerTI: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
   val uuidSupplier: UUIDSupplier               = UUIDSupplier
   val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier

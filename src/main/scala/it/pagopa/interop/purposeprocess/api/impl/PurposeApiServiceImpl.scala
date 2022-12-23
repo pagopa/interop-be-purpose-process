@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.{ContentType, HttpEntity, MediaTypes, StatusCode
 import akka.http.scaladsl.server.Directives.{complete, onComplete}
 import akka.http.scaladsl.server.{Route, StandardRoute}
 import cats.implicits._
-import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.agreementmanagement.client.invoker.{ApiError => AgreementApiError}
 import it.pagopa.interop.authorizationmanagement.client.invoker.{ApiError => AuthorizationApiError}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
@@ -58,7 +58,8 @@ final case class PurposeApiServiceImpl(
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
 
-  private val logger = Logger.takingImplicit[ContextFieldsToLog](this.getClass)
+  private val logger: LoggerTakingImplicit[ContextFieldsToLog] =
+    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   private[this] def authorize(roles: String*)(
     route: => Route
