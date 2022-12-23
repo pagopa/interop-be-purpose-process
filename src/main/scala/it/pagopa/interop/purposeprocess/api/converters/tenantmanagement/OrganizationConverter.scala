@@ -1,4 +1,4 @@
-package it.pagopa.interop.purposeprocess.api.converters.partymanagement
+package it.pagopa.interop.purposeprocess.api.converters.tenantmanagement
 
 import it.pagopa.interop.tenantmanagement.client.model.Tenant
 import it.pagopa.interop.purposeprocess.model.Organization

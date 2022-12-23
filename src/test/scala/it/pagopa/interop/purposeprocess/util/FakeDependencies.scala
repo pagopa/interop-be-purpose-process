@@ -1,19 +1,18 @@
 package it.pagopa.interop.purposeprocess.util
 
+import cats.syntax.all._
 import it.pagopa.interop.agreementmanagement.client.model.Agreement
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.catalogmanagement.client.model.{Attributes, EService, EServiceTechnology}
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.selfcare.partymanagement.client.model._
-import cats.syntax.all._
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
+
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.tenantmanagement.client.model.Tenant
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.tenantmanagement.client.model.ExternalId
+import scala.concurrent.Future
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -183,28 +182,6 @@ object FakeDependencies {
     ): Future[Unit] = Future.successful(())
   }
 
-  class FakePartyManagementService extends PartyManagementService {
-
-    override def getActiveRelationships(from: UUID, to: String)(implicit
-      contexts: Seq[(String, String)],
-      ec: ExecutionContext
-    ): Future[Relationships] = Future.successful(
-      Relationships(
-        Seq(
-          Relationship(
-            id = UUID.randomUUID(),
-            from = InvokerUUID.id,
-            to = UUID.randomUUID(),
-            role = PartyRole.MANAGER,
-            product = RelationshipProduct(id = "p1", role = "admin", createdAt = OffsetDateTime.now()),
-            state = RelationshipState.PENDING,
-            createdAt = OffsetDateTime.now()
-          )
-        )
-      )
-    )
-  }
-
   class FakeAgreementManagementService extends AgreementManagementService {
     override def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit
       contexts: Seq[(String, String)]
@@ -232,7 +209,7 @@ object FakeDependencies {
       Future.successful(
         Tenant(
           id = UUID.randomUUID(),
-          selfcareId = UUID.randomUUID().toString().some,
+          selfcareId = UUID.randomUUID().toString.some,
           externalId = ExternalId("Foo", "Bar"),
           features = Nil,
           attributes = Nil,

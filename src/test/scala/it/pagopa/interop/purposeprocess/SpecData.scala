@@ -1,20 +1,18 @@
 package it.pagopa.interop.purposeprocess
 
-import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
-import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagement}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
-import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
-import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
-import it.pagopa.interop.purposeprocess.model._
 import cats.syntax.all._
 import it.pagopa.interop.agreementmanagement.client.model.Stamps
+import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
+import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
+import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
+import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
+import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
-import it.pagopa.interop.tenantmanagement.client.model.Tenant
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.tenantmanagement.client.model.ExternalId
 
 object SpecData {
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
@@ -40,7 +38,8 @@ object SpecData {
     interface = None,
     docs = Seq.empty,
     state = CatalogManagement.EServiceDescriptorState.PUBLISHED,
-    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC
+    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC,
+    serverUrls = List.empty
   )
 
   val tenant: Tenant = Tenant(
@@ -54,26 +53,6 @@ object SpecData {
     mails = Nil,
     name = "test_name"
   )
-
-  def relationships(from: UUID = UUID.randomUUID(), to: UUID = UUID.randomUUID()): PartyManagement.Relationships =
-    PartyManagement.Relationships(items =
-      Seq(
-        PartyManagement.Relationship(
-          id = UUID.randomUUID(),
-          from = from,
-          to = to,
-          filePath = None,
-          fileName = None,
-          contentType = None,
-          tokenId = None,
-          role = PartyManagement.PartyRole.MANAGER,
-          product = PartyManagement.RelationshipProduct("a", "b", timestamp),
-          state = PartyManagement.RelationshipState.ACTIVE,
-          createdAt = timestamp,
-          updatedAt = None
-        )
-      )
-    )
 
   val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
@@ -212,14 +191,6 @@ object SpecData {
     title = "A title",
     detail = None,
     errors = Seq(CatalogManagement.ProblemError(code = "AAA-BBBB", detail = "Error details"))
-  )
-
-  val partyProblem: PartyManagement.Problem = PartyManagement.Problem(
-    `type` = "something",
-    status = 400,
-    title = "A title",
-    detail = None,
-    errors = Seq(PartyManagement.ProblemError(code = "AAA-BBBB", detail = "Error details"))
   )
 
   val purposeProblem: PurposeManagement.Problem = PurposeManagement.Problem(
