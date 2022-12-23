@@ -605,7 +605,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "succeed from Suspend to Active if load exceeded and Producer is also Consumer" in {
+    "succeed from Suspend to Waiting for Approval if load exceeded and Producer is also Consumer" in {
 
       val eServiceId   = UUID.randomUUID()
       val consumerId   = UUID.randomUUID()
@@ -629,16 +629,23 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1))
+
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 1000)
       val eService   = SpecData.eService.copy(id = eServiceId, producerId = consumerId, descriptors = Seq(descriptor))
 
-      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose1)
 
       mockEServiceRetrieve(eServiceId, eService)
-      mockVersionActivate(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockVersionLoadValidation(purpose1, purposes, descriptorId)
+      mockVersionWaitForApproval(
+        purposeId,
+        versionId,
+        PurposeManagement.StateChangeDetails(PurposeManagement.ChangedBy.PRODUCER),
+        updatedVersion
+      )
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -646,7 +653,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "succeed from Suspend when requested by Producer if load not exceeded" in {
+    "succeed from Suspend to Active when requested by Producer if load not exceeded" in {
 
       val eServiceId   = UUID.randomUUID()
       val consumerId   = UUID.randomUUID()
@@ -671,6 +678,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1))
+
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
@@ -678,6 +687,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
+      mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
 
@@ -687,7 +697,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "succeed from Suspend when requested by Producer if load exceeded" in {
+    "succeed from Suspend to Waiting for Approval when requested by Producer if load exceeded" in {
 
       val eServiceId   = UUID.randomUUID()
       val consumerId   = UUID.randomUUID()
@@ -712,6 +722,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val purpose1   =
         SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version, version1_2))
 
+      val purposes = SpecData.purposes.copy(purposes = Seq(purpose1))
+
       val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
@@ -719,8 +731,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
-      mockVersionActivate(purposeId, versionId, updatedVersion)
-      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      mockVersionLoadValidation(purpose1, purposes, descriptorId)
+      mockVersionWaitForApproval(
+        purposeId,
+        versionId,
+        PurposeManagement.StateChangeDetails(PurposeManagement.ChangedBy.PRODUCER),
+        updatedVersion
+      )
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK

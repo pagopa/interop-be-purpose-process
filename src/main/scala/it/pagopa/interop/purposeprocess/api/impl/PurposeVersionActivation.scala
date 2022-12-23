@@ -73,12 +73,8 @@ final case class PurposeVersionActivation(
     ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
-    def waitForApproval(): Future[PurposeVersion] =
-      purposeManagementService.waitForApprovalPurposeVersion(
-        purpose.id,
-        version.id,
-        StateChangeDetails(ChangedBy.CONSUMER)
-      )
+    def waitForApproval(changedBy: ChangedBy): Future[PurposeVersion] =
+      purposeManagementService.waitForApprovalPurposeVersion(purpose.id, version.id, StateChangeDetails(changedBy))
 
     def activate(changedBy: ChangedBy): Future[PurposeVersion] = {
       val payload: ActivatePurposeVersionPayload =
@@ -102,7 +98,7 @@ final case class PurposeVersionActivation(
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
-          waitForApproval()
+          waitForApproval(ChangedBy.CONSUMER)
         )
       case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
@@ -111,9 +107,9 @@ final case class PurposeVersionActivation(
         firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
 
       case (SUSPENDED, CONSUMER)                 =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval())
+        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval(ChangedBy.CONSUMER))
       case (SUSPENDED, PRODUCER | SELF_CONSUMER) =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.PRODUCER), waitForApproval())
+        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.PRODUCER), waitForApproval(ChangedBy.PRODUCER))
       case _                                     => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
