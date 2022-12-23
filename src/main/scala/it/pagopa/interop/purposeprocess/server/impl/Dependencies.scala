@@ -12,9 +12,9 @@ import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
-import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service._
+import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
 import it.pagopa.interop.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
@@ -25,15 +25,12 @@ import it.pagopa.interop.purposeprocess.api.impl.{
 }
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
-import it.pagopa.interop.purposeprocess.service.impl._
 import it.pagopa.interop.purposeprocess.service._
+import it.pagopa.interop.purposeprocess.service.impl._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 trait Dependencies {
-
-  implicit val partyManagementApiKeyValue: PartyManagementApiKeyValue = PartyManagementApiKeyValue()
 
   val uuidSupplier: UUIDSupplier               = UUIDSupplier
   val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
@@ -80,7 +77,6 @@ trait Dependencies {
         agreementManagement(blockingEc),
         authorizationManagement(blockingEc),
         catalogManagement(blockingEc),
-        partyManagement(),
         purposeManagement(blockingEc),
         new TenantManagementServiceImpl(ApplicationConfiguration.tenantManagementURL, blockingEc),
         fileManager,
@@ -136,20 +132,11 @@ trait Dependencies {
     actorSystem: ActorSystem[_]
   ): CatalogManagementService = CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
 
-  private def partyManagementInvoker()(implicit actorSystem: ActorSystem[_]): PartyManagementInvoker =
-    PartyManagementInvoker()(actorSystem.classicSystem)
-  private final val partyManagementApi: PartyManagementApi = PartyManagementApi(
-    ApplicationConfiguration.partyManagementURL
-  )
-
-  def partyManagement()(implicit actorSystem: ActorSystem[_]): PartyManagementService =
-    PartyManagementServiceImpl(partyManagementInvoker(), partyManagementApi)
-
   private def purposeManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
   ): PurposeManagementInvoker =
     PurposeManagementInvoker(blockingEc)(actorSystem.classicSystem)
-  private final val purposeManagementApi: PurposeManagementApi                        = PurposeManagementApi(
+  private final val purposeManagementApi: PurposeManagementApi                           = PurposeManagementApi(
     ApplicationConfiguration.purposeManagementURL
   )
 

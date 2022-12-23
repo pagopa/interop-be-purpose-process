@@ -1,6 +1,7 @@
 package it.pagopa.interop.purposeprocess
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.server.directives.FileInfo
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
@@ -9,7 +10,8 @@ import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.selfcare.partymanagement.client.{model => PartyManagement}
+import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
+import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
@@ -19,14 +21,10 @@ import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
 import spray.json._
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
-import akka.http.scaladsl.server.directives.FileInfo
-import java.io.ByteArrayOutputStream
-import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
-import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
@@ -39,7 +37,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockfileManager: FileManager                                       = mock[FileManager]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
-  val mockPartyManagementService: PartyManagementService                 = mock[PartyManagementService]
   val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
@@ -52,7 +49,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementManagementService,
     mockAuthorizationManagementService,
     mockCatalogManagementService,
-    mockPartyManagementService,
     mockPurposeManagementService,
     mockTenantManagementService,
     mockfileManager,
@@ -145,25 +141,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result))
 
-  def mockRelationshipsRetrieve(
-    from: UUID,
-    to: UUID,
-    selfcareId: String,
-    result: PartyManagement.Relationships = SpecData.relationships()
-  ) = {
-
+  def mockTenantRetrieve(tenantId: UUID) =
     (mockTenantManagementService
       .getTenant(_: UUID)(_: Seq[(String, String)]))
-      .expects(to, *)
+      .expects(tenantId, *)
       .once()
-      .returns(Future.successful(SpecData.tenant.copy(id = to, selfcareId = Some(selfcareId))))
-
-    (mockPartyManagementService
-      .getActiveRelationships(_: UUID, _: String)(_: Seq[(String, String)], _: ExecutionContext))
-      .expects(from, selfcareId, *, *)
-      .once()
-      .returns(Future.successful(result))
-  }
+      .returns(Future.successful(SpecData.tenant.copy(id = tenantId)))
 
   def mockRiskAnalysisPdfCreation() = {
     val documentId = UUID.randomUUID()
@@ -258,36 +241,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result))
 
-  def mockAssertUserConsumer(
-    userId: UUID,
-    consumerId: UUID,
-    selfcareId: String,
-    result: PartyManagement.Relationships
-  ) =
-    mockRelationshipsRetrieve(userId, consumerId, selfcareId, result)
-
-  def mockAssertUserProducerIfNotConsumer(
-    userId: UUID,
-    consumerId: UUID,
-    selfcareId: String,
-    eService: CatalogManagement.EService,
-    relationships: PartyManagement.Relationships
-  )(implicit contexts: Seq[(String, String)]) = {
-    mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships().copy(items = Seq.empty))
-    mockEServiceRetrieve(eService.id, eService)
-    mockRelationshipsRetrieve(userId, eService.producerId, selfcareId, relationships)
-  }
-
-  def mockAssertUserProducer(
-    userId: UUID,
-    selfcareId: String,
-    eService: CatalogManagement.EService,
-    relationships: PartyManagement.Relationships
-  )(implicit contexts: Seq[(String, String)]) = {
-    mockEServiceRetrieve(eService.id, eService)
-    mockRelationshipsRetrieve(userId, eService.producerId, selfcareId, relationships)
-  }
-
   def mockClientStateUpdate(purposeId: UUID, versionId: UUID, state: AuthorizationManagement.ClientComponentState)(
     implicit contexts: Seq[(String, String)]
   ) =
@@ -315,16 +268,11 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .returning(Future.unit)
       .once()
 
-  def mockPurposeEnhancement(
-    purpose: PurposeManagement.Purpose,
-    isConsumer: Boolean,
-    eService: Option[CatalogManagement.EService] = None
-  )(implicit contexts: Seq[(String, String)]): Unit = {
-    val agreement      = SpecData.agreement
-    val descriptor     = SpecData.descriptor.copy(id = agreement.descriptorId)
-    val actualEService = eService.getOrElse(SpecData.eService).copy(descriptors = Seq(descriptor))
+  def mockPurposeEnhancement(purpose: PurposeManagement.Purpose, isConsumer: Boolean)(implicit
+    contexts: Seq[(String, String)]
+  ): Unit = {
+    val agreement = SpecData.agreement
     mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
-    mockEServiceRetrieve(purpose.eserviceId, actualEService)
     mockOrganizationRetrieve(agreement.producerId)
     mockOrganizationRetrieve(agreement.consumerId)
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
@@ -342,9 +290,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   implicit def catalogProblemErrorFormat: RootJsonFormat[CatalogManagement.ProblemError] =
     jsonFormat2(CatalogManagement.ProblemError)
   implicit def catalogProblemFormat: RootJsonFormat[CatalogManagement.Problem] = jsonFormat5(CatalogManagement.Problem)
-  implicit def partyProblemErrorFormat: RootJsonFormat[PartyManagement.ProblemError] =
-    jsonFormat2(PartyManagement.ProblemError)
-  implicit def partyProblemFormat: RootJsonFormat[PartyManagement.Problem] = jsonFormat5(PartyManagement.Problem)
   implicit def purposeProblemErrorFormat: RootJsonFormat[PurposeManagement.ProblemError] =
     jsonFormat2(PurposeManagement.ProblemError)
   implicit def purposeProblemFormat: RootJsonFormat[PurposeManagement.Problem] = jsonFormat5(PurposeManagement.Problem)

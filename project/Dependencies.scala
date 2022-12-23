@@ -1,5 +1,5 @@
-import Versions._
 import PagopaVersions._
+import Versions._
 import sbt._
 
 object Dependencies {
@@ -35,8 +35,6 @@ object Dependencies {
       namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
     lazy val catalogManagementClient =
       namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
-    lazy val partyManagementClient =
-      namespace %% "interop-selfcare-party-management-client" % partyManagementVersion
 
     lazy val commons     = namespace %% "interop-commons-utils"        % commonsVersion
     lazy val fileManager = namespace %% "interop-commons-file-manager" % commonsVersion
@@ -103,7 +101,6 @@ object Dependencies {
       pagopa.authorizationManagementClient % Compile,
       pagopa.purposeManagementClient       % Compile,
       pagopa.catalogManagementClient       % Compile,
-      pagopa.partyManagementClient         % Compile,
       pagopa.tenantManagementClient        % Compile,
       pagopa.commons                       % Compile,
       pagopa.fileManager                   % Compile,

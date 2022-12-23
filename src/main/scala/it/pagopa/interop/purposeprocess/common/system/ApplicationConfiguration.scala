@@ -11,7 +11,6 @@ object ApplicationConfiguration {
   val agreementManagementURL: String     = config.getString("purpose-process.services.agreement-management")
   val authorizationManagementURL: String = config.getString("purpose-process.services.authorization-management")
   val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
-  val partyManagementURL: String         = config.getString("purpose-process.services.party-management")
   val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
   val tenantManagementURL: String        = config.getString("purpose-process.services.tenant-management")
 
@@ -21,5 +20,4 @@ object ApplicationConfiguration {
 
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
 
-  val partyManagementApiKey: String = config.getString("purpose-process.api-keys.party-management")
 }

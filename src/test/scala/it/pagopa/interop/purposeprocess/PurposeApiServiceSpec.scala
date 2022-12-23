@@ -1,31 +1,28 @@
 package it.pagopa.interop.purposeprocess
 
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ContentType, MediaTypes, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import it.pagopa.interop.commons.utils.{UID, USER_ROLES}
+import akka.util.ByteString
+import cats.implicits._
+import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError => PurposeApiError}
 import it.pagopa.interop.purposemanagement.client.model.{Problem => PurposeProblem}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.interop.purposeprocess.SpecData.{timestamp}
+import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
-import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
+import it.pagopa.interop.purposeprocess.api.impl.{PurposeApiMarshallerImpl, problemOf}
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.model._
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import spray.json._
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Future
-import java.time.OffsetDateTime
-import cats.implicits._
-import akka.http.scaladsl.model.{ContentType, MediaTypes}
-import org.scalatest.concurrent.ScalaFutures
-import akka.util.ByteString
-
 import scala.util.Random
-import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
-import it.pagopa.interop.purposeprocess.api.impl.problemOf
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
@@ -33,14 +30,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose creation" should {
     "succeed without risk analysis" in {
-      val userId     = UUID.randomUUID()
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -64,7 +59,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
@@ -72,6 +66,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(PurposeSeedConverter.apiToDependency(seed).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
+
+      mockEServiceRetrieve(
+        managementResponse.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
 
       mockPurposeEnhancement(managementResponse, isConsumer = true)
 
@@ -82,14 +85,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed with valid risk analysis" in {
-      val userId     = UUID.randomUUID()
+
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -113,7 +115,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
@@ -121,6 +122,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(PurposeSeedConverter.apiToDependency(seed).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
+
+      mockEServiceRetrieve(
+        managementResponse.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
 
       mockPurposeEnhancement(managementResponse, isConsumer = true)
 
@@ -131,12 +141,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on incorrect risk analysis" in {
-      val userId     = UUID.randomUUID()
+
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val incorrectRiskAnalysis =
         RiskAnalysisForm(
@@ -161,13 +171,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if Agreement does not exist" in {
-      val userId     = UUID.randomUUID()
+
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -177,7 +186,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None
       )
 
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId, Seq.empty)
 
       Get() ~> service.createPurpose(seed) ~> check {
@@ -189,13 +197,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on Purpose Management error" in {
-      val userId     = UUID.randomUUID()
+
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -210,7 +217,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val apiError                       =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships())
       mockAgreementsRetrieve(eServiceId, consumerId)
 
       (mockPurposeManagementService
@@ -228,12 +234,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose retrieve" should {
     "succeed if requested by consumer" in {
-      val purposeId  = UUID.randomUUID()
-      val userId     = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
+      val purposeId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq(
+          "bearer"              -> bearerToken,
+          USER_ROLES            -> "admin",
+          ORGANIZATION_ID_CLAIM -> SpecData.purpose.consumerId.toString
+        )
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -241,7 +249,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
-      mockAssertUserConsumer(userId, SpecData.purpose.consumerId, selfcareId, SpecData.relationships())
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       mockPurposeEnhancement(SpecData.purpose, isConsumer = true)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -254,14 +271,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
     "succeed if requested by producer" in {
       val purposeId  = UUID.randomUUID()
-      val userId     = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
+      val producerId = UUID.randomUUID()
+
+      val purpose = SpecData.purpose
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
-
-      val purpose  = SpecData.purpose
-      val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -269,7 +284,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purpose))
 
-      mockAssertUserProducerIfNotConsumer(userId, purpose.consumerId, selfcareId, eService, SpecData.relationships())
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
       mockPurposeEnhancement(purpose, isConsumer = false)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -282,10 +305,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
     "fail if Purpose does not exist" in {
       val purposeId = UUID.randomUUID()
-      val userId    = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -304,16 +326,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if User is not a Consumer or a Producer" in {
-      val purposeId  = UUID.randomUUID()
-      val userId     = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
-
-      val purpose  = SpecData.purpose
-      val eService = SpecData.eService.copy(id = purpose.eserviceId, producerId = UUID.randomUUID())
+    "fail if Organization is not a Consumer or a Producer" in {
+      val purposeId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -321,12 +338,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purpose))
 
-      mockAssertUserProducerIfNotConsumer(
-        userId,
-        SpecData.purpose.consumerId,
-        selfcareId,
-        eService,
-        SpecData.relationships().copy(items = Seq.empty)
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
       )
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -340,13 +359,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purposes listing" should {
     "succeed" in {
-      val userId     = UUID.randomUUID()
+
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purpose = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
       val purposes: PurposeManagementDependency.Purposes =
@@ -368,7 +386,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(purposes))
 
       purposes.purposes.foreach { purpose =>
-        mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships())
+        mockEServiceRetrieve(
+          purpose.eserviceId,
+          SpecData.eService
+            .copy(
+              producerId = SpecData.agreement.producerId,
+              descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+            )
+        )
         mockPurposeEnhancement(purpose, isConsumer = true)
       }
 
@@ -379,10 +404,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed showing only authorized purposes" in {
-      val userId        = UUID.randomUUID()
-      val ownEServiceId = UUID.randomUUID()
-      val ownConsumerId = UUID.randomUUID()
-      val ownProducerId = UUID.randomUUID()
+
+      val ownEServiceId     = UUID.randomUUID()
+      val ownOrganizationId = UUID.randomUUID()
 
       val purposeAsConsumerId   = UUID.randomUUID()
       val purposeAsProducerId   = UUID.randomUUID()
@@ -392,15 +416,17 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val otherConsumerId2 = UUID.randomUUID()
       val otherEServiceId1 = UUID.randomUUID()
       val otherEServiceId2 = UUID.randomUUID()
-      val otherProducerId  = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> ownOrganizationId.toString)
 
-      val ownEService         = SpecData.eService.copy(id = ownEServiceId, producerId = ownProducerId)
-      val otherEService1      = SpecData.eService.copy(id = otherEServiceId1, producerId = otherProducerId)
+      val ownEService         = SpecData.eService.copy(
+        id = ownEServiceId,
+        producerId = ownOrganizationId,
+        descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+      )
       val purposeAsConsumer   =
-        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownConsumerId, eserviceId = otherEServiceId2)
+        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownOrganizationId, eserviceId = otherEServiceId2)
       val purposeAsProducer   =
         SpecData.purpose.copy(id = purposeAsProducerId, consumerId = otherConsumerId2, eserviceId = ownEServiceId)
       val purposeUnauthorized =
@@ -419,26 +445,29 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposes))
 
-      // Consumer Purpose
-      mockAssertUserConsumer(userId, ownConsumerId, "randomSelfcareId1", SpecData.relationships(userId, ownConsumerId))
+      mockEServiceRetrieve(
+        purposeAsConsumer.eserviceId,
+        SpecData.eService
+          .copy(
+            id = purposeAsConsumer.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
       mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
-      // Producer Purpose
-      mockAssertUserProducerIfNotConsumer(
-        userId,
-        otherConsumerId2,
-        "randomSelfcareId2",
-        ownEService,
-        SpecData.relationships(userId, ownProducerId)
+
+      mockEServiceRetrieve(ownEService.id, ownEService)
+
+      mockEServiceRetrieve(
+        purposeUnauthorized.eserviceId,
+        SpecData.eService
+          .copy(
+            id = purposeUnauthorized.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
       )
-      mockPurposeEnhancement(purposeAsProducer, isConsumer = false, eService = Some(ownEService))
-      // Purpose not allowed
-      mockAssertUserProducerIfNotConsumer(
-        userId,
-        otherConsumerId1,
-        "randomSelfcareId3",
-        otherEService1,
-        SpecData.relationships().copy(items = Seq.empty)
-      )
+      mockPurposeEnhancement(purposeAsProducer, isConsumer = false)
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
         status shouldEqual StatusCodes.OK
@@ -454,10 +483,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
       val apiError                       =
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
-      val userId                         = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       (
         mockPurposeManagementService
@@ -480,24 +508,20 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     import PurposeManagementDependency.PurposeVersionState._
 
     "succeed if there are no versions" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val managementResponse =
         SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
       mockClientsRetrieve(Some(purposeId), Seq.empty)
       mockPurposeDelete(purposeId)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -506,14 +530,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed if there is just one version in draft" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeDraftVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
@@ -526,13 +549,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           versions = Seq(purposeDraftVersion)
         )
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
       mockClientsRetrieve(Some(purposeId), Seq.empty)
       mockPurposeDelete(purposeId)
       mockPurposeVersionDelete(purposeId, purposeDraftVersion.id)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -541,14 +561,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed if there is just one version in draft associated with a client" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeDraftVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.DRAFT)
@@ -561,14 +580,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           versions = Seq(purposeDraftVersion)
         )
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
       mockClientsRetrieve(Some(purposeId), Seq(SpecData.client))
       mockPurposeFromClientRemoval(purposeId, SpecData.client.id)
       mockPurposeDelete(purposeId)
       mockPurposeVersionDelete(purposeId, purposeDraftVersion.id)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -577,14 +593,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed if there is just one version in waiting for approval associated with a client" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeVersion =
         SpecData.purposeVersion.copy(state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
@@ -597,14 +612,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           versions = Seq(purposeVersion)
         )
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
       mockClientsRetrieve(Some(purposeId), Seq(SpecData.client))
       mockPurposeFromClientRemoval(purposeId, SpecData.client.id)
       mockPurposeDelete(purposeId)
       mockPurposeVersionDelete(purposeId, purposeVersion.id)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -612,15 +624,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if the user is not a consumer" in {
-      val userId     = UUID.randomUUID()
+    "fail if the organization is not a consumer" in {
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
 
@@ -633,7 +643,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       mockPurposeRetrieve(purposeId, managementResponse)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships().copy(items = Seq.empty))
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -643,14 +652,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if there is more than one version despite the state" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeDraftVersion    = SpecData.purposeVersion.copy(state = DRAFT)
       val purposeNonDraftVersion = SpecData.purposeVersion.copy(state = ACTIVE)
@@ -663,10 +671,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           versions = Seq(purposeDraftVersion, purposeNonDraftVersion)
         )
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -676,14 +681,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if there is one version not in a deletable state" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = SUSPENDED)
 
@@ -695,10 +699,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           versions = Seq(purposeVersion)
         )
 
-      val partyManagementResponse = SpecData.relationships(from = userId, to = consumerId)
-
       mockPurposeRetrieve(purposeId, managementResponse)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, partyManagementResponse)
 
       Delete() ~> service.deletePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -712,22 +713,20 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     import PurposeManagementDependency.PurposeVersionState._
 
     "succeed" in {
-      val userId     = UUID.randomUUID()
+
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val managementResponse =
         SpecData.purpose.copy(id = purposeId, eserviceId = eserviceId, consumerId = consumerId, versions = Seq.empty)
 
       mockPurposeRetrieve(purposeId, managementResponse)
       mockPurposeVersionDelete(purposeId, versionId)
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships(userId, consumerId))
 
       Delete() ~> service.deletePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.NoContent
@@ -735,16 +734,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
-    "fail if the user is not a consumer" in {
-      val userId     = UUID.randomUUID()
+    "fail if the organization is not a consumer" in {
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
       val versionId  = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeVersion = SpecData.purposeVersion.copy(state = WAITING_FOR_APPROVAL)
 
@@ -757,7 +754,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       mockPurposeRetrieve(purposeId, managementResponse)
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships().copy(items = Seq.empty))
 
       Delete() ~> service.deletePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -769,14 +765,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose version creation" should {
     "succeed" in {
-      val userId           = UUID.randomUUID()
+
       val consumerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -791,7 +786,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships(userId, consumerId))
 
       (mockPurposeManagementService
         .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
@@ -808,11 +802,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if Purpose does not exist" in {
-      val userId    = UUID.randomUUID()
+
       val purposeId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -834,18 +828,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if User is not a Consumer" in {
-      val userId     = UUID.randomUUID()
+
       val purposeId  = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships().copy(items = Seq.empty))
 
       Get() ~> service.createPurposeVersion(purposeId.toString, seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -856,13 +848,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on Purpose Management error" in {
-      val userId     = UUID.randomUUID()
+
       val purposeId  = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val selfcareId = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 100)
 
@@ -872,7 +863,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships(userId, consumerId))
 
       (mockPurposeManagementService
         .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
@@ -890,19 +880,17 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   "Purpose draft version update" should {
 
     "succeed" in {
-      val userId           = UUID.randomUUID()
+
       val consumerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val expected: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion.copy(dailyCalls = 100)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships(userId, consumerId))
 
       (
         mockPurposeManagementService
@@ -930,12 +918,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if Purpose Version does not exist" in {
-      val userId           = UUID.randomUUID()
+
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -959,17 +947,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if User is not a Consumer" in {
-      val userId           = UUID.randomUUID()
+
       val purposeId        = UUID.randomUUID()
       val consumerId       = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockAssertUserConsumer(userId, consumerId, selfcareId, SpecData.relationships().copy(items = Seq.empty))
 
       Post() ~> service.updateDraftPurposeVersion(
         purposeId.toString,
@@ -984,14 +970,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on Purpose Management error" in {
-      val userId           = UUID.randomUUID()
+
       val purposeId        = UUID.randomUUID()
       val consumerId       = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -999,7 +984,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-      mockRelationshipsRetrieve(userId, consumerId, selfcareId, SpecData.relationships(userId, consumerId))
 
       (
         mockPurposeManagementService
@@ -1030,26 +1014,20 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   "Purpose waiting for approval version update" should {
 
     "succeed" in {
-      val userId           = UUID.randomUUID()
+
       val producerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
 
       val expected: PurposeManagementDependency.PurposeVersion =
         SpecData.purposeVersion.copy(expectedApprovalDate = Some(timestamp))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertUserProducer(
-        userId,
-        selfcareId,
-        SpecData.eService.copy(id = eserviceId, producerId = producerId),
-        SpecData.relationships(userId, producerId)
-      )
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       (
         mockPurposeManagementService
@@ -1079,12 +1057,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if Purpose Version does not exist" in {
-      val userId           = UUID.randomUUID()
+
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 404)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -1108,23 +1086,17 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail if User is not a Producer" in {
-      val userId           = UUID.randomUUID()
+
       val producerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertUserProducer(
-        userId,
-        selfcareId,
-        SpecData.eService.copy(id = eserviceId, producerId = producerId),
-        SpecData.relationships(userId, producerId).copy(items = Seq.empty)
-      )
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       Post() ~> service.updateWaitingForApprovalPurposeVersion(
         purposeId.toString,
@@ -1139,15 +1111,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail on Purpose Management error" in {
-      val userId           = UUID.randomUUID()
+
       val producerId       = UUID.randomUUID()
       val purposeId        = UUID.randomUUID()
       val purposeVersionId = UUID.randomUUID()
       val eserviceId       = UUID.randomUUID()
-      val selfcareId       = "randomSelfcareId"
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
 
       val purposeProblem: PurposeProblem = SpecData.purposeProblem.copy(status = 418)
       val expectedProblem: Problem       = purposemanagement.ProblemConverter.dependencyToApi(purposeProblem)
@@ -1155,12 +1126,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeApiError[String](purposeProblem.status, "Some error", Some(purposeProblem.toJson.prettyPrint))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId))
-      mockAssertUserProducer(
-        userId,
-        selfcareId,
-        SpecData.eService.copy(id = eserviceId, producerId = producerId),
-        SpecData.relationships(userId, producerId)
-      )
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, producerId = producerId))
 
       (
         mockPurposeManagementService
@@ -1192,13 +1158,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   "Purpose Risk Analysys Document download" should {
     "succeed" in {
-      val userId: UUID           = UUID.randomUUID()
+
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val path: String                                                 = "/here/there/foo/bar.pdf"
       val document: PurposeManagementDependency.PurposeVersionDocument =
@@ -1212,9 +1178,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockFileManagerGet(path)(emptyPdf)
 
       Get() ~> service.getRiskAnalysisDocument(
-        purposeId.toString(),
-        purposeVersionId.toString(),
-        documentId.toString()
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.OK
         responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
@@ -1223,13 +1189,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "fail with a 404 if the document doesn't exist" in {
-      val userId: UUID           = UUID.randomUUID()
+
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val path: String                                                 = "/here/there/foo/bar.pdf"
       val document: PurposeManagementDependency.PurposeVersionDocument =
@@ -1246,63 +1212,63 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockPurposeRetrieve(purposeId, result = purpose)
 
       Get() ~> service.getRiskAnalysisDocument(
-        purposeId.toString(),
-        purposeVersionId.toString(),
-        documentId.toString()
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[Problem] shouldEqual problemOf(
           StatusCodes.NotFound,
           PurposeProcessErrors.PurposeVersionDocumentNotFound(
-            purposeId.toString(),
-            purposeVersionId.toString(),
-            documentId.toString()
+            purposeId.toString,
+            purposeVersionId.toString,
+            documentId.toString
           )
         )
       }
     }
 
     "fail with a 404 if the version doesn't exist" in {
-      val userId: UUID           = UUID.randomUUID()
+
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val purposeVersion: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion
       val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
       mockPurposeRetrieve(purposeId, result = purpose)
 
       Get() ~> service.getRiskAnalysisDocument(
-        purposeId.toString(),
-        purposeVersionId.toString(),
-        documentId.toString()
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[Problem] shouldEqual problemOf(
           StatusCodes.NotFound,
-          PurposeProcessErrors.PurposeVersionNotFound(purposeId.toString(), purposeVersionId.toString())
+          PurposeProcessErrors.PurposeVersionNotFound(purposeId.toString, purposeVersionId.toString)
         )
       }
     }
 
     "fail with a 404 if the purpose doesn't exist" in {
-      val userId: UUID           = UUID.randomUUID()
+
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", UID -> userId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       mockPurposeRetrieveError(SpecData.purposeProblem.copy(status = 404))
 
       Get() ~> service.getRiskAnalysisDocument(
-        purposeId.toString(),
-        purposeVersionId.toString(),
-        documentId.toString()
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.NotFound
         responseAs[Problem]
