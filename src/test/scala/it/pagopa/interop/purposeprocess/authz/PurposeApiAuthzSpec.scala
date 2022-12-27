@@ -75,10 +75,12 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("getPurpose")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getPurpose("fakeSeed") })
     }
+
     "accept authorized roles for deletePurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("deletePurpose")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.deletePurpose("fakeSeed") })
     }
+
     "accept authorized roles for createPurposeVersion" in {
       val endpoint = AuthorizedRoutes.endpoints("createPurposeVersion")
       val fakeSeed = PurposeVersionSeed(1)
@@ -95,6 +97,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         { implicit c: Seq[(String, String)] => service.deletePurposeVersion("fakeSeed", "fake") }
       )
     }
+
     "accept authorized roles for activatePurposeVersion " in {
       val endpoint = AuthorizedRoutes.endpoints("activatePurposeVersion")
       validateAuthorization(
@@ -122,10 +125,12 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         }
       )
     }
+
     "accept authorized roles for getPurposes" in {
       val endpoint = AuthorizedRoutes.endpoints("getPurposes")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getPurposes(None, None, "fake") })
     }
+
     "accept authorized roles for updatePurpose" in {
       val endpoint    = AuthorizedRoutes.endpoints("updatePurpose")
       val fakeContent = PurposeUpdateContent("test", "Fake", None)
@@ -143,6 +148,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         { implicit c: Seq[(String, String)] => service.updateDraftPurposeVersion("fake", "fake", fakeContent) }
       )
     }
+
     "accept authorized roles for updateWaitingForApprovalPurposeVersion" in {
       val endpoint    = AuthorizedRoutes.endpoints("updateWaitingForApprovalPurposeVersion")
       val fakeContent = WaitingForApprovalPurposeVersionUpdateContent(OffsetDateTime.now())
@@ -154,5 +160,12 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       )
     }
 
+    "accept authorized roles for getRiskAnalysisDocument" in {
+      val endpoint = AuthorizedRoutes.endpoints("getRiskAnalysisDocument")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.getRiskAnalysisDocument("fake", "fake", "fake") }
+      )
+    }
   }
 }

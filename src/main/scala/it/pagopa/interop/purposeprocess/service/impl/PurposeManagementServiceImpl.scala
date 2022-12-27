@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
 import it.pagopa.interop.commons.utils.withHeaders
-import it.pagopa.interop.purposemanagement.client.invoker.BearerToken
+import it.pagopa.interop.purposemanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.service.{
   PurposeManagementApi,
@@ -10,12 +10,14 @@ import it.pagopa.interop.purposeprocess.service.{
 }
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{PurposeNotFound, PurposeVersionNotFound}
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker, api: PurposeManagementApi)
-    extends PurposeManagementService {
+final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker, api: PurposeManagementApi)(implicit
+  ec: ExecutionContext
+) extends PurposeManagementService {
 
   implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
@@ -49,7 +51,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
   override def getPurpose(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Purpose] = withHeaders {
     (bearerToken, correlationId, ip) =>
       val request = api.getPurpose(xCorrelationId = correlationId, id, xForwardedFor = ip)(BearerToken(bearerToken))
-      invoker.invoke(request, s"Retrieving purpose $id")
+      invoker
+        .invoke(request, s"Retrieving purpose $id")
+        .recoverWith { case err: ApiError[_] if err.code == 404 => Future.failed(PurposeNotFound(id)) }
   }
 
   override def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState])(
@@ -164,7 +168,11 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     val request = api.deletePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, xForwardedFor = ip)(
       BearerToken(bearerToken)
     )
-    invoker.invoke(request, s"Deleting purpose version $purposeId/$versionId")
+    invoker
+      .invoke(request, s"Deleting purpose version $purposeId/$versionId")
+      .recoverWith {
+        case err: ApiError[_] if err.code == 404 => Future.failed(PurposeVersionNotFound(purposeId, versionId))
+      }
   }
 
 }

@@ -90,6 +90,13 @@
         "admin"
       ],
       "route": "updateWaitingForApprovalPurposeVersion"
+    },
+    {
+      "verb": "GET",
+      "roles": [
+        "admin"
+      ],
+      "route": "getRiskAnalysisDocument"
     }
   ]
 }

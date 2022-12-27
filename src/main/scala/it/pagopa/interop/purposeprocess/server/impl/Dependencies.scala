@@ -8,20 +8,22 @@ import akka.http.scaladsl.server.directives.SecurityDirectives
 import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
+import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
 import it.pagopa.interop.commons.jwt.{JWTConfiguration, KID, PublicKeysHolder, SerializedKey}
+import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.service._
 import it.pagopa.interop.commons.utils.{AkkaUtils, OpenapiUtils}
+import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
 import it.pagopa.interop.purposeprocess.api.impl.{
   HealthApiMarshallerImpl,
   HealthServiceApiImpl,
   PurposeApiMarshallerImpl,
-  PurposeApiServiceImpl,
-  entityMarshallerProblem,
-  problemOf
+  PurposeApiServiceImpl
 }
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
@@ -29,8 +31,6 @@ import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.impl._
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
-import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 
 trait Dependencies {
 
@@ -62,8 +62,8 @@ trait Dependencies {
 
   val validationExceptionToRoute: ValidationReport => Route = report => {
     val error =
-      problemOf(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report))
-    complete(error.status, error)(entityMarshallerProblem)
+      CommonProblem(StatusCodes.BadRequest, OpenapiUtils.errorFromRequestValidationReport(report), serviceCode)
+    complete(error.status, error)
   }
 
   val healthApi: HealthApi = new HealthApi(
@@ -147,6 +147,7 @@ trait Dependencies {
 
   def purposeManagement(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
-  ): PurposeManagementService = PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)
+  ): PurposeManagementService =
+    PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)(blockingEc)
 
 }

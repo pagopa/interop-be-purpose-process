@@ -185,20 +185,4 @@ object SpecData {
       kind = AuthorizationManagement.ClientKind.CONSUMER
     )
 
-  val catalogProblem: CatalogManagement.Problem = CatalogManagement.Problem(
-    `type` = "something",
-    status = 400,
-    title = "A title",
-    detail = None,
-    errors = Seq(CatalogManagement.ProblemError(code = "AAA-BBBB", detail = "Error details"))
-  )
-
-  val purposeProblem: PurposeManagement.Problem = PurposeManagement.Problem(
-    `type` = "something",
-    status = 400,
-    title = "A title",
-    detail = None,
-    errors = Seq(PurposeManagement.ProblemError(code = "AAA-BBBB", detail = "Error details"))
-  )
-
 }
