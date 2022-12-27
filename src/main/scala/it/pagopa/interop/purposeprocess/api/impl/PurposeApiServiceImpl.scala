@@ -64,7 +64,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerFile: ToEntityMarshaller[File]
-  ): Route = { // TODO This endpoint does not contain authz on role, is it ok?
+  ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
