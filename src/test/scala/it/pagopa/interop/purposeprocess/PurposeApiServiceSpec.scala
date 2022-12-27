@@ -1006,7 +1006,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           StatusCodes.NotFound,
           PurposeProcessErrors
             .PurposeVersionDocumentNotFound(purposeId.toString, purposeVersionId.toString, documentId.toString),
-          serviceCode
+          serviceCode,
+          None
         )
       }
     }
@@ -1033,7 +1034,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[CommonProblem] shouldEqual CommonProblem(
           StatusCodes.NotFound,
           PurposeProcessErrors.PurposeVersionNotFound(purposeId, purposeVersionId),
-          serviceCode
+          serviceCode,
+          None
         )
       }
     }
