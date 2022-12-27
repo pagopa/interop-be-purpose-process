@@ -286,11 +286,4 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem]               =
     sprayJsonUnmarshaller[Problem]
 
-  implicit def catalogProblemErrorFormat: RootJsonFormat[CatalogManagement.ProblemError] =
-    jsonFormat2(CatalogManagement.ProblemError)
-  implicit def catalogProblemFormat: RootJsonFormat[CatalogManagement.Problem] = jsonFormat5(CatalogManagement.Problem)
-  implicit def purposeProblemErrorFormat: RootJsonFormat[PurposeManagement.ProblemError] =
-    jsonFormat2(PurposeManagement.ProblemError)
-  implicit def purposeProblemFormat: RootJsonFormat[PurposeManagement.Problem] = jsonFormat5(PurposeManagement.Problem)
-
 }
