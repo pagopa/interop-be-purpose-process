@@ -132,11 +132,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   def mockAgreementsRetrieve(
     eServiceId: UUID,
     consumerId: UUID,
+    states: Seq[AgreementManagement.AgreementState],
     result: Seq[AgreementManagement.Agreement] = Seq(SpecData.agreement)
   )(implicit contexts: Seq[(String, String)]) =
     (mockAgreementManagementService
-      .getAgreements(_: UUID, _: UUID)(_: Seq[(String, String)]))
-      .expects(eServiceId, consumerId, contexts)
+      .getAgreements(_: UUID, _: UUID, _: Seq[AgreementManagement.AgreementState])(_: Seq[(String, String)]))
+      .expects(eServiceId, consumerId, states, contexts)
       .once()
       .returns(Future.successful(result))
 
@@ -204,6 +205,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementsRetrieve(
       activatingPurpose.eserviceId,
       activatingPurpose.consumerId,
+      Seq(AgreementManagement.AgreementState.ACTIVE, AgreementManagement.AgreementState.SUSPENDED),
       Seq(
         SpecData.agreement.copy(
           consumerId = activatingPurpose.consumerId,
@@ -271,7 +273,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     contexts: Seq[(String, String)]
   ): Unit = {
     val agreement = SpecData.agreement
-    mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Seq(agreement))
+    mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Nil, Seq(agreement))
     mockOrganizationRetrieve(agreement.producerId)
     mockOrganizationRetrieve(agreement.consumerId)
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
