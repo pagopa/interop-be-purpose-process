@@ -17,7 +17,7 @@ object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSuppo
   override implicit def toEntityMarshallerFile: ToEntityMarshaller[File] =
     Marshaller.withFixedContentType(ContentTypes.`application/octet-stream`)(f => Files.readAllBytes(f.toPath()))
 
-  override implicit def toEntityMarshallerPurpose: ToEntityMarshaller[Purpose] = sprayJsonMarshaller[Purpose]
+  override implicit def toEntityMarshallerOldPurpose: ToEntityMarshaller[OldPurpose] = sprayJsonMarshaller[OldPurpose]
 
   override implicit def fromEntityUnmarshallerPurposeSeed: FromEntityUnmarshaller[PurposeSeed] =
     sprayJsonUnmarshaller[PurposeSeed]

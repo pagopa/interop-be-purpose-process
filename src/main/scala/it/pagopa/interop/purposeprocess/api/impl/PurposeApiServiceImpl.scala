@@ -85,13 +85,13 @@ final case class PurposeApiServiceImpl(
 
   override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Creating Purpose for EService ${seed.eserviceId} and Consumer ${seed.consumerId}"
     logger.info(operationLabel)
 
-    val result: Future[Purpose] = for {
+    val result: Future[OldPurpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       ownership      <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
@@ -102,7 +102,7 @@ final case class PurposeApiServiceImpl(
       result   <- enhancePurpose(purpose, eService, ownership)
     } yield result
 
-    onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
+    onComplete(result) { createPurposeResponse[OldPurpose](operationLabel)(createPurpose201) }
   }
 
   override def createPurposeVersion(purposeId: String, seed: PurposeVersionSeed)(implicit
@@ -127,13 +127,13 @@ final case class PurposeApiServiceImpl(
 
   override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    val result: Future[Purpose] = for {
+    val result: Future[OldPurpose] = for {
       organizationId  <- getOrganizationIdFutureUUID(contexts)
       purposeUUID     <- purposeId.toFutureUUID
       purpose         <- purposeManagementService.getPurpose(purposeUUID)
@@ -144,18 +144,18 @@ final case class PurposeApiServiceImpl(
       enhancedPurpose <- enhancePurpose(updatedPurpose, eService, ownership)
     } yield enhancedPurpose
 
-    onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
+    onComplete(result) { updatePurposeResponse[OldPurpose](operationLabel)(updatePurpose200) }
   }
 
   override def getPurpose(id: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
-    val result: Future[Purpose] = for {
+    val result: Future[OldPurpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
@@ -169,7 +169,7 @@ final case class PurposeApiServiceImpl(
       result <- enhancePurpose(purpose, eService, ownership)
     } yield result
 
-    onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
+    onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }
   }
 
   override def getPurposes(eServiceId: Option[String], consumerId: Option[String], states: String)(implicit
@@ -183,7 +183,7 @@ final case class PurposeApiServiceImpl(
     def filterPurposeByOrganizationRole(
       purposes: PurposeManagementDependency.Purposes,
       organizationId: UUID
-    ): Future[Seq[Purpose]] = Future
+    ): Future[Seq[OldPurpose]] = Future
       .traverse(purposes.purposes)(purpose =>
         for {
           eService        <- catalogManagementService.getEServiceById(purpose.eserviceId)
@@ -433,7 +433,7 @@ final case class PurposeApiServiceImpl(
     depPurpose: PurposeManagementDependency.Purpose,
     eService: CatalogManagementDependency.EService,
     ownership: Ownership
-  )(implicit contexts: Seq[(String, String)]): Future[Purpose] = {
+  )(implicit contexts: Seq[(String, String)]): Future[OldPurpose] = {
     def clientsByUserType(): Future[List[Client]] =
       ownership match {
         case Ownership.PRODUCER                           => List.empty[Client].pure[Future]

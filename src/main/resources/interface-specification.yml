@@ -80,7 +80,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -115,7 +115,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -148,7 +148,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -654,7 +654,7 @@ components:
       required:
         - id
         - name
-    Purpose:
+    OldPurpose:
       type: object
       properties:
         id:
@@ -705,7 +705,7 @@ components:
         purposes:
           type: array
           items:
-            $ref: '#/components/schemas/Purpose'
+            $ref: '#/components/schemas/OldPurpose'
       required:
         - purposes
     PurposeUpdateContent:
