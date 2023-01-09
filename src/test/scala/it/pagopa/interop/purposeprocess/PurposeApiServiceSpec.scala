@@ -79,7 +79,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose].id shouldEqual managementResponse.id
+        responseAs[OldPurpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -135,7 +135,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose].id shouldEqual managementResponse.id
+        responseAs[OldPurpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -228,7 +228,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[Purpose]
+        val response = responseAs[OldPurpose]
         response.id shouldEqual SpecData.purpose.id
         response.clients should not be empty
       }
@@ -262,7 +262,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[Purpose]
+        val response = responseAs[OldPurpose]
         response.id shouldEqual purpose.id
         response.clients shouldBe empty
       }
@@ -324,7 +324,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
               descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
             )
         )
-        mockPurposeEnhancement(purpose, isConsumer = true)
       }
 
       Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
@@ -384,7 +383,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
       )
-      mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
 
       mockEServiceRetrieve(ownEService.id, ownEService)
 
@@ -397,14 +395,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
       )
-      mockPurposeEnhancement(purposeAsProducer, isConsumer = false)
 
       Get() ~> service.getPurposes(None, None, "") ~> check {
         status shouldEqual StatusCodes.OK
         val result = responseAs[Purposes]
         result.purposes.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
-        result.purposes.find(_.id == purposeAsConsumer.id).get.clients should not be empty
-        result.purposes.find(_.id == purposeAsProducer.id).get.clients shouldBe empty
       }
     }
 
