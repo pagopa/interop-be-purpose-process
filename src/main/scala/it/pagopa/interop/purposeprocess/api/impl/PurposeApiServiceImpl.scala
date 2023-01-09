@@ -183,28 +183,28 @@ final case class PurposeApiServiceImpl(
     def filterPurposeByOrganizationRole(
       purposes: PurposeManagementDependency.Purposes,
       organizationId: UUID
-    ): Future[Seq[OldPurpose]] = Future
+    ): Future[Seq[Purpose]] = Future
       .traverse(purposes.purposes)(purpose =>
         for {
-          eService        <- catalogManagementService.getEServiceById(purpose.eserviceId)
-          ownership       <- Ownership
+          eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
+          ownership <- Ownership
             .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
             .toFuture
             .map(Some(_))
             .recover(_ => None)
-          enhancedPurpose <- ownership.traverse(enhancePurpose(purpose, eService, _))
-        } yield enhancedPurpose
+          apiPurpose = ownership.map(_ => PurposeConverter.dependencyToApi(purpose))
+        } yield apiPurpose
       )
       .map(_.flatten)
 
     val result: Future[Purposes] = for {
-      eServiceUUID      <- eServiceId.traverse(_.toFutureUUID)
-      consumerUUID      <- consumerId.traverse(_.toFutureUUID)
-      organizationId    <- getOrganizationIdFutureUUID(contexts)
-      states            <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
-      purposes          <- purposeManagementService.getPurposes(eServiceUUID, consumerUUID, states)
-      convertedPurposes <- filterPurposeByOrganizationRole(purposes, organizationId)
-    } yield Purposes(purposes = convertedPurposes)
+      eServiceUUID   <- eServiceId.traverse(_.toFutureUUID)
+      consumerUUID   <- consumerId.traverse(_.toFutureUUID)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      states         <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
+      purposes       <- purposeManagementService.getPurposes(eServiceUUID, consumerUUID, states)
+      apiPurposes    <- filterPurposeByOrganizationRole(purposes, organizationId)
+    } yield Purposes(purposes = apiPurposes)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
   }
@@ -457,7 +457,7 @@ final case class PurposeApiServiceImpl(
       eService <- EServiceConverter.dependencyToApi(eService, depAgreement.descriptorId, producer).toFuture
       clients  <- clientsByUserType()
     } yield PurposeConverter
-      .dependencyToApi(
+      .dependencyToOldApi(
         purpose = depPurpose,
         eService = eService,
         agreement = agreement,

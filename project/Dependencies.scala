@@ -31,14 +31,18 @@ object Dependencies {
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
     lazy val purposeManagementClient =
       namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
+    lazy val purposeManagementModels =
+      namespace %% "interop-be-purpose-management-models" % purposeManagementVersion
+
     lazy val tenantManagementClient =
       namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
     lazy val catalogManagementClient =
       namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
 
-    lazy val commons     = namespace %% "interop-commons-utils"        % commonsVersion
+    lazy val utils       = namespace %% "interop-commons-utils"        % commonsVersion
     lazy val fileManager = namespace %% "interop-commons-file-manager" % commonsVersion
     lazy val jwt         = namespace %% "interop-commons-jwt"          % commonsVersion
+    lazy val cqrs        = namespace %% "interop-commons-cqrs"         % commonsVersion
   }
 
   private[this] object cats {
@@ -100,11 +104,13 @@ object Dependencies {
       pagopa.agreementManagementClient     % Compile,
       pagopa.authorizationManagementClient % Compile,
       pagopa.purposeManagementClient       % Compile,
+      pagopa.purposeManagementModels       % Compile,
       pagopa.catalogManagementClient       % Compile,
       pagopa.tenantManagementClient        % Compile,
-      pagopa.commons                       % Compile,
+      pagopa.utils                         % Compile,
       pagopa.fileManager                   % Compile,
       pagopa.jwt                           % Compile,
+      pagopa.cqrs                          % Compile,
       akka.httpTestkit                     % Test,
       akka.testkit                         % Test,
       akka.untypedTestkit                  % Test,
@@ -112,7 +118,7 @@ object Dependencies {
       scalatest.core                       % Test
     )
     lazy val client: Seq[ModuleID]    =
-      Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.commons).map(
+      Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.utils).map(
         _ % Compile
       )
   }

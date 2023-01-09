@@ -699,13 +699,54 @@ components:
         - description
         - createdAt
       description: business representation of a purpose
+    Purpose:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurposeVersion'
+        suspendedByConsumer:
+          type: boolean
+        suspendedByProducer:
+          type: boolean
+        title:
+          type: string
+        description:
+          type: string
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eserviceId
+        - consumerId
+        - versions
+        - title
+        - description
+        - createdAt
+      description: business representation of a purpose
     Purposes:
       type: object
       properties:
         purposes:
           type: array
           items:
-            $ref: '#/components/schemas/OldPurpose'
+            $ref: '#/components/schemas/Purpose'
       required:
         - purposes
     PurposeUpdateContent:
@@ -762,17 +803,18 @@ components:
         expectedApprovalDate:
           type: string
           format: date-time
-        riskAnalysis:
-          $ref: '#/components/schemas/PurposeVersionDocument'
         dailyCalls:
+          description: 'maximum number of daily calls that this version can perform.'
           type: integer
           format: int32
           minimum: 0
+        riskAnalysis:
+          $ref: '#/components/schemas/PurposeVersionDocument'
       required:
         - id
         - state
-        - createdAt
         - dailyCalls
+        - createdAt
       description: business representation of a purpose version
     PurposeVersionState:
       type: string
