@@ -14,6 +14,7 @@ import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, 
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
+import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -134,7 +135,8 @@ final case class PurposeVersionActivation(
 
       agreements <- agreementManagementService.getAgreements(
         eServiceId = purpose.eserviceId,
-        consumerId = purpose.consumerId
+        consumerId = purpose.consumerId,
+        OPERATIVE_AGREEMENT_STATES
       )
       agreement  <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
