@@ -66,9 +66,9 @@ object ReadModelQueries {
       .map(Filters.eq("data.versions.state", _))
 
     val statesFilter       = mapToVarArgs(statesPartialFilter)(Filters.or)
-    val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.id", _)))(Filters.or)
+    val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
-    val nameFilter         = name.map(Filters.regex("data.name", _, "i"))
+    val nameFilter         = name.map(Filters.regex("data.title", _, "i"))
 
     mapToVarArgs(eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList)(
       Filters.and
