@@ -6,6 +6,7 @@ import akka.util.ByteString
 import cats.implicits._
 import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
+import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposeprocess.SpecData.timestamp
@@ -62,7 +63,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockAgreementsRetrieve(eServiceId, consumerId)
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        Seq(AgreementManagementDependency.AgreementState.ACTIVE, AgreementManagementDependency.AgreementState.SUSPENDED)
+      )
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -118,7 +123,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockAgreementsRetrieve(eServiceId, consumerId)
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        Seq(AgreementManagementDependency.AgreementState.ACTIVE, AgreementManagementDependency.AgreementState.SUSPENDED)
+      )
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -189,7 +198,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None
       )
 
-      mockAgreementsRetrieve(eServiceId, consumerId, Seq.empty)
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        Seq(
+          AgreementManagementDependency.AgreementState.ACTIVE,
+          AgreementManagementDependency.AgreementState.SUSPENDED
+        ),
+        Seq.empty
+      )
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest

@@ -29,6 +29,7 @@ import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
 import java.io.File
@@ -98,7 +99,11 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       ownership      <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
-      agreements     <- agreementManagementService.getAgreements(seed.eserviceId, seed.consumerId)
+      agreements     <- agreementManagementService.getAgreements(
+        seed.eserviceId,
+        seed.consumerId,
+        OPERATIVE_AGREEMENT_STATES
+      )
       _        <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose  <- purposeManagementService.createPurpose(clientSeed)
       eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
@@ -458,7 +463,7 @@ final case class PurposeApiServiceImpl(
       }
 
     for {
-      depAgreements <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId)
+      depAgreements <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId, Nil)
       depAgreement  <- depAgreements
         .sortBy(_.createdAt)
         .lastOption

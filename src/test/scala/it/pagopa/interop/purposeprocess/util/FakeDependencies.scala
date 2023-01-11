@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess.util
 
 import cats.syntax.all._
-import it.pagopa.interop.agreementmanagement.client.model.Agreement
+import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
 import it.pagopa.interop.authorizationmanagement.client.model._
 import it.pagopa.interop.catalogmanagement.client.model.{Attributes, EService, EServiceTechnology}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
@@ -183,11 +183,12 @@ object FakeDependencies {
   }
 
   class FakeAgreementManagementService extends AgreementManagementService {
-    override def getAgreements(eServiceId: UUID, consumerId: UUID)(implicit
+    override def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[AgreementState])(implicit
       contexts: Seq[(String, String)]
     ): Future[Seq[Agreement]] = Future.successful(Seq.empty)
   }
-  class FakeCatalogManagementService   extends CatalogManagementService   {
+
+  class FakeCatalogManagementService extends CatalogManagementService {
 
     override def getEServiceById(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService] =
       Future.successful(
