@@ -22,4 +22,13 @@ object PurposeVersionStateConverter {
       case WaitingForApproval => PurposeVersionState.WAITING_FOR_APPROVAL
       case Archived           => PurposeVersionState.ARCHIVED
     }
+
+  def apiToPersistent(state: PurposeVersionState): PersistentPurposeVersionState =
+    state match {
+      case PurposeVersionState.ACTIVE               => Active
+      case PurposeVersionState.DRAFT                => Draft
+      case PurposeVersionState.SUSPENDED            => Suspended
+      case PurposeVersionState.WAITING_FOR_APPROVAL => WaitingForApproval
+      case PurposeVersionState.ARCHIVED             => Archived
+    }
 }

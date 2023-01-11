@@ -3,6 +3,8 @@ package it.pagopa.interop.purposeprocess.common.readmodel
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposemanagement.model.persistence.JsonFormats._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionStateConverter
+import it.pagopa.interop.purposeprocess.model.PurposeVersionState
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates.{`match`, count, project, sort}
@@ -18,10 +20,11 @@ object ReadModelQueries {
     name: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
+    states: List[PurposeVersionState],
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val query = listPurposesFilters(name, eServicesIds, consumersIds)
+    val query = listPurposesFilters(name, eServicesIds, consumersIds, states)
 
     for {
       // Using aggregate to perform case insensitive sorting
@@ -51,14 +54,25 @@ object ReadModelQueries {
     } yield PaginatedResult(results = eServices, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  def listPurposesFilters(name: Option[String], eServicesIds: List[String], consumersIds: List[String]): Bson = {
+  def listPurposesFilters(
+    name: Option[String],
+    eServicesIds: List[String],
+    consumersIds: List[String],
+    states: List[PurposeVersionState]
+  ): Bson = {
+    val statesPartialFilter = states
+      .map(PurposeVersionStateConverter.apiToPersistent)
+      .map(_.toString)
+      .map(Filters.eq("data.versions.state", _))
 
+    val statesFilter       = mapToVarArgs(statesPartialFilter)(Filters.or)
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.id", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val nameFilter         = name.map(Filters.regex("data.name", _, "i"))
 
-    mapToVarArgs(eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ nameFilter.toList)(Filters.and)
-      .getOrElse(Filters.empty())
+    mapToVarArgs(eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList)(
+      Filters.and
+    ).getOrElse(Filters.empty())
   }
 
   def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))

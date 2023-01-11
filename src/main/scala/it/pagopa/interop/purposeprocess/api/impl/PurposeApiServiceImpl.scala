@@ -175,8 +175,14 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }
   }
 
-  override def getPurposes(name: Option[String], eServicesIds: String, consumersIds: String, offset: Int, limit: Int)(
-    implicit
+  override def getPurposes(
+    name: Option[String],
+    eServicesIds: String,
+    consumersIds: String,
+    states: String,
+    offset: Int,
+    limit: Int
+  )(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -205,7 +211,10 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       eServicesUUIDs = parseArrayParameters(eServicesIds)
       consumersUUIDs = parseArrayParameters(consumersIds)
-      purposes         <- ReadModelQueries.listPurposes(name, eServicesUUIDs, consumersUUIDs, offset, limit)(readModel)
+      statesEnum <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
+      purposes   <- ReadModelQueries.listPurposes(name, eServicesUUIDs, consumersUUIDs, statesEnum, offset, limit)(
+        readModel
+      )
       filteredPurposes <- filterPurposeByOrganizationRole(purposes.results, organizationId)
       apiPurposes = filteredPurposes.map(PurposeConverter.persistentToApi)
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)

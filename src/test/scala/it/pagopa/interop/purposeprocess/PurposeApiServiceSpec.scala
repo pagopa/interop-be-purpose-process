@@ -303,10 +303,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purpose = SpecData.persistentPurpose.copy(consumerId = consumerId, eserviceId = eServiceId)
       val purposes: Seq[PersistentPurpose] = Seq(purpose)
 
-//      val states = Seq(
-//        PurposeManagementDependency.PurposeVersionState.DRAFT,
-//        PurposeManagementDependency.PurposeVersionState.ACTIVE
-//      )
+      val states = Seq(
+        PurposeManagementDependency.PurposeVersionState.DRAFT,
+        PurposeManagementDependency.PurposeVersionState.ACTIVE
+      )
 
       // Data retrieve
       (mockReadModel
@@ -332,7 +332,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       }
 
-      Get() ~> service.getPurposes(Some("name"), eServiceId.toString, consumerId.toString, 0, 10) ~> check {
+      Get() ~> service.getPurposes(
+        Some("name"),
+        eServiceId.toString,
+        consumerId.toString,
+        states.mkString(","),
+        0,
+        10
+      ) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[Purposes].results.map(_.id) should contain theSameElementsAs purposes.map(_.id)
       }
@@ -415,7 +422,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
       )
-      Get() ~> service.getPurposes(None, "", "", 0, 10) ~> check {
+      Get() ~> service.getPurposes(None, "", "", "", 0, 10) ~> check {
         status shouldEqual StatusCodes.OK
         val result = responseAs[Purposes]
         result.results.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
