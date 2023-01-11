@@ -9,6 +9,7 @@ import com.atlassian.oai.validator.report.ValidationReport
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.service.JWTReader
 import it.pagopa.interop.commons.jwt.service.impl.{DefaultJWTReader, getClaimsVerifier}
@@ -73,6 +74,8 @@ trait Dependencies {
     loggingEnabled = false
   )
 
+  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+
   def purposeApi(jwtReader: JWTReader, fileManager: FileManager, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
     ec: ExecutionContext
@@ -84,6 +87,7 @@ trait Dependencies {
         catalogManagement(blockingEc),
         purposeManagement(blockingEc),
         new TenantManagementServiceImpl(ApplicationConfiguration.tenantManagementURL, blockingEc),
+        readModelService,
         fileManager,
         pdfCreator,
         uuidSupplier,

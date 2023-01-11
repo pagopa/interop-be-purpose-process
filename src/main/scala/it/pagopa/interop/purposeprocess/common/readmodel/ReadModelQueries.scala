@@ -17,11 +17,11 @@ object ReadModelQueries {
   def listPurposes(
     name: Option[String],
     eServicesIds: List[String],
-    consumerIds: List[String],
+    consumersIds: List[String],
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val query = listPurposesFilters(name, eServicesIds, consumerIds)
+    val query = listPurposesFilters(name, eServicesIds, consumersIds)
 
     for {
       // Using aggregate to perform case insensitive sorting
@@ -51,10 +51,10 @@ object ReadModelQueries {
     } yield PaginatedResult(results = eServices, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
   }
 
-  def listPurposesFilters(name: Option[String], eServicesIds: List[String], consumerIds: List[String]): Bson = {
+  def listPurposesFilters(name: Option[String], eServicesIds: List[String], consumersIds: List[String]): Bson = {
 
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.id", _)))(Filters.or)
-    val consumersIdsFilter = mapToVarArgs(consumerIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
+    val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val nameFilter         = name.map(Filters.regex("data.name", _, "i"))
 
     mapToVarArgs(eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ nameFilter.toList)(Filters.and)

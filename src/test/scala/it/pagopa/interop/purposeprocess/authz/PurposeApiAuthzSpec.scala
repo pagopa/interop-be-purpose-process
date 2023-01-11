@@ -1,5 +1,7 @@
 package it.pagopa.interop.purposeprocess.authz
 
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
+import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
@@ -26,8 +28,13 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
-
-  private val threadPool: ExecutorService          = Executors.newSingleThreadExecutor()
+  val dummyReadModel: ReadModelService                                   = new MongoDbReadModelService(
+    ReadModelConfig(
+      "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
+      "db"
+    )
+  )
+  private val threadPool: ExecutorService                                = Executors.newSingleThreadExecutor()
   private val blockingEc: ExecutionContextExecutor = ExecutionContext.fromExecutorService(threadPool)
   val fakeFileManager: FileManager                 = FileManager.get(FileManager.File)(blockingEc)
 
@@ -40,6 +47,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeCatalogManagementService,
       fakePurposeManagementService,
       fakeTenantManagementService,
+      dummyReadModel,
       fakeFileManager,
       pdfCreator = new PDFCreator {
         override def createDocument(
@@ -128,7 +136,10 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
 
     "accept authorized roles for getPurposes" in {
       val endpoint = AuthorizedRoutes.endpoints("getPurposes")
-      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.getPurposes(None, None, "fake") })
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.getPurposes(None, "fake", "fake", 0, 0) }
+      )
     }
 
     "accept authorized roles for updatePurpose" in {

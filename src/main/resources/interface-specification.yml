@@ -38,24 +38,44 @@ paths:
       description: Retrieve Purposes
       parameters:
         - in: query
-          name: eserviceId
+          name: name
           schema:
             type: string
-            format: uuid
         - in: query
-          name: consumerId
-          schema:
-            type: string
-            format: uuid
-        - in: query
-          name: states
-          description: comma separated sequence of states to filter the response with
+          name: eservicesIds
+          description: comma separated sequence of EService IDs
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/PurposeVersionState'
+              type: string
+              format: uuid
             default: []
           explode: false
+        - in: query
+          name: consumersIds
+          description: comma separated sequence of consumers IDs
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50
       responses:
         '200':
           description: Purposes requested
@@ -743,12 +763,16 @@ components:
     Purposes:
       type: object
       properties:
-        purposes:
+        results:
           type: array
           items:
             $ref: '#/components/schemas/Purpose'
+        totalCount:
+          type: integer
+          format: int32
       required:
-        - purposes
+        - results
+        - totalCount
     PurposeUpdateContent:
       type: object
       description: contains the expected payload for purpose update.

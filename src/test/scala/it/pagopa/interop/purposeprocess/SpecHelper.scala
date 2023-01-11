@@ -8,6 +8,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
@@ -33,6 +34,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     .parseResourcesAnySyntax("application-test")
     .resolve()
 
+  val mockReadModel: ReadModelService                                    = mock[ReadModelService]
   val mockfileManager: FileManager                                       = mock[FileManager]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
@@ -50,6 +52,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockCatalogManagementService,
     mockPurposeManagementService,
     mockTenantManagementService,
+    mockReadModel,
     mockfileManager,
     mockPdfCreator,
     mockUUIDSupplier,

@@ -8,6 +8,7 @@ import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
@@ -15,8 +16,8 @@ import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.model.{PurposeVersionState => DepPurposeVersionState}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.interop.purposemanagement.model.{purpose => PurposeManagementModel}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.agreementmanagement.AgreementConverter
 import it.pagopa.interop.purposeprocess.api.converters.authorizationmanagement.ClientConverter
@@ -24,6 +25,7 @@ import it.pagopa.interop.purposeprocess.api.converters.catalogmanagement.EServic
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.converters.tenantmanagement.OrganizationConverter
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
@@ -39,6 +41,7 @@ final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
+  readModel: ReadModelService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
@@ -172,19 +175,20 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }
   }
 
-  override def getPurposes(eServiceId: Option[String], consumerId: Option[String], states: String)(implicit
+  override def getPurposes(name: Option[String], eServicesIds: String, consumersIds: String, offset: Int, limit: Int)(
+    implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
-    val operationLabel = s"Retrieving Purposes for EService $eServiceId, Consumer $consumerId and States $states"
+    val operationLabel = s"Retrieving Purposes for name $name, EServices $eServicesIds, Consumer $consumersIds"
     logger.info(operationLabel)
 
     def filterPurposeByOrganizationRole(
-      purposes: PurposeManagementDependency.Purposes,
+      purposes: Seq[PurposeManagementModel.PersistentPurpose],
       organizationId: UUID
-    ): Future[Seq[Purpose]] = Future
-      .traverse(purposes.purposes)(purpose =>
+    ): Future[Seq[PurposeManagementModel.PersistentPurpose]] = Future
+      .traverse(purposes)(purpose =>
         for {
           eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
           ownership <- Ownership
@@ -192,19 +196,19 @@ final case class PurposeApiServiceImpl(
             .toFuture
             .map(Some(_))
             .recover(_ => None)
-          apiPurpose = ownership.map(_ => PurposeConverter.dependencyToApi(purpose))
-        } yield apiPurpose
+          filteredPurpose = ownership.as(purpose)
+        } yield filteredPurpose
       )
       .map(_.flatten)
 
     val result: Future[Purposes] = for {
-      eServiceUUID   <- eServiceId.traverse(_.toFutureUUID)
-      consumerUUID   <- consumerId.traverse(_.toFutureUUID)
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      states         <- parseArrayParameters(states).traverse(DepPurposeVersionState.fromValue).toFuture
-      purposes       <- purposeManagementService.getPurposes(eServiceUUID, consumerUUID, states)
-      apiPurposes    <- filterPurposeByOrganizationRole(purposes, organizationId)
-    } yield Purposes(purposes = apiPurposes)
+      eServicesUUIDs = parseArrayParameters(eServicesIds)
+      consumersUUIDs = parseArrayParameters(consumersIds)
+      purposes         <- ReadModelQueries.listPurposes(name, eServicesUUIDs, consumersUUIDs, offset, limit)(readModel)
+      filteredPurposes <- filterPurposeByOrganizationRole(purposes.results, organizationId)
+      apiPurposes = filteredPurposes.map(PurposeConverter.persistentToApi)
+    } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
   }

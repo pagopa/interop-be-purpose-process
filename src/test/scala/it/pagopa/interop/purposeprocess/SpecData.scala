@@ -7,6 +7,12 @@ import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationM
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentPurpose,
+  PersistentRiskAnalysisForm,
+  PersistentRiskAnalysisMultiAnswer,
+  PersistentRiskAnalysisSingleAnswer
+}
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
@@ -121,6 +127,18 @@ object SpecData {
       )
     )
 
+  val validPersistentRiskAnalysis: PersistentRiskAnalysisForm =
+    PersistentRiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validManagementRiskAnalysisSeed.version,
+      singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        PersistentRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
+
   val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
     id = UUID.randomUUID(),
     eserviceId = UUID.randomUUID(),
@@ -144,6 +162,20 @@ object SpecData {
     expectedApprovalDate = None,
     dailyCalls = 1000,
     riskAnalysis = None
+  )
+
+  val persistentPurpose: PersistentPurpose = PersistentPurpose(
+    id = UUID.randomUUID(),
+    eserviceId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "A title",
+    description = "A description",
+    riskAnalysisForm = Some(validPersistentRiskAnalysis),
+    createdAt = timestamp,
+    updatedAt = None
   )
 
   def draftUpdate(dailyCalls: Int): DraftPurposeVersionUpdateContent = DraftPurposeVersionUpdateContent(dailyCalls)
