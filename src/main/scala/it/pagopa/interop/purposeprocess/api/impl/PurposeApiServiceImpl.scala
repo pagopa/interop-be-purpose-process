@@ -193,26 +193,27 @@ final case class PurposeApiServiceImpl(
     def filterPurposeByOrganizationRole(
       purposes: Seq[PurposeManagementModel.PersistentPurpose],
       organizationId: UUID
-    ): Future[Seq[PurposeManagementModel.PersistentPurpose]] = Future
-      .traverse(purposes)(purpose =>
-        for {
-          eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
-          ownership <- Ownership
-            .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
-            .toFuture
-            .map(Some(_))
-            .recover(_ => None)
-          filteredPurpose = ownership.as(purpose)
-        } yield filteredPurpose
-      )
-      .map(_.flatten)
+    ): Future[Seq[PurposeManagementModel.PersistentPurpose]] =
+      Future
+        .traverse(purposes)(purpose =>
+          for {
+            eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
+            ownership <- Ownership
+              .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
+              .toFuture
+              .map(Some(_))
+              .recover(_ => None)
+            filteredPurpose = ownership.as(purpose)
+          } yield filteredPurpose
+        )
+        .map(_.flatten)
 
     val result: Future[Purposes] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      eServicesUUIDs = parseArrayParameters(eServicesIds)
-      consumersUUIDs = parseArrayParameters(consumersIds)
+      eServicesIdsList = parseArrayParameters(eServicesIds)
+      consumersIdsList = parseArrayParameters(consumersIds)
       statesEnum <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
-      purposes   <- ReadModelQueries.listPurposes(name, eServicesUUIDs, consumersUUIDs, statesEnum, offset, limit)(
+      purposes   <- ReadModelQueries.listPurposes(name, eServicesIdsList, consumersIdsList, statesEnum, offset, limit)(
         readModel
       )
       filteredPurposes <- filterPurposeByOrganizationRole(purposes.results, organizationId)
