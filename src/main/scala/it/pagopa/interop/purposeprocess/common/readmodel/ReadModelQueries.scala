@@ -1,8 +1,8 @@
 package it.pagopa.interop.purposeprocess.common.readmodel
 
-import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
-import it.pagopa.interop.purposemanagement.model.persistence.JsonFormats._
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.purposemanagement.model.persistence.JsonFormats._
+import it.pagopa.interop.purposemanagement.model.purpose.{Draft, PersistentPurpose}
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionStateConverter
 import it.pagopa.interop.purposeprocess.model.PurposeVersionState
 import org.mongodb.scala.Document
@@ -12,11 +12,13 @@ import org.mongodb.scala.model.Filters
 import org.mongodb.scala.model.Projections.{computed, fields, include}
 import org.mongodb.scala.model.Sorts.ascending
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 object ReadModelQueries {
 
   def listPurposes(
+    requesterId: UUID,
     name: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
@@ -24,7 +26,7 @@ object ReadModelQueries {
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val query = listPurposesFilters(name, eServicesIds, consumersIds, states)
+    val query = listPurposesFilters(requesterId, name, eServicesIds, consumersIds, states)
 
     for {
       // Using aggregate to perform case insensitive sorting
@@ -55,6 +57,7 @@ object ReadModelQueries {
   }
 
   def listPurposesFilters(
+    requesterId: UUID,
     name: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
@@ -70,9 +73,17 @@ object ReadModelQueries {
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val nameFilter         = name.map(Filters.regex("data.title", _, "i"))
 
-    mapToVarArgs(eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList)(
-      Filters.and
-    ).getOrElse(Filters.empty())
+    // Include draft purposes only if the requester is the consumer
+    // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
+    val permissionFilter = Filters.or(
+      Filters
+        .and(Filters.eq("data.consumerId", requesterId.toString), Filters.eq("data.versions.state", Draft.toString)),
+      Filters.ne("data.versions.state", Draft.toString)
+    )
+
+    mapToVarArgs(
+      eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList :+ permissionFilter
+    )(Filters.and).getOrElse(Filters.empty())
   }
 
   def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
