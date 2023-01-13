@@ -346,17 +346,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(Seq(TotalCountResult(1))))
 
-      purposes.foreach { purpose =>
-        mockEServiceRetrieve(
-          purpose.eserviceId,
-          SpecData.eService
-            .copy(
-              producerId = SpecData.agreement.producerId,
-              descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-            )
-        )
-      }
-
       Get() ~> service.getPurposes(
         Some("name"),
         eServiceId.toString,
@@ -368,96 +357,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       ) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[Purposes].results.map(_.id) should contain theSameElementsAs purposes.map(_.id)
-      }
-    }
-
-    "succeed showing only authorized purposes" in {
-
-      val ownEServiceId     = UUID.randomUUID()
-      val ownOrganizationId = UUID.randomUUID()
-
-      val purposeAsConsumerId   = UUID.randomUUID()
-      val purposeAsProducerId   = UUID.randomUUID()
-      val unauthorizedPurposeId = UUID.randomUUID()
-
-      val otherConsumerId1 = UUID.randomUUID()
-      val otherConsumerId2 = UUID.randomUUID()
-      val otherEServiceId1 = UUID.randomUUID()
-      val otherEServiceId2 = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> ownOrganizationId.toString)
-
-      val ownEService         = SpecData.eService.copy(
-        id = ownEServiceId,
-        producerId = ownOrganizationId,
-        descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-      )
-      val purposeAsConsumer   =
-        SpecData.persistentPurpose.copy(
-          id = purposeAsConsumerId,
-          consumerId = ownOrganizationId,
-          eserviceId = otherEServiceId2
-        )
-      val purposeAsProducer   =
-        SpecData.persistentPurpose.copy(
-          id = purposeAsProducerId,
-          consumerId = otherConsumerId2,
-          eserviceId = ownEServiceId
-        )
-      val purposeUnauthorized =
-        SpecData.persistentPurpose.copy(
-          id = unauthorizedPurposeId,
-          consumerId = otherConsumerId1,
-          eserviceId = otherEServiceId1
-        )
-
-      val purposes: Seq[PersistentPurpose] = Seq(purposeAsConsumer, purposeAsProducer, purposeUnauthorized)
-
-      // EServices retrieve
-      (mockReadModel
-        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
-        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(EServiceId(purposeAsProducer.eserviceId))))
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 10, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(1))))
-
-      mockEServiceRetrieve(
-        purposeAsConsumer.eserviceId,
-        SpecData.eService
-          .copy(
-            id = purposeAsConsumer.eserviceId,
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-
-      mockEServiceRetrieve(ownEService.id, ownEService)
-
-      mockEServiceRetrieve(
-        purposeUnauthorized.eserviceId,
-        SpecData.eService
-          .copy(
-            id = purposeUnauthorized.eserviceId,
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-      Get() ~> service.getPurposes(None, "", "", "", "", 0, 10) ~> check {
-        status shouldEqual StatusCodes.OK
-        val result = responseAs[Purposes]
-        result.results.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
       }
     }
 

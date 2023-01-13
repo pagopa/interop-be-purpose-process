@@ -198,16 +198,13 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[Purposes] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      eServicesIdsList = parseArrayParameters(eServicesIds)
-      consumersIdsList = parseArrayParameters(consumersIds)
-      producersIdsList = parseArrayParameters(producersIds)
-      statesEnum <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
-      purposes   <- ReadModelQueries.listPurposes(
+      statesEnum     <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
+      purposes       <- ReadModelQueries.listPurposes(
         organizationId,
         name,
-        eServicesIdsList,
-        consumersIdsList,
-        producersIdsList,
+        parseArrayParameters(eServicesIds),
+        parseArrayParameters(consumersIds),
+        parseArrayParameters(producersIds),
         statesEnum,
         offset,
         limit

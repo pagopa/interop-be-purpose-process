@@ -34,14 +34,12 @@ object ReadModelQueries {
     states: List[PurposeVersionState],
     offset: Int,
     limit: Int
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val producersEServicesIdsFilter = listProducerEServicesIdsFilter(producersIds)
-
+  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] =
     for {
       // Note: This could be done with a lookup, but we'll keep this simple knowing the db migration is imminent
       producersEServicesIds <- readModel.find[EServiceId](
         "eservices",
-        producersEServicesIdsFilter,
+        listProducerEServicesIdsFilter(producersIds),
         Projections.include("data.id"),
         offset = 0,
         limit = Int.MaxValue
@@ -78,7 +76,6 @@ object ReadModelQueries {
         limit = Int.MaxValue
       )
     } yield PaginatedResult(results = purposes, totalCount = count.headOption.map(_.totalCount).getOrElse(0))
-  }
 
   def listProducerEServicesIdsFilter(producersIds: List[String]): Bson =
     mapToVarArgs(producersIds.map(Filters.eq("data.producerId", _)))(Filters.or).getOrElse(Filters.empty())
