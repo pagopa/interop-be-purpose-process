@@ -13,6 +13,7 @@ import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries.EServiceId
 import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
@@ -313,6 +314,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+      val producerId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
@@ -325,6 +327,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionState.ACTIVE
       )
 
+      // EServices retrieve
+      (mockReadModel
+        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
+        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(EServiceId(purpose.eserviceId))))
       // Data retrieve
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
@@ -334,7 +342,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       // Total count
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, *, *, *)
+        .expects("purposes", *, 0, Int.MaxValue, *, *)
         .once()
         .returns(Future.successful(Seq(TotalCountResult(1))))
 
@@ -353,6 +361,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Some("name"),
         eServiceId.toString,
         consumerId.toString,
+        producerId.toString,
         states.mkString(","),
         0,
         10
@@ -405,6 +414,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val purposes: Seq[PersistentPurpose] = Seq(purposeAsConsumer, purposeAsProducer, purposeUnauthorized)
 
+      // EServices retrieve
+      (mockReadModel
+        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
+        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(EServiceId(purposeAsProducer.eserviceId))))
       // Data retrieve
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
@@ -414,7 +429,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       // Total count
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, *, *, *)
+        .expects("purposes", *, 0, Int.MaxValue, *, *)
         .once()
         .returns(Future.successful(Seq(TotalCountResult(1))))
 
@@ -439,7 +454,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
       )
-      Get() ~> service.getPurposes(None, "", "", "", 0, 10) ~> check {
+      Get() ~> service.getPurposes(None, "", "", "", "", 0, 10) ~> check {
         status shouldEqual StatusCodes.OK
         val result = responseAs[Purposes]
         result.results.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)

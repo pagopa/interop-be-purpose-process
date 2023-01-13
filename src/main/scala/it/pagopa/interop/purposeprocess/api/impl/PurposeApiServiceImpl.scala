@@ -17,7 +17,6 @@ import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
-import it.pagopa.interop.purposemanagement.model.{purpose => PurposeManagementModel}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.agreementmanagement.AgreementConverter
 import it.pagopa.interop.purposeprocess.api.converters.authorizationmanagement.ClientConverter
@@ -184,6 +183,7 @@ final case class PurposeApiServiceImpl(
     name: Option[String],
     eServicesIds: String,
     consumersIds: String,
+    producersIds: String,
     states: String,
     offset: Int,
     limit: Int
@@ -192,37 +192,27 @@ final case class PurposeApiServiceImpl(
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
-    val operationLabel = s"Retrieving Purposes for name $name, EServices $eServicesIds, Consumer $consumersIds"
+    val operationLabel =
+      s"Retrieving Purposes for name $name, EServices $eServicesIds, Consumers $consumersIds, Producers $producersIds"
     logger.info(operationLabel)
-
-    def filterPurposeByOrganizationRole(
-      purposes: Seq[PurposeManagementModel.PersistentPurpose],
-      organizationId: UUID
-    ): Future[Seq[PurposeManagementModel.PersistentPurpose]] =
-      Future
-        .traverse(purposes)(purpose =>
-          for {
-            eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
-            ownership <- Ownership
-              .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
-              .toFuture
-              .map(Some(_))
-              .recover(_ => None)
-            filteredPurpose = ownership.as(purpose)
-          } yield filteredPurpose
-        )
-        .map(_.flatten)
 
     val result: Future[Purposes] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       eServicesIdsList = parseArrayParameters(eServicesIds)
       consumersIdsList = parseArrayParameters(consumersIds)
+      producersIdsList = parseArrayParameters(producersIds)
       statesEnum <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
-      purposes   <- ReadModelQueries.listPurposes(name, eServicesIdsList, consumersIdsList, statesEnum, offset, limit)(
-        readModel
-      )
-      filteredPurposes <- filterPurposeByOrganizationRole(purposes.results, organizationId)
-      apiPurposes = filteredPurposes.map(PurposeConverter.persistentToApi)
+      purposes   <- ReadModelQueries.listPurposes(
+        organizationId,
+        name,
+        eServicesIdsList,
+        consumersIdsList,
+        producersIdsList,
+        statesEnum,
+        offset,
+        limit
+      )(readModel)
+      apiPurposes = purposes.results.map(PurposeConverter.persistentToApi)
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
