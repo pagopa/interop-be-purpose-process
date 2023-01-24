@@ -678,12 +678,10 @@ components:
           type: boolean
         title:
           type: string
-          maxLength: 60
         riskAnalysisForm:
           $ref: '#/components/schemas/RiskAnalysisForm'
         description:
           type: string
-          maxLength: 250
         createdAt:
           type: string
           format: date-time
@@ -716,9 +714,11 @@ components:
       properties:
         title:
           type: string
+          minLength: 5
           maxLength: 60
         description:
           type: string
+          minLength: 10
           maxLength: 250
         riskAnalysisForm:
           $ref: '#/components/schemas/RiskAnalysisForm'
@@ -817,9 +817,11 @@ components:
           $ref: '#/components/schemas/RiskAnalysisForm'
         title:
           type: string
+          minLength: 5
           maxLength: 60
         description:
           type: string
+          minLength: 10
           maxLength: 250
       required:
         - eserviceId
@@ -842,12 +844,14 @@ components:
       properties:
         version:
           type: string
+          minLength: 10
           maxLength: 250
         answers:
           additionalProperties:
             type: array
             items:
               type: string
+              minLength: 10
               maxLength: 250
       required:
         - version
