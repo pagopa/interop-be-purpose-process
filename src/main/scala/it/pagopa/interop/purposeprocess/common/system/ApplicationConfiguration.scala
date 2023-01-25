@@ -1,6 +1,7 @@
 package it.pagopa.interop.purposeprocess.common.system
 
 import com.typesafe.config.{Config, ConfigFactory}
+import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 
 object ApplicationConfiguration {
   val config: Config = ConfigFactory.load()
@@ -18,6 +19,12 @@ object ApplicationConfiguration {
   val storageContainer: String = config.getString("purpose-process.storage.container")
   val storagePath: String      = config.getString("purpose-process.storage.risk-analysis-path")
 
+  val readModelConfig: ReadModelConfig = {
+    val connectionString: String = config.getString("purpose-process.read-model.db.connection-string")
+    val dbName: String           = config.getString("purpose-process.read-model.db.name")
+
+    ReadModelConfig(connectionString, dbName)
+  }
   require(jwtAudience.nonEmpty, "Audience cannot be empty")
 
 }

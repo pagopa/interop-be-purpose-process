@@ -1,16 +1,17 @@
 package it.pagopa.interop.purposeprocess.api.converters.purposemanagement
 
 import it.pagopa.interop.purposemanagement.client.model.{Purpose => DependencyPurpose}
-import it.pagopa.interop.purposeprocess.model.{Agreement, Client, EService, Organization, Purpose}
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
+import it.pagopa.interop.purposeprocess.model._
 
 object PurposeConverter {
-  def dependencyToApi(
+  def dependencyToOldApi(
     purpose: DependencyPurpose,
     eService: EService,
     agreement: Agreement,
     consumer: Organization,
     clients: Seq[Client]
-  ): Purpose = Purpose(
+  ): OldPurpose = OldPurpose(
     id = purpose.id,
     agreement = agreement,
     eservice = eService,
@@ -22,6 +23,20 @@ object PurposeConverter {
     title = purpose.title,
     riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
     description = purpose.description,
+    createdAt = purpose.createdAt,
+    updatedAt = purpose.updatedAt
+  )
+
+  def persistentToApi(purpose: PersistentPurpose): Purpose = Purpose(
+    id = purpose.id,
+    eserviceId = purpose.eserviceId,
+    consumerId = purpose.consumerId,
+    versions = purpose.versions.map(PurposeVersionConverter.persistentToApi),
+    suspendedByConsumer = purpose.suspendedByConsumer,
+    suspendedByProducer = purpose.suspendedByProducer,
+    title = purpose.title,
+    description = purpose.description,
+    riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.persistentToApi),
     createdAt = purpose.createdAt,
     updatedAt = purpose.updatedAt
   )

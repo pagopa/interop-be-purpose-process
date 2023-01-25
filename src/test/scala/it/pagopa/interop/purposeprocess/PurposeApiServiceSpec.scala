@@ -8,20 +8,25 @@ import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries.EServiceId
+import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model._
+import org.mongodb.scala.bson.conversions.Bson
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import spray.json.JsonReader
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
@@ -84,7 +89,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose].id shouldEqual managementResponse.id
+        responseAs[OldPurpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -144,7 +149,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Purpose].id shouldEqual managementResponse.id
+        responseAs[OldPurpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -245,7 +250,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[Purpose]
+        val response = responseAs[OldPurpose]
         response.id shouldEqual SpecData.purpose.id
         response.clients should not be empty
       }
@@ -279,7 +284,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[Purpose]
+        val response = responseAs[OldPurpose]
         response.id shouldEqual purpose.id
         response.clients shouldBe empty
       }
@@ -309,119 +314,49 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
+      val producerId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val purpose = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
-      val purposes: PurposeManagementDependency.Purposes =
-        PurposeManagementDependency.Purposes(Seq(purpose))
+      val purpose = SpecData.persistentPurpose.copy(consumerId = consumerId, eserviceId = eServiceId)
+      val purposes: Seq[PersistentPurpose] = Seq(purpose)
 
       val states = Seq(
         PurposeManagementDependency.PurposeVersionState.DRAFT,
         PurposeManagementDependency.PurposeVersionState.ACTIVE
       )
 
-      (
-        mockPurposeManagementService
-          .getPurposes(_: Option[UUID], _: Option[UUID], _: Seq[PurposeManagementDependency.PurposeVersionState])(
-            _: Seq[(String, String)]
-          )
-        )
-        .expects(Some(eServiceId), Some(consumerId), states, context)
+      // EServices retrieve
+      (mockReadModel
+        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
+        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(EServiceId(purpose.eserviceId))))
+      // Data retrieve
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("purposes", *, 0, 10, *, *)
         .once()
         .returns(Future.successful(purposes))
-
-      purposes.purposes.foreach { purpose =>
-        mockEServiceRetrieve(
-          purpose.eserviceId,
-          SpecData.eService
-            .copy(
-              producerId = SpecData.agreement.producerId,
-              descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-            )
-        )
-        mockPurposeEnhancement(purpose, isConsumer = true)
-      }
-
-      Get() ~> service.getPurposes(Some(eServiceId.toString), Some(consumerId.toString), "DRAFT,ACTIVE") ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[Purposes].purposes.map(_.id) should contain theSameElementsAs purposes.purposes.map(_.id)
-      }
-    }
-
-    "succeed showing only authorized purposes" in {
-
-      val ownEServiceId     = UUID.randomUUID()
-      val ownOrganizationId = UUID.randomUUID()
-
-      val purposeAsConsumerId   = UUID.randomUUID()
-      val purposeAsProducerId   = UUID.randomUUID()
-      val unauthorizedPurposeId = UUID.randomUUID()
-
-      val otherConsumerId1 = UUID.randomUUID()
-      val otherConsumerId2 = UUID.randomUUID()
-      val otherEServiceId1 = UUID.randomUUID()
-      val otherEServiceId2 = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> ownOrganizationId.toString)
-
-      val ownEService         = SpecData.eService.copy(
-        id = ownEServiceId,
-        producerId = ownOrganizationId,
-        descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-      )
-      val purposeAsConsumer   =
-        SpecData.purpose.copy(id = purposeAsConsumerId, consumerId = ownOrganizationId, eserviceId = otherEServiceId2)
-      val purposeAsProducer   =
-        SpecData.purpose.copy(id = purposeAsProducerId, consumerId = otherConsumerId2, eserviceId = ownEServiceId)
-      val purposeUnauthorized =
-        SpecData.purpose.copy(id = unauthorizedPurposeId, consumerId = otherConsumerId1, eserviceId = otherEServiceId1)
-
-      val purposes: PurposeManagementDependency.Purposes =
-        PurposeManagementDependency.Purposes(Seq(purposeAsConsumer, purposeAsProducer, purposeUnauthorized))
-
-      (
-        mockPurposeManagementService
-          .getPurposes(_: Option[UUID], _: Option[UUID], _: Seq[PurposeManagementDependency.PurposeVersionState])(
-            _: Seq[(String, String)]
-          )
-        )
-        .expects(None, None, Seq.empty, context)
+      // Total count
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("purposes", *, 0, Int.MaxValue, *, *)
         .once()
-        .returns(Future.successful(purposes))
+        .returns(Future.successful(Seq(TotalCountResult(1))))
 
-      mockEServiceRetrieve(
-        purposeAsConsumer.eserviceId,
-        SpecData.eService
-          .copy(
-            id = purposeAsConsumer.eserviceId,
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-      mockPurposeEnhancement(purposeAsConsumer, isConsumer = true)
-
-      mockEServiceRetrieve(ownEService.id, ownEService)
-
-      mockEServiceRetrieve(
-        purposeUnauthorized.eserviceId,
-        SpecData.eService
-          .copy(
-            id = purposeUnauthorized.eserviceId,
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-      mockPurposeEnhancement(purposeAsProducer, isConsumer = false)
-
-      Get() ~> service.getPurposes(None, None, "") ~> check {
+      Get() ~> service.getPurposes(
+        Some("name"),
+        eServiceId.toString,
+        consumerId.toString,
+        producerId.toString,
+        states.mkString(","),
+        0,
+        10
+      ) ~> check {
         status shouldEqual StatusCodes.OK
-        val result = responseAs[Purposes]
-        result.purposes.map(_.id) should contain theSameElementsAs Seq(purposeAsConsumer.id, purposeAsProducer.id)
-        result.purposes.find(_.id == purposeAsConsumer.id).get.clients should not be empty
-        result.purposes.find(_.id == purposeAsProducer.id).get.clients shouldBe empty
+        responseAs[Purposes].results.map(_.id) should contain theSameElementsAs purposes.map(_.id)
       }
     }
 
