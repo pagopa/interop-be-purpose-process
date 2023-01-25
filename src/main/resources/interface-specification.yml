@@ -851,7 +851,7 @@ components:
             type: array
             items:
               type: string
-              minLength: 10
+              minLength: 1
               maxLength: 250
       required:
         - version
