@@ -41,6 +41,7 @@ object ResponseHandlers extends AkkaResponses {
       case Success(s)                                => success(s)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
+      case Failure(ex: PurposeVersionConflict)       => conflict(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
 
