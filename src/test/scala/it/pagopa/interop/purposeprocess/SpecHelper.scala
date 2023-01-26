@@ -8,6 +8,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
@@ -15,7 +16,7 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, Purposes}
+import it.pagopa.interop.purposeprocess.model.{OldPurpose, Problem, PurposeVersion, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
 import spray.json._
@@ -33,6 +34,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     .parseResourcesAnySyntax("application-test")
     .resolve()
 
+  val mockReadModel: ReadModelService                                    = mock[ReadModelService]
   val mockfileManager: FileManager                                       = mock[FileManager]
   val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
   val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
@@ -50,6 +52,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockCatalogManagementService,
     mockPurposeManagementService,
     mockTenantManagementService,
+    mockReadModel,
     mockfileManager,
     mockPdfCreator,
     mockUUIDSupplier,
@@ -279,8 +282,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
   }
 
-  implicit def fromResponseUnmarshallerPurpose: FromEntityUnmarshaller[Purpose]               =
-    sprayJsonUnmarshaller[Purpose]
+  implicit def fromResponseUnmarshallerOldPurpose: FromEntityUnmarshaller[OldPurpose]         =
+    sprayJsonUnmarshaller[OldPurpose]
   implicit def fromResponseUnmarshallerPurposeVersion: FromEntityUnmarshaller[PurposeVersion] =
     sprayJsonUnmarshaller[PurposeVersion]
   implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]             =

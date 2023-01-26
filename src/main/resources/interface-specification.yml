@@ -38,24 +38,63 @@ paths:
       description: Retrieve Purposes
       parameters:
         - in: query
-          name: eserviceId
+          name: name
           schema:
             type: string
-            format: uuid
         - in: query
-          name: consumerId
+          name: eservicesIds
+          description: comma separated sequence of EService IDs
           schema:
-            type: string
-            format: uuid
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
+        - in: query
+          name: consumersIds
+          description: comma separated sequence of consumers IDs
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
+        - in: query
+          name: producersIds
+          description: comma separated sequence of producers IDs
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            default: []
+          explode: false
         - in: query
           name: states
-          description: comma separated sequence of states to filter the response with
+          description: comma separated sequence of states
           schema:
             type: array
             items:
               $ref: '#/components/schemas/PurposeVersionState'
             default: []
           explode: false
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 50
       responses:
         '200':
           description: Purposes requested
@@ -80,7 +119,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -115,7 +154,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -148,7 +187,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Purpose'
+                $ref: '#/components/schemas/OldPurpose'
         '400':
           description: Bad Request
           content:
@@ -654,7 +693,7 @@ components:
       required:
         - id
         - name
-    Purpose:
+    OldPurpose:
       type: object
       properties:
         id:
@@ -699,15 +738,60 @@ components:
         - description
         - createdAt
       description: business representation of a purpose
+    Purpose:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurposeVersion'
+        suspendedByConsumer:
+          type: boolean
+        suspendedByProducer:
+          type: boolean
+        title:
+          type: string
+        description:
+          type: string
+        riskAnalysisForm:
+          $ref: '#/components/schemas/RiskAnalysisForm'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - eserviceId
+        - consumerId
+        - versions
+        - title
+        - description
+        - createdAt
+      description: business representation of a purpose
     Purposes:
       type: object
       properties:
-        purposes:
+        results:
           type: array
           items:
             $ref: '#/components/schemas/Purpose'
+        totalCount:
+          type: integer
+          format: int32
       required:
-        - purposes
+        - results
+        - totalCount
     PurposeUpdateContent:
       type: object
       description: contains the expected payload for purpose update.
@@ -766,17 +850,18 @@ components:
         expectedApprovalDate:
           type: string
           format: date-time
-        riskAnalysis:
-          $ref: '#/components/schemas/PurposeVersionDocument'
         dailyCalls:
+          description: 'maximum number of daily calls that this version can perform.'
           type: integer
           format: int32
           minimum: 0
+        riskAnalysis:
+          $ref: '#/components/schemas/PurposeVersionDocument'
       required:
         - id
         - state
-        - createdAt
         - dailyCalls
+        - createdAt
       description: business representation of a purpose version
     PurposeVersionState:
       type: string
