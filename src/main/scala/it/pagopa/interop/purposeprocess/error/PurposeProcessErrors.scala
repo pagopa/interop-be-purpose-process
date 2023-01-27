@@ -41,4 +41,7 @@ object PurposeProcessErrors {
 
   final case class PurposeNotFound(purposeId: UUID) extends ComponentError("0012", s"Purpose $purposeId not found")
 
+  final case class PurposeVersionConflict(purposeId: UUID)
+      extends ComponentError("0013", s"Version conflict for Purpose $purposeId")
+
 }

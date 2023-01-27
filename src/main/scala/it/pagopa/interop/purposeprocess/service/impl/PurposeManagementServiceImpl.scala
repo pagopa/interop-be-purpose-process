@@ -3,14 +3,10 @@ package it.pagopa.interop.purposeprocess.service.impl
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.purposemanagement.client.model._
-import it.pagopa.interop.purposeprocess.service.{
-  PurposeManagementApi,
-  PurposeManagementInvoker,
-  PurposeManagementService
-}
+import it.pagopa.interop.purposeprocess.service.{PurposeManagementApi, PurposeManagementInvoker, PurposeManagementService}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{PurposeNotFound, PurposeVersionNotFound}
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{PurposeNotFound, PurposeVersionConflict, PurposeVersionNotFound}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +31,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     val request = api.createPurposeVersion(xCorrelationId = correlationId, purposeId, seed, xForwardedFor = ip)(
       BearerToken(bearerToken)
     )
-    invoker.invoke(request, s"Creating purpose version for Purpose $purposeId")
+    invoker
+      .invoke(request, s"Creating purpose version for Purpose $purposeId")
+      .recoverWith { case err: ApiError[_] if err.code == 409 => Future.failed(PurposeVersionConflict(purposeId)) }
   }
 
   override def updatePurpose(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent)(implicit
