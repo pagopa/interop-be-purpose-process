@@ -3,10 +3,18 @@ package it.pagopa.interop.purposeprocess.service.impl
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.purposemanagement.client.invoker.{ApiError, BearerToken}
 import it.pagopa.interop.purposemanagement.client.model._
-import it.pagopa.interop.purposeprocess.service.{PurposeManagementApi, PurposeManagementInvoker, PurposeManagementService}
+import it.pagopa.interop.purposeprocess.service.{
+  PurposeManagementApi,
+  PurposeManagementInvoker,
+  PurposeManagementService
+}
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{PurposeNotFound, PurposeVersionConflict, PurposeVersionNotFound}
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
+  PurposeNotFound,
+  PurposeVersionConflict,
+  PurposeVersionNotFound
+}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}

@@ -929,7 +929,7 @@ components:
       properties:
         version:
           type: string
-          minLength: 10
+          minLength: 1
           maxLength: 250
         answers:
           additionalProperties:
