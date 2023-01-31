@@ -52,7 +52,7 @@ final case class PurposeVersionActivation(
       latestVersion <- purpose.versions
         .sortBy(_.createdAt)
         .lastOption
-        .toFuture(new Exception("IMPOSSIBLE")) // TODO Exception
+        .toFuture(PurposeWithoutVersions(purpose.id))
       _             <- purpose.versions
         .find(_.state == WAITING_FOR_APPROVAL)
         .traverse(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
