@@ -10,7 +10,10 @@
     {
       "verb": "GET",
       "roles": [
-        "admin", "m2m"
+        "admin",
+        "api",
+        "security",
+        "m2m"
       ],
       "route": "getPurpose"
     },
@@ -66,7 +69,10 @@
     {
       "verb": "GET",
       "roles": [
-        "admin", "m2m"
+        "admin",
+        "api",
+        "security",
+        "m2m"
       ],
       "route": "getPurposes"
     },
@@ -94,7 +100,9 @@
     {
       "verb": "GET",
       "roles": [
-        "admin"
+        "admin",
+        "api",
+        "security"
       ],
       "route": "getRiskAnalysisDocument"
     }

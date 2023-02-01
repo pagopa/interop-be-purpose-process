@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagementDependency}
 import it.pagopa.interop.commons.files.service.FileManager
-import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, authorize}
+import it.pagopa.interop.commons.jwt.{ADMIN_ROLE, M2M_ROLE, API_ROLE, SECURITY_ROLE, authorize}
 import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
 import it.pagopa.interop.commons.utils.AkkaUtils.getOrganizationIdFutureUUID
 import it.pagopa.interop.commons.utils.OpenapiUtils.parseArrayParameters
@@ -65,7 +65,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerFile: ToEntityMarshaller[File]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
@@ -156,7 +156,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE) {
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
@@ -181,7 +181,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE) {
     val operationLabel = s"Retrieving Purposes for EService $eServiceId, Consumer $consumerId and States $states"
     logger.info(operationLabel)
 
