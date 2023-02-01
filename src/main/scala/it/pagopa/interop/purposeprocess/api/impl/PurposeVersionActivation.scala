@@ -49,20 +49,21 @@ final case class PurposeVersionActivation(
       purposeManagementService.waitForApprovalPurposeVersion(purpose.id, version.id, StateChangeDetails(changedBy))
 
     def createWaitForApproval(): Future[PurposeVersion] = for {
-      latestVersion <- purpose.versions
-        .sortBy(_.createdAt)
-        .lastOption
-        .toFuture(PurposeWithoutVersions(purpose.id))
-      _             <- purpose.versions
-        .find(_.state == WAITING_FOR_APPROVAL)
-        .traverse(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
-      newVersion    <- purposeManagementService.createPurposeVersion(
+      _                         <- Future.traverse(purpose.versions.find(_.state == WAITING_FOR_APPROVAL).toList) { v =>
+        purposeManagementService.deletePurposeVersion(purpose.id, v.id)
+      }
+      draftVersion              <- purposeManagementService.createPurposeVersion(
         purpose.id,
-        PurposeVersionSeed(latestVersion.dailyCalls, latestVersion.riskAnalysis)
+        PurposeVersionSeed(version.dailyCalls, version.riskAnalysis)
       )
-    } yield newVersion
+      waitingForApprovalVersion <- purposeManagementService.waitForApprovalPurposeVersion(
+        purpose.id,
+        draftVersion.id,
+        StateChangeDetails(ChangedBy.CONSUMER)
+      )
+    } yield waitingForApprovalVersion
 
-    def activate(changedBy: ChangedBy): Future[PurposeVersion] = {
+    def activate(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
           riskAnalysis = version.riskAnalysis,
@@ -71,11 +72,14 @@ final case class PurposeVersionActivation(
 
       for {
         version <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
-        _       <- authorizationManagementService.updateStateOnClients(
-          purposeId = purpose.id,
-          versionId = version.id,
-          state = if (version.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
-        )
+        _       <-
+          if (version.state != WAITING_FOR_APPROVAL)
+            authorizationManagementService.updateStateOnClients(
+              purposeId = purpose.id,
+              versionId = version.id,
+              state = if (version.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
+            )
+          else Future.unit
       } yield version
 
     }
@@ -94,11 +98,13 @@ final case class PurposeVersionActivation(
 
       case (SUSPENDED, CONSUMER)
           if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>
-        activate(ChangedBy.CONSUMER)
+        activate(version, ChangedBy.CONSUMER)
       case (SUSPENDED, CONSUMER) if purpose.suspendedByConsumer.contains(true) =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), createWaitForApproval())
-      case (SUSPENDED, PRODUCER | SELF_CONSUMER)                               =>
-        activate(ChangedBy.PRODUCER)
+        isLoadAllowed(eService, purpose, version).ifM(activate(version, ChangedBy.CONSUMER), createWaitForApproval())
+      case (SUSPENDED, SELF_CONSUMER)                                          =>
+        isLoadAllowed(eService, purpose, version).ifM(activate(version, ChangedBy.PRODUCER), createWaitForApproval())
+      case (SUSPENDED, PRODUCER)                                               =>
+        activate(version, ChangedBy.PRODUCER)
 
       case _ => Future.failed(OrganizationNotAllowed(organizationId))
     }
