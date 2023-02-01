@@ -65,7 +65,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem],
     toEntityMarshallerFile: ToEntityMarshaller[File]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+  ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
