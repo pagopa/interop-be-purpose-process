@@ -72,14 +72,11 @@ final case class PurposeVersionActivation(
 
       for {
         version <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
-        _       <-
-          if (version.state != WAITING_FOR_APPROVAL)
-            authorizationManagementService.updateStateOnClients(
-              purposeId = purpose.id,
-              versionId = version.id,
-              state = if (version.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
-            )
-          else Future.unit
+        _       <- authorizationManagementService.updateStateOnClients(
+          purposeId = purpose.id,
+          versionId = version.id,
+          state = if (version.state == ACTIVE) ClientComponentState.ACTIVE else ClientComponentState.INACTIVE
+        )
       } yield version
 
     }
