@@ -100,9 +100,7 @@
     {
       "verb": "GET",
       "roles": [
-        "admin",
-        "api",
-        "security"
+        "admin"
       ],
       "route": "getRiskAnalysisDocument"
     }
