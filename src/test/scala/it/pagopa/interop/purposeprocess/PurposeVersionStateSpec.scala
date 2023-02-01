@@ -16,8 +16,6 @@ import java.util.UUID
 import scala.concurrent.Future
 
 class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest {
-  // TODO SpecDta.purpose to def and use its id in tests
-  // TODO Fix tests: cannot exist both ACTIVE and SUSPENDED versions
 
   import PurposeApiMarshallerImpl._
 
