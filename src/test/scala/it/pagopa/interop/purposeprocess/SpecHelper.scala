@@ -111,6 +111,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.unit)
 
+  def mockPurposeVersionCreate(
+    purposeId: UUID,
+    seed: PurposeManagement.PurposeVersionSeed,
+    result: PurposeManagement.PurposeVersion
+  )(implicit contexts: Seq[(String, String)]) =
+    (mockPurposeManagementService
+      .createPurposeVersion(_: UUID, _: PurposeManagement.PurposeVersionSeed)(_: Seq[(String, String)]))
+      .expects(purposeId, seed, contexts)
+      .once()
+      .returns(Future.successful(result))
+
   def mockPurposeVersionDelete(purposeId: UUID, versionId: UUID)(implicit contexts: Seq[(String, String)]) =
     (mockPurposeManagementService
       .deletePurposeVersion(_: UUID, _: UUID)(_: Seq[(String, String)]))
@@ -244,6 +255,24 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(purposeId, versionId, *, context)
       .once()
       .returns(Future.successful(result))
+
+  def mockWaitingForApprovalVersionCreate(purposeId: UUID, result: PurposeManagement.PurposeVersion)(implicit
+    context: Seq[(String, String)]
+  ) = {
+    val createdVersionSeed = PurposeManagement.PurposeVersionSeed(result.dailyCalls, result.riskAnalysis)
+
+    mockPurposeVersionCreate(
+      purposeId,
+      createdVersionSeed,
+      result.copy(state = PurposeManagement.PurposeVersionState.DRAFT)
+    )
+    mockVersionWaitForApproval(
+      purposeId,
+      result.id,
+      PurposeManagement.StateChangeDetails(PurposeManagement.ChangedBy.CONSUMER),
+      result.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
+    )
+  }
 
   def mockClientStateUpdate(purposeId: UUID, versionId: UUID, state: AuthorizationManagement.ClientComponentState)(
     implicit contexts: Seq[(String, String)]
