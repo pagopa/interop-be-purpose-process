@@ -45,10 +45,10 @@ final case class PurposeVersionActivation(
     ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
-    def changeToWaitForApproval(changedBy: ChangedBy): Future[PurposeVersion] =
+    def changeToWaitForApproval(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] =
       purposeManagementService.waitForApprovalPurposeVersion(purpose.id, version.id, StateChangeDetails(changedBy))
 
-    def createWaitForApproval(): Future[PurposeVersion] = for {
+    def createWaitForApproval(version: PurposeVersion): Future[PurposeVersion] = for {
       _                         <- Future.traverse(purpose.versions.find(_.state == WAITING_FOR_APPROVAL).toList) { v =>
         purposeManagementService.deletePurposeVersion(purpose.id, v.id)
       }
@@ -85,7 +85,7 @@ final case class PurposeVersionActivation(
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
-          changeToWaitForApproval(ChangedBy.CONSUMER)
+          changeToWaitForApproval(version, ChangedBy.CONSUMER)
         )
       case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
@@ -97,9 +97,15 @@ final case class PurposeVersionActivation(
           if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>
         activate(version, ChangedBy.CONSUMER)
       case (SUSPENDED, CONSUMER) if purpose.suspendedByConsumer.contains(true) =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(version, ChangedBy.CONSUMER), createWaitForApproval())
+        isLoadAllowed(eService, purpose, version).ifM(
+          activate(version, ChangedBy.CONSUMER),
+          createWaitForApproval(version)
+        )
       case (SUSPENDED, SELF_CONSUMER)                                          =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(version, ChangedBy.PRODUCER), createWaitForApproval())
+        isLoadAllowed(eService, purpose, version).ifM(
+          activate(version, ChangedBy.PRODUCER),
+          createWaitForApproval(version)
+        )
       case (SUSPENDED, PRODUCER)                                               =>
         activate(version, ChangedBy.PRODUCER)
 
