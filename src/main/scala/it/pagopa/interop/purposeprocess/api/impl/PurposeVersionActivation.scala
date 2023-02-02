@@ -37,29 +37,6 @@ final case class PurposeVersionActivation(
     .getLines()
     .mkString(System.lineSeparator())
 
-  /** Activate or Wait for Approval for the given version based on current status.
-    *
-    * Validations
-    * <table>
-    *   <tr><th>Version State</th><th>Requester is a</th><th>Load exceeded</th><th>Result</th></tr>
-    *   <tr><td>DRAFT</td><td>CONSUMER</td><td>No</td><td>Activate</td></tr>
-    *   <tr><td>DRAFT</td><td>CONSUMER</td><td>Yes</td><td>Wait for Approval</td></tr>
-    *   <tr><td>DRAFT</td><td>PRODUCER</td><td>-</td><td>Error: Unauthorized</td></tr>
-    *   <tr><td>WAITING_FOR_APPROVAL</td><td>CONSUMER</td><td>-</td><td>Error: Unauthorized</td></tr>
-    *   <tr><td>WAITING_FOR_APPROVAL</td><td>PRODUCER</td><td>-</td><td>Activate</td></tr>
-    *   <tr><td>SUSPENDED</td><td>CONSUMER</td><td>No</td><td>Activate</td></tr>
-    *   <tr><td>SUSPENDED</td><td>CONSUMER</td><td>Yes</td><td>Wait for Approval</td></tr>
-    *   <tr><td>SUSPENDED</td><td>PRODUCER</td><td>-</td><td>Activate</td></tr>
-    *   <tr><td><i>other</i></td><td>-</td><td>-</td><td>Error: Unauthorized</td></tr>
-    * </table>
-    * @param contexts Request contexts
-    * @param eService EService of the Agreement related to the Purpose
-    * @param purpose Purpose of the Version
-    * @param version Version to activate
-    * @param organizationId Organization ID
-    * @param ownership The rule assumed by the organization
-    * @return the updated Version
-    */
   def activateOrWaitForApproval(
     eService: EService,
     purpose: Purpose,
@@ -68,10 +45,25 @@ final case class PurposeVersionActivation(
     ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
-    def waitForApproval(changedBy: ChangedBy): Future[PurposeVersion] =
+    def changeToWaitForApproval(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] =
       purposeManagementService.waitForApprovalPurposeVersion(purpose.id, version.id, StateChangeDetails(changedBy))
 
-    def activate(changedBy: ChangedBy): Future[PurposeVersion] = {
+    def createWaitForApproval(version: PurposeVersion): Future[PurposeVersion] = for {
+      _                         <- Future.traverse(purpose.versions.find(_.state == WAITING_FOR_APPROVAL).toList) { v =>
+        purposeManagementService.deletePurposeVersion(purpose.id, v.id)
+      }
+      draftVersion              <- purposeManagementService.createPurposeVersion(
+        purpose.id,
+        PurposeVersionSeed(version.dailyCalls, version.riskAnalysis)
+      )
+      waitingForApprovalVersion <- purposeManagementService.waitForApprovalPurposeVersion(
+        purpose.id,
+        draftVersion.id,
+        StateChangeDetails(ChangedBy.CONSUMER)
+      )
+    } yield waitingForApprovalVersion
+
+    def activate(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
           riskAnalysis = version.riskAnalysis,
@@ -93,7 +85,7 @@ final case class PurposeVersionActivation(
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
-          waitForApproval(ChangedBy.CONSUMER)
+          changeToWaitForApproval(version, ChangedBy.CONSUMER)
         )
       case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
@@ -101,11 +93,23 @@ final case class PurposeVersionActivation(
       case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
         firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
 
-      case (SUSPENDED, CONSUMER)                 =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.CONSUMER), waitForApproval(ChangedBy.CONSUMER))
-      case (SUSPENDED, PRODUCER | SELF_CONSUMER) =>
-        isLoadAllowed(eService, purpose, version).ifM(activate(ChangedBy.PRODUCER), waitForApproval(ChangedBy.PRODUCER))
-      case _                                     => Future.failed(OrganizationNotAllowed(organizationId))
+      case (SUSPENDED, CONSUMER)
+          if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>
+        activate(version, ChangedBy.CONSUMER)
+      case (SUSPENDED, CONSUMER) if purpose.suspendedByConsumer.contains(true) =>
+        isLoadAllowed(eService, purpose, version).ifM(
+          activate(version, ChangedBy.CONSUMER),
+          createWaitForApproval(version)
+        )
+      case (SUSPENDED, SELF_CONSUMER)                                          =>
+        isLoadAllowed(eService, purpose, version).ifM(
+          activate(version, ChangedBy.PRODUCER),
+          createWaitForApproval(version)
+        )
+      case (SUSPENDED, PRODUCER)                                               =>
+        activate(version, ChangedBy.PRODUCER)
+
+      case _ => Future.failed(OrganizationNotAllowed(organizationId))
     }
   }
 
