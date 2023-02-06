@@ -87,12 +87,27 @@ object ReadModelQueries {
     consumersIds: List[String],
     states: List[PurposeVersionState]
   ): Bson = {
+    // Takes purposes that contain only version with state Archived
+    // (purposes that contain version with state == Archived but not versions with state != Archived)
+    val archivedStatePartialFilter = states
+      .filter(_ == PurposeVersionState.ARCHIVED)
+      .map(PurposeVersionStateConverter.apiToPersistent)
+      .map(_.toString)
+      .distinct
+      .map(v =>
+        Filters.and(
+          Filters.elemMatch("data.versions", Filters.eq("state", v)),
+          Filters.not(Filters.elemMatch("data.versions", Filters.ne("state", v)))
+        )
+      )
+
     val statesPartialFilter = states
+      .filterNot(_ == PurposeVersionState.ARCHIVED)
       .map(PurposeVersionStateConverter.apiToPersistent)
       .map(_.toString)
       .map(Filters.eq("data.versions.state", _))
 
-    val statesFilter       = mapToVarArgs(statesPartialFilter)(Filters.or)
+    val statesFilter       = mapToVarArgs(statesPartialFilter ++ archivedStatePartialFilter)(Filters.or)
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val nameFilter         = name.map(Filters.regex("data.title", _, "i"))
