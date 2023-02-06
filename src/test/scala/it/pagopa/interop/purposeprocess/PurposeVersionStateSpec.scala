@@ -52,6 +52,47 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
+    "succeed and delete existing versions in Waiting For Approval" in {
+
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.ACTIVE)
+      val waitingForApprovalVersion =
+        SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version, waitingForApprovalVersion))
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ARCHIVED)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
+
+      (mockPurposeManagementService
+        .deletePurposeVersion(_: UUID, _: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, waitingForApprovalVersion.id, *)
+        .once()
+        .returns(Future.unit)
+
+      (mockPurposeManagementService
+        .archivePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
+        .expects(
+          purposeId,
+          versionId,
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER),
+          *
+        )
+        .once()
+        .returns(Future.successful(updatedVersion))
+
+      Get() ~> service.archivePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
     "fail if Purpose does not exist" in {
       val purposeId = UUID.randomUUID()
       val versionId = UUID.randomUUID()
