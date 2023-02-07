@@ -72,15 +72,18 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[HttpEntity.Strict] = for {
-      purposeUUID  <- purposeId.toFutureUUID
-      versionUUID  <- versionId.toFutureUUID
-      documentUUID <- documentId.toFutureUUID
-      purpose      <- purposeManagementService.getPurpose(purposeUUID)
-      version      <- getVersion(purpose, versionUUID)
-      document     <- version.riskAnalysis
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      purposeUUID    <- purposeId.toFutureUUID
+      versionUUID    <- versionId.toFutureUUID
+      documentUUID   <- documentId.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _              <- Ownership.getOrganizationRole(organizationId, eService.producerId, purpose.consumerId).toFuture
+      version        <- getVersion(purpose, versionUUID)
+      document       <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-      byteStream   <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
+      byteStream     <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
     } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray)
 
     onComplete(result) { getRiskAnalysisDocumentResponse[HttpEntity.Strict](operationLabel)(complete(_)) }
