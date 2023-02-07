@@ -167,13 +167,8 @@ final case class PurposeApiServiceImpl(
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      // Purposes should be accessible to everyone.
-      // It defaults to PRODUCER because it is the role with the narrowest access.
-      // Note: this will be removed when migrated to BFF
-      ownership = Ownership
-        .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
-        .getOrElse(Ownership.PRODUCER)
-      result <- enhancePurpose(purpose, eService, ownership)
+      ownership      <- Ownership.getOrganizationRole(organizationId, eService.producerId, purpose.consumerId).toFuture
+      result         <- enhancePurpose(purpose, eService, ownership)
     } yield result
 
     onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }

@@ -289,6 +289,29 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "fail if requester is not Producer or Consumer" in {
+      val purposeId = UUID.randomUUID()
+      val purpose   = SpecData.purpose
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purpose))
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+      }
+    }
+
     "fail if Purpose does not exist" in {
       val purposeId = UUID.randomUUID()
 
