@@ -13,7 +13,6 @@ import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
-import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries.EServiceId
 import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
@@ -327,12 +326,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionState.ACTIVE
       )
 
-      // EServices retrieve
-      (mockReadModel
-        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
-        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(EServiceId(purpose.eserviceId))))
       // Data retrieve
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
