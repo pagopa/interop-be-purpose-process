@@ -352,6 +352,9 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- getVersion(purpose, versionUUID)
       stateDetails = PurposeManagementDependency.StateChangeDetails(PurposeManagementDependency.ChangedBy.CONSUMER)
+      _        <- Future.traverse(
+        purpose.versions.find(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL).toList
+      )(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
       response <- purposeManagementService.archivePurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
