@@ -57,7 +57,7 @@ object ReadModelQueries {
         "purposes",
         Seq(
           `match`(query),
-          project(fields(include("data"), computed("lowerName", Document("""{ "$toLower" : "$data.name" }""")))),
+          project(fields(include("data"), computed("lowerName", Document("""{ "$toLower" : "$data.title" }""")))),
           sort(ascending("lowerName"))
         ),
         offset = offset,
