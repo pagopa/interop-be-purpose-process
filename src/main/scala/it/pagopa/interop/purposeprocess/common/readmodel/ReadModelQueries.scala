@@ -44,6 +44,7 @@ object ReadModelQueries {
           Seq(
             addFields(Field("lowerName", Document("""{ "$toLower" : "$data.name" }"""))),
             sort(ascending("lowerName")),
+            // If requester is not Consumer or Producer, override the risk analysis form with null value
             addFields(
               Field(
                 "data.riskAnalysisForm",
