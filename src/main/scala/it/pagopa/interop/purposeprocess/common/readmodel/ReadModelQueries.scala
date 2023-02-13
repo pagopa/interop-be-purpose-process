@@ -8,7 +8,7 @@ import it.pagopa.interop.purposeprocess.model.PurposeVersionState
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates._
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.{Field, Filters}
 import org.mongodb.scala.model.Projections.{computed, fields, include}
 import org.mongodb.scala.model.Sorts.ascending
 
@@ -31,6 +31,7 @@ object ReadModelQueries {
     val query: Seq[Bson]    = Seq(
       `match`(simpleFilters),
       lookup("eservices", "data.eserviceId", "data.id", "eservices"),
+      addFields(Field("eservice", Document("""{ $arrayElemAt: [ "$eservices", 0 ] }"""))),
       `match`(Filters.and(listPurposesAuthorizationFilters(requesterId), listPurposesProducersFilters(producersIds)))
     )
 
@@ -41,8 +42,26 @@ object ReadModelQueries {
         "purposes",
         query ++
           Seq(
-            project(fields(include("data"), computed("lowerName", Document("""{ "$toLower" : "$data.name" }""")))),
-            sort(ascending("lowerName"))
+            addFields(Field("lowerName", Document("""{ "$toLower" : "$data.name" }"""))),
+            sort(ascending("lowerName")),
+            addFields(
+              Field(
+                "data.riskAnalysisForm",
+                Document(s"""{
+                            |  $$cond: {
+                            |    if: {
+                            |      $$or: [
+                            |        { $$eq: [ "$$data.consumerId", "${requesterId.toString}" ] },
+                            |        { $$eq: [ "$$eservice.data.producerId", "${requesterId.toString}" ] }
+                            |      ],
+                            |    },
+                            |    then: "$$data.riskAnalysisForm",
+                            |    else: null,
+                            |  },
+                            |}""".stripMargin)
+              )
+            ),
+            project(fields(include("data")))
           ),
         offset = offset,
         limit = limit
@@ -103,12 +122,7 @@ object ReadModelQueries {
       Filters.ne("data.versions.state", Draft.toString)
     )
 
-    val organizationFilter = Filters.or(
-      Filters.eq("data.consumerId", requesterId.toString),
-      Filters.eq("eservices.data.producerId", requesterId.toString)
-    )
-
-    mapToVarArgs(organizationFilter :: versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
+    mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
   }
 
   private def listPurposesProducersFilters(producersIds: Seq[String]): Bson =
