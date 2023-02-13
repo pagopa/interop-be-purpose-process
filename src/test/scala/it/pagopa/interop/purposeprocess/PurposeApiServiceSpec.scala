@@ -252,6 +252,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val response = responseAs[OldPurpose]
         response.id shouldEqual SpecData.purpose.id
         response.clients should not be empty
+        response.riskAnalysisForm should not be empty
       }
     }
 
@@ -286,10 +287,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val response = responseAs[OldPurpose]
         response.id shouldEqual purpose.id
         response.clients shouldBe empty
+        response.riskAnalysisForm should not be empty
       }
     }
 
-    "fail if User is not Producer or Consumer" in {
+    "succeed and return empty risk analysis if User is not Producer or Consumer" in {
       val purposeId = UUID.randomUUID()
       val purpose   = SpecData.purpose
 
@@ -307,8 +309,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
 
+      mockPurposeEnhancement(purpose, isConsumer = false)
+
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
+        status shouldEqual StatusCodes.OK
+        val response = responseAs[OldPurpose]
+        response.id shouldEqual purpose.id
+        response.clients shouldBe empty
+        response.riskAnalysisForm shouldBe empty
       }
     }
 
