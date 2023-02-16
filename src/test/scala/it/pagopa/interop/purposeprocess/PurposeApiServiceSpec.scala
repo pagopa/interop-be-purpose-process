@@ -13,7 +13,6 @@ import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
-import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries.EServiceId
 import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
@@ -253,6 +252,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val response = responseAs[OldPurpose]
         response.id shouldEqual SpecData.purpose.id
         response.clients should not be empty
+        response.riskAnalysisForm should not be empty
       }
     }
 
@@ -287,6 +287,36 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val response = responseAs[OldPurpose]
         response.id shouldEqual purpose.id
         response.clients shouldBe empty
+        response.riskAnalysisForm should not be empty
+      }
+    }
+
+    "succeed and return empty risk analysis if User is not Producer or Consumer" in {
+      val purposeId = UUID.randomUUID()
+      val purpose   = SpecData.purpose
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purpose))
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
+
+      mockPurposeEnhancement(purpose, isConsumer = false)
+
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        val response = responseAs[OldPurpose]
+        response.id shouldEqual purpose.id
+        response.clients shouldBe empty
+        response.riskAnalysisForm shouldBe empty
       }
     }
 
@@ -327,12 +357,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionState.ACTIVE
       )
 
-      // EServices retrieve
-      (mockReadModel
-        .find[EServiceId](_: String, _: Bson, _: Bson, _: Int, _: Int)(_: JsonReader[EServiceId], _: ExecutionContext))
-        .expects("eservices", *, *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(EServiceId(purpose.eserviceId))))
       // Data retrieve
       (mockReadModel
         .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
@@ -894,7 +918,84 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose Risk Analysis Document download" should {
-    "succeed" in {
+    "succeed if User is the Producer" in {
+
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+      val producerId: UUID       = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      val path: String                                                 = "/here/there/foo/bar.pdf"
+      val document: PurposeManagementDependency.PurposeVersionDocument =
+        PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, OffsetDateTime.now())
+      val purposeVersion: PurposeManagementDependency.PurposeVersion   =
+        SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
+
+      mockPurposeRetrieve(purposeId, result = purpose)
+      mockFileManagerGet(path)(emptyPdf)
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            producerId = producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
+      Get() ~> service.getRiskAnalysisDocument(
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
+        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+      }
+    }
+
+    "succeed if User is the Consumer" in {
+
+      val purposeId: UUID        = UUID.randomUUID()
+      val purposeVersionId: UUID = UUID.randomUUID()
+      val documentId: UUID       = UUID.randomUUID()
+
+      val path: String                                                 = "/here/there/foo/bar.pdf"
+      val document: PurposeManagementDependency.PurposeVersionDocument =
+        PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, OffsetDateTime.now())
+      val purposeVersion: PurposeManagementDependency.PurposeVersion   =
+        SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> purpose.consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, result = purpose)
+      mockFileManagerGet(path)(emptyPdf)
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
+
+      Get() ~> service.getRiskAnalysisDocument(
+        purposeId.toString,
+        purposeVersionId.toString,
+        documentId.toString
+      ) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
+        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+      }
+    }
+
+    "fail if User is the Producer or the Consumer" in {
 
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
@@ -909,19 +1010,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeVersion: PurposeManagementDependency.PurposeVersion   =
         SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
       val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
-      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
 
       mockPurposeRetrieve(purposeId, result = purpose)
-      mockFileManagerGet(path)(emptyPdf)
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
 
       Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString,
         purposeVersionId.toString,
         documentId.toString
       ) ~> check {
-        status shouldEqual StatusCodes.OK
-        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
-        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+        status shouldEqual StatusCodes.Forbidden
       }
     }
 
@@ -930,9 +1031,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId: UUID        = UUID.randomUUID()
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
 
       val path: String                                                 = "/here/there/foo/bar.pdf"
       val document: PurposeManagementDependency.PurposeVersionDocument =
@@ -946,7 +1044,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
       val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
 
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> purpose.consumerId.toString)
+
       mockPurposeRetrieve(purposeId, result = purpose)
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
 
       Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString,
@@ -970,12 +1075,17 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeVersionId: UUID = UUID.randomUUID()
       val documentId: UUID       = UUID.randomUUID()
 
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
-
       val purposeVersion: PurposeManagementDependency.PurposeVersion = SpecData.purposeVersion
       val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> purpose.consumerId.toString)
+
       mockPurposeRetrieve(purposeId, result = purpose)
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
+      )
 
       Get() ~> service.getRiskAnalysisDocument(
         purposeId.toString,

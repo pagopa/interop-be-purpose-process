@@ -17,6 +17,7 @@ object ResponseHandlers extends AkkaResponses {
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
       case Success(s)                                  => success(s)
+      case Failure(ex: OrganizationNotAllowed)         => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)                => notFound(ex, logMessage)
       case Failure(ex: PurposeVersionNotFound)         => notFound(ex, logMessage)
       case Failure(ex: PurposeVersionDocumentNotFound) => notFound(ex, logMessage)

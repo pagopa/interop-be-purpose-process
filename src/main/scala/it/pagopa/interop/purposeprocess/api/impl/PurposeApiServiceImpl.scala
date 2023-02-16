@@ -72,15 +72,18 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[HttpEntity.Strict] = for {
-      purposeUUID  <- purposeId.toFutureUUID
-      versionUUID  <- versionId.toFutureUUID
-      documentUUID <- documentId.toFutureUUID
-      purpose      <- purposeManagementService.getPurpose(purposeUUID)
-      version      <- getVersion(purpose, versionUUID)
-      document     <- version.riskAnalysis
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      purposeUUID    <- purposeId.toFutureUUID
+      versionUUID    <- versionId.toFutureUUID
+      documentUUID   <- documentId.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _              <- Ownership.getOrganizationRole(organizationId, eService.producerId, purpose.consumerId).toFuture
+      version        <- getVersion(purpose, versionUUID)
+      document       <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-      byteStream   <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
+      byteStream     <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
     } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray)
 
     onComplete(result) { getRiskAnalysisDocumentResponse[HttpEntity.Strict](operationLabel)(complete(_)) }
@@ -167,13 +170,16 @@ final case class PurposeApiServiceImpl(
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      authorizedPurpose =
+        if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
+        else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
       // Purposes should be accessible to everyone.
       // It defaults to PRODUCER because it is the role with the narrowest access.
       // Note: this will be removed when migrated to BFF
-      ownership = Ownership
+      ownership         = Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .getOrElse(Ownership.PRODUCER)
-      result <- enhancePurpose(purpose, eService, ownership)
+      result <- enhancePurpose(authorizedPurpose, eService, ownership)
     } yield result
 
     onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }
