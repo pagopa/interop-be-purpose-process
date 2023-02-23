@@ -1,8 +1,7 @@
 package it.pagopa.interop.purposeprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.{ContentType, HttpEntity, MediaTypes}
-import akka.http.scaladsl.server.Directives.{complete, onComplete}
+import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
@@ -25,13 +24,11 @@ import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.converters.tenantmanagement.OrganizationConverter
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
-import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
-import java.io.File
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -65,13 +62,13 @@ final case class PurposeApiServiceImpl(
 
   override def getRiskAnalysisDocument(purposeId: String, versionId: String, documentId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerFile: ToEntityMarshaller[File]
+    toEntityMarshallerPurposeVersionDocument: ToEntityMarshaller[PurposeVersionDocument],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
-    val result: Future[HttpEntity.Strict] = for {
+    val result: Future[PurposeVersionDocument] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
@@ -83,10 +80,11 @@ final case class PurposeApiServiceImpl(
       document       <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-      byteStream     <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
-    } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray)
+    } yield PurposeVersionDocumentConverter.dependencyToApi(document)
 
-    onComplete(result) { getRiskAnalysisDocumentResponse[HttpEntity.Strict](operationLabel)(complete(_)) }
+    onComplete(result) {
+      getRiskAnalysisDocumentResponse[PurposeVersionDocument](operationLabel)(getRiskAnalysisDocument200)
+    }
   }
 
   override def createPurpose(seed: PurposeSeed)(implicit

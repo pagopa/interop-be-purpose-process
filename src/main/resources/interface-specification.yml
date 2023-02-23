@@ -329,10 +329,9 @@ paths:
         '200':
           description: Risk Analysis document retrieved
           content:
-            application/octet-stream:
+            application/problem+json:
               schema:
-                type: string
-                format: binary
+                $ref: '#/components/schemas/PurposeVersionDocument'
         '404':
           description: Resource not found
           content:
