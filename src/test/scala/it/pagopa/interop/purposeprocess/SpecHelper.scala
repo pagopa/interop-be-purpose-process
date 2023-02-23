@@ -16,7 +16,7 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{OldPurpose, Problem, PurposeVersion, Purposes}
+import it.pagopa.interop.purposeprocess.model.{Purpose, Problem, PurposeVersion, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import org.scalamock.scalatest.MockFactory
 import spray.json._
@@ -301,18 +301,16 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .returning(Future.unit)
       .once()
 
-  def mockPurposeEnhancement(purpose: PurposeManagement.Purpose, isConsumer: Boolean)(implicit
-    contexts: Seq[(String, String)]
-  ): Unit = {
+  def mockPurposeEnhancement(purpose: PurposeManagement.Purpose)(implicit contexts: Seq[(String, String)]): Unit = {
     val agreement = SpecData.agreement
     mockAgreementsRetrieve(purpose.eserviceId, purpose.consumerId, Nil, Seq(agreement))
     mockOrganizationRetrieve(agreement.producerId)
     mockOrganizationRetrieve(agreement.consumerId)
-    if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
+    ()
   }
 
-  implicit def fromResponseUnmarshallerOldPurpose: FromEntityUnmarshaller[OldPurpose]         =
-    sprayJsonUnmarshaller[OldPurpose]
+  implicit def fromResponseUnmarshallerOldPurpose: FromEntityUnmarshaller[Purpose]            =
+    sprayJsonUnmarshaller[Purpose]
   implicit def fromResponseUnmarshallerPurposeVersion: FromEntityUnmarshaller[PurposeVersion] =
     sprayJsonUnmarshaller[PurposeVersion]
   implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]             =

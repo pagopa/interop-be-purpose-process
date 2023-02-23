@@ -84,11 +84,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(managementResponse, isConsumer = true)
+      mockPurposeEnhancement(managementResponse)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[OldPurpose].id shouldEqual managementResponse.id
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -144,11 +144,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(managementResponse, isConsumer = true)
+      mockPurposeEnhancement(managementResponse)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[OldPurpose].id shouldEqual managementResponse.id
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -245,13 +245,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(SpecData.purpose, isConsumer = true)
+      mockPurposeEnhancement(SpecData.purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual SpecData.purpose.id
-        response.clients should not be empty
         response.riskAnalysisForm should not be empty
       }
     }
@@ -280,13 +279,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(purpose, isConsumer = false)
+      mockPurposeEnhancement(purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
-        response.clients shouldBe empty
         response.riskAnalysisForm should not be empty
       }
     }
@@ -309,13 +307,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
 
-      mockPurposeEnhancement(purpose, isConsumer = false)
+      mockPurposeEnhancement(purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
-        response.clients shouldBe empty
         response.riskAnalysisForm shouldBe empty
       }
     }

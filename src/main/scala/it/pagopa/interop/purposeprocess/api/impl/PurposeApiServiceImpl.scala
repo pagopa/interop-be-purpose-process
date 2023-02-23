@@ -18,8 +18,6 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
-import it.pagopa.interop.purposeprocess.api.converters.agreementmanagement.AgreementConverter
-import it.pagopa.interop.purposeprocess.api.converters.authorizationmanagement.ClientConverter
 import it.pagopa.interop.purposeprocess.api.converters.catalogmanagement.EServiceConverter
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.converters.tenantmanagement.OrganizationConverter
@@ -91,17 +89,15 @@ final case class PurposeApiServiceImpl(
 
   override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Creating Purpose for EService ${seed.eserviceId} and Consumer ${seed.consumerId}"
     logger.info(operationLabel)
 
-    val result: Future[OldPurpose] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      ownership      <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
-      agreements     <- agreementManagementService.getAgreements(
+    val result: Future[Purpose] = for {
+      clientSeed <- PurposeSeedConverter.apiToDependency(seed).toFuture
+      agreements <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
         OPERATIVE_AGREEMENT_STATES
@@ -109,10 +105,10 @@ final case class PurposeApiServiceImpl(
       _        <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose  <- purposeManagementService.createPurpose(clientSeed)
       eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      result   <- enhancePurpose(purpose, eService, ownership)
+      result   <- enhancePurpose(purpose, eService)
     } yield result
 
-    onComplete(result) { createPurposeResponse[OldPurpose](operationLabel)(createPurpose201) }
+    onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
   }
 
   override def createPurposeVersion(purposeId: String, seed: PurposeVersionSeed)(implicit
@@ -137,35 +133,32 @@ final case class PurposeApiServiceImpl(
 
   override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    val result: Future[OldPurpose] = for {
-      organizationId  <- getOrganizationIdFutureUUID(contexts)
+    val result: Future[Purpose] = for {
       purposeUUID     <- purposeId.toFutureUUID
-      purpose         <- purposeManagementService.getPurpose(purposeUUID)
-      ownership       <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       depPayload      <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
       updatedPurpose  <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
       eService        <- catalogManagementService.getEServiceById(updatedPurpose.eserviceId)
-      enhancedPurpose <- enhancePurpose(updatedPurpose, eService, ownership)
+      enhancedPurpose <- enhancePurpose(updatedPurpose, eService)
     } yield enhancedPurpose
 
-    onComplete(result) { updatePurposeResponse[OldPurpose](operationLabel)(updatePurpose200) }
+    onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
 
   override def getPurpose(id: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerPurpose: ToEntityMarshaller[OldPurpose],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE) {
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
-    val result: Future[OldPurpose] = for {
+    val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
@@ -175,14 +168,11 @@ final case class PurposeApiServiceImpl(
         else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
       // Purposes should be accessible to everyone.
       // It defaults to PRODUCER because it is the role with the narrowest access.
-      // Note: this will be removed when migrated to BFF
-      ownership         = Ownership
-        .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
-        .getOrElse(Ownership.PRODUCER)
-      result <- enhancePurpose(authorizedPurpose, eService, ownership)
+      // Note: this will be removed when migrated to BFF <-- Time to remove? :D
+      result <- enhancePurpose(authorizedPurpose, eService)
     } yield result
 
-    onComplete(result) { getPurposeResponse[OldPurpose](operationLabel)(getPurpose200) }
+    onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
   }
 
   override def getPurposes(
@@ -445,18 +435,8 @@ final case class PurposeApiServiceImpl(
 
   private def enhancePurpose(
     depPurpose: PurposeManagementDependency.Purpose,
-    eService: CatalogManagementDependency.EService,
-    ownership: Ownership
-  )(implicit contexts: Seq[(String, String)]): Future[OldPurpose] = {
-    def clientsByUserType(): Future[List[Client]] =
-      ownership match {
-        case Ownership.PRODUCER                           => List.empty[Client].pure[Future]
-        case Ownership.CONSUMER | Ownership.SELF_CONSUMER =>
-          authorizationManagementService
-            .getClients(purposeId = depPurpose.id.some)
-            .map(_.toList.map(ClientConverter.dependencyToApi))
-      }
-
+    eService: CatalogManagementDependency.EService
+  )(implicit contexts: Seq[(String, String)]): Future[Purpose] =
     for {
       depAgreements <- agreementManagementService.getAgreements(depPurpose.eserviceId, depPurpose.consumerId, Nil)
       depAgreement  <- depAgreements
@@ -465,20 +445,11 @@ final case class PurposeApiServiceImpl(
         .toFuture(AgreementNotFound(depPurpose.eserviceId.toString, depPurpose.consumerId.toString))
       depProducer   <- tenantManagementService.getTenant(depAgreement.producerId)
       depConsumer   <- tenantManagementService.getTenant(depAgreement.consumerId)
-      agreement = AgreementConverter.dependencyToApi(depAgreement)
-      producer  = OrganizationConverter.dependencyToApi(eService.producerId, depProducer)
-      consumer  = OrganizationConverter.dependencyToApi(depPurpose.consumerId, depConsumer)
+      producer = OrganizationConverter.dependencyToApi(eService.producerId, depProducer)
+      consumer = OrganizationConverter.dependencyToApi(depPurpose.consumerId, depConsumer)
       eService <- EServiceConverter.dependencyToApi(eService, depAgreement.descriptorId, producer).toFuture
-      clients  <- clientsByUserType()
     } yield PurposeConverter
-      .dependencyToOldApi(
-        purpose = depPurpose,
-        eService = eService,
-        agreement = agreement,
-        consumer = consumer,
-        clients = clients
-      )
-  }
+      .dependencyToApi(purpose = depPurpose, eService = eService, consumer = consumer)
 
   private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
