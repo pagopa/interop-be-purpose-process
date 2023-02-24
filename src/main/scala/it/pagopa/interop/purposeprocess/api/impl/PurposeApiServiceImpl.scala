@@ -437,7 +437,7 @@ final case class PurposeApiServiceImpl(
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route =
-    authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE) {
+    authorize(ADMIN_ROLE) {
       val operationLabel = s"Cloning Purpose $purposeId"
       logger.info(operationLabel)
 
@@ -467,7 +467,7 @@ final case class PurposeApiServiceImpl(
           .map(_.dailyCalls)
           .headOption
 
-        val latestAll: Option[Int] = versions.sortBy(s => s.createdAt)(ordering).map(_.dailyCalls).headOption
+        val latestAll: Option[Int] = versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
 
         latestNoWaiting.getOrElse(latestAll.getOrElse(0))
       }

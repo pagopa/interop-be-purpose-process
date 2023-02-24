@@ -33,7 +33,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   import PurposeApiMarshallerImpl._
 
   "Purpose cloning" should {
-    "succeed" in {
+    "succeed when there is only a WAITING FOR APPROVAL version" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -102,7 +102,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "succeed with multiple versions latest is WAITING FOR APPROVAL" in {
+
+    "succeed with multiple versions when latest is WAITING FOR APPROVAL" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -181,7 +182,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "succeed with multiple versions no WAITING FOR APPROVAL" in {
+
+    "succeed with multiple versions when there is no WAITING FOR APPROVAL" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()
@@ -206,7 +208,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           ),
           PurposeManagementDependency.PurposeVersion(
             id = UUID.randomUUID(),
-            state = PurposeManagementDependency.PurposeVersionState.SUSPENDED,
+            state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
             createdAt = OffsetDateTime.of(2022, 12, 30, 11, 22, 33, 44, ZoneOffset.UTC),
             updatedAt = None,
             firstActivationAt = None,
@@ -260,6 +262,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+
     "succeed with check of new purpose title" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
@@ -337,6 +340,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+
     "fail if Purpose does not exist" in {
 
       val purposeId  = UUID.randomUUID()
