@@ -311,7 +311,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     if (isConsumer) mockClientsRetrieve(Some(purpose.id)) else ()
   }
 
-  implicit def fromResponseUnmarshallerOldPurpose: FromEntityUnmarshaller[Purpose]            =
+  implicit def fromResponseUnmarshallerOldPurpose: FromEntityUnmarshaller[Purpose]                            =
     sprayJsonUnmarshaller[Purpose]
   implicit def fromResponseUnmarshallerPurposeVersion: FromEntityUnmarshaller[PurposeVersion]                 =
     sprayJsonUnmarshaller[PurposeVersion]
