@@ -1,8 +1,7 @@
 package it.pagopa.interop.purposeprocess
 
-import akka.http.scaladsl.model.{ContentType, MediaTypes, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.util.ByteString
 import cats.implicits._
 import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
@@ -26,7 +25,6 @@ import spray.json.JsonReader
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
@@ -1329,7 +1327,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   }
 
-  "Purpose Risk Analysis Document download" should {
+  "Purpose Risk Analysis Document" should {
     "succeed if User is the Producer" in {
 
       val purposeId: UUID        = UUID.randomUUID()
@@ -1345,11 +1343,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, OffsetDateTime.now())
       val purposeVersion: PurposeManagementDependency.PurposeVersion   =
         SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
-      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
-      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = Seq(purposeVersion))
 
-      mockPurposeRetrieve(purposeId, result = purpose)
-      mockFileManagerGet(path)(emptyPdf)
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purpose))
 
       mockEServiceRetrieve(
         purpose.eserviceId,
@@ -1366,8 +1366,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.OK
-        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
-        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+        responseAs[PurposeVersionDocument] shouldEqual PurposeVersionDocumentConverter.dependencyToApi(document)
       }
     }
 
@@ -1382,14 +1381,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, OffsetDateTime.now())
       val purposeVersion: PurposeManagementDependency.PurposeVersion   =
         SpecData.purposeVersion.copy(id = purposeVersionId, riskAnalysis = document.some)
-      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = purposeVersion :: Nil)
-      val emptyPdf: Array[Byte]                        = Random.nextBytes(1024)
+      val purpose: PurposeManagementDependency.Purpose = SpecData.purpose.copy(versions = Seq(purposeVersion))
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> purpose.consumerId.toString)
 
-      mockPurposeRetrieve(purposeId, result = purpose)
-      mockFileManagerGet(path)(emptyPdf)
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purpose))
 
       mockEServiceRetrieve(
         purpose.eserviceId,
@@ -1402,8 +1403,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         documentId.toString
       ) ~> check {
         status shouldEqual StatusCodes.OK
-        responseEntity.contentType shouldEqual ContentType(MediaTypes.`application/pdf`)
-        responseAs[ByteString] shouldEqual ByteString(emptyPdf)
+        responseAs[PurposeVersionDocument] shouldEqual PurposeVersionDocumentConverter.dependencyToApi(document)
       }
     }
 
