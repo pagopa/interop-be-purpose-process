@@ -1,8 +1,7 @@
 package it.pagopa.interop.purposeprocess.api.impl
 
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.{ContentType, HttpEntity, MediaTypes}
-import akka.http.scaladsl.server.Directives.{complete, onComplete}
+import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
@@ -20,15 +19,14 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
-import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
-import java.io.File
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import java.time.OffsetDateTime
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
@@ -60,13 +58,13 @@ final case class PurposeApiServiceImpl(
 
   override def getRiskAnalysisDocument(purposeId: String, versionId: String, documentId: String)(implicit
     contexts: Seq[(String, String)],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem],
-    toEntityMarshallerFile: ToEntityMarshaller[File]
+    toEntityMarshallerPurposeVersionDocument: ToEntityMarshaller[PurposeVersionDocument],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
-    val result: Future[HttpEntity.Strict] = for {
+    val result: Future[PurposeVersionDocument] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
@@ -78,10 +76,11 @@ final case class PurposeApiServiceImpl(
       document       <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-      byteStream     <- fileManager.get(ApplicationConfiguration.storageContainer)(document.path)
-    } yield HttpEntity(ContentType(MediaTypes.`application/pdf`), byteStream.toByteArray)
+    } yield PurposeVersionDocumentConverter.dependencyToApi(document)
 
-    onComplete(result) { getRiskAnalysisDocumentResponse[HttpEntity.Strict](operationLabel)(complete(_)) }
+    onComplete(result) {
+      getRiskAnalysisDocumentResponse[PurposeVersionDocument](operationLabel)(getRiskAnalysisDocument200)
+    }
   }
 
   override def createPurpose(seed: PurposeSeed)(implicit
@@ -412,6 +411,62 @@ final case class PurposeApiServiceImpl(
       )
     }
   }
+
+  override def clonePurpose(purposeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route =
+    authorize(ADMIN_ROLE) {
+      val operationLabel = s"Cloning Purpose $purposeId"
+      logger.info(operationLabel)
+
+      def isClonable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+        val states = purpose.versions.map(_.state)
+
+        !states.isEmpty &&
+        states != Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+      }
+
+      def createPurposeSeed(purpose: PurposeManagementDependency.Purpose): PurposeSeed =
+        PurposeSeed(
+          eserviceId = purpose.eserviceId,
+          consumerId = purpose.consumerId,
+          riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
+          title = s"${purpose.title} - clone",
+          description = purpose.description
+        )
+
+      def getDailyCalls(versions: Seq[PurposeManagementDependency.PurposeVersion]): Int = {
+
+        val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
+
+        val latestNoWaiting: Option[Int] = versions
+          .filterNot(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+          .sortBy(_.createdAt)(ordering)
+          .map(_.dailyCalls)
+          .headOption
+
+        val latestAll: Option[Int] = versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
+
+        latestNoWaiting.getOrElse(latestAll.getOrElse(0))
+      }
+
+      val result: Future[Purpose] = for {
+        purposeUUID <- purposeId.toFutureUUID
+        purpose     <- purposeManagementService.getPurpose(purposeUUID)
+        _           <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
+        dependencySeed = createPurposeSeed(purpose)
+        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed).toFuture
+        newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
+        dailyCalls            = getDailyCalls(purpose.versions)
+        dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
+        apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
+        _ <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
+      } yield PurposeConverter.dependencyToApi(purpose)
+
+      onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
+    }
 
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)

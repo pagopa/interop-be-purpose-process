@@ -329,10 +329,9 @@ paths:
         '200':
           description: Risk Analysis document retrieved
           content:
-            application/octet-stream:
+            application/json:
               schema:
-                type: string
-                format: binary
+                $ref: '#/components/schemas/PurposeVersionDocument'
         '404':
           description: Resource not found
           content:
@@ -401,6 +400,47 @@ paths:
       tags:
         - purpose
       description: activates the purpose version by id
+  /purposes/{purposeId}/clone:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: purposeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Clone Purpose
+      operationId: clonePurpose
+      responses:
+        '200':
+          description: Purpose Cloned
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Purpose Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Purpose cannot be cloned
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      tags:
+        - purpose
+      description: clone purpose 
   /purposes/{purposeId}/versions/{versionId}/suspend:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -839,6 +879,8 @@ components:
           type: string
           format: uuid
         contentType:
+          type: string
+        path:
           type: string
         createdAt:
           type: string

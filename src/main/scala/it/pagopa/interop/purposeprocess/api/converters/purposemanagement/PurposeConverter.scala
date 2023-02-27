@@ -33,4 +33,18 @@ object PurposeConverter {
     createdAt = purpose.createdAt,
     updatedAt = purpose.updatedAt
   )
+
+  def dependencyToApi(purpose: DependencyPurpose): Purpose = Purpose(
+    id = purpose.id,
+    eserviceId = purpose.eserviceId,
+    consumerId = purpose.consumerId,
+    versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
+    suspendedByConsumer = purpose.suspendedByConsumer,
+    suspendedByProducer = purpose.suspendedByProducer,
+    title = purpose.title,
+    description = purpose.description,
+    riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
+    createdAt = purpose.createdAt,
+    updatedAt = purpose.updatedAt
+  )
 }
