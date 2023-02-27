@@ -6,10 +6,10 @@ import it.pagopa.interop.purposeprocess.model._
 
 object PurposeConverter {
 
-  def dependencyToApi(purpose: DependencyPurpose, eService: EService, consumer: Organization): Purpose = Purpose(
+  def dependencyToApi(purpose: DependencyPurpose): Purpose = Purpose(
     id = purpose.id,
-    eserviceId = eService.id,
-    consumerId = consumer.id,
+    eserviceId = purpose.eserviceId,
+    consumerId = purpose.consumerId,
     versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
     suspendedByConsumer = purpose.suspendedByConsumer,
     suspendedByProducer = purpose.suspendedByProducer,

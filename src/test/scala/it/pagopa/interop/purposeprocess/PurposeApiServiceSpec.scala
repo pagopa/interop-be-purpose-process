@@ -75,17 +75,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      mockEServiceRetrieve(
-        managementResponse.eserviceId,
-        SpecData.eService
-          .copy(
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-
-      mockPurposeEnhancement(managementResponse)
-
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[Purpose].id shouldEqual managementResponse.id
@@ -134,17 +123,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(PurposeSeedConverter.apiToDependency(seed).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
-
-      mockEServiceRetrieve(
-        managementResponse.eserviceId,
-        SpecData.eService
-          .copy(
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-
-      mockPurposeEnhancement(managementResponse)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
@@ -216,6 +194,29 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "fail if User is not a Consumer" in {
+
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
   }
 
   "Purpose retrieve" should {
@@ -244,8 +245,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
       )
-
-      mockPurposeEnhancement(SpecData.purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -279,8 +278,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(purpose)
-
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
@@ -306,8 +303,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         purpose.eserviceId,
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
-
-      mockPurposeEnhancement(purpose)
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
