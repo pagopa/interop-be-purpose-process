@@ -85,6 +85,17 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
 
+  def clonePurposeResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                                => success(s)
+      case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
+      case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
+      case Failure(ex: PurposeCannotBeCloned)        => conflict(ex, logMessage)
+      case Failure(ex)                               => internalServerError(ex, logMessage)
+    }
+
   def deletePurposeVersionResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =

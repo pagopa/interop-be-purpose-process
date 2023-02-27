@@ -88,6 +88,13 @@
       "roles": [
         "admin"
       ],
+      "route": "clonePurpose"
+    },
+    {
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ],
       "route": "updateDraftPurposeVersion"
     },
     {

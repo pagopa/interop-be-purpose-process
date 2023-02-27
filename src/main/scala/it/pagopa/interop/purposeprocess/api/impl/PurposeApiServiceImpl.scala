@@ -31,6 +31,7 @@ import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
+import java.time.OffsetDateTime
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
@@ -428,6 +429,62 @@ final case class PurposeApiServiceImpl(
       )
     }
   }
+
+  override def clonePurpose(purposeId: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route =
+    authorize(ADMIN_ROLE) {
+      val operationLabel = s"Cloning Purpose $purposeId"
+      logger.info(operationLabel)
+
+      def isClonable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+        val states = purpose.versions.map(_.state)
+
+        !states.isEmpty &&
+        states != Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+      }
+
+      def createPurposeSeed(purpose: PurposeManagementDependency.Purpose): PurposeSeed =
+        PurposeSeed(
+          eserviceId = purpose.eserviceId,
+          consumerId = purpose.consumerId,
+          riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
+          title = s"${purpose.title} - clone",
+          description = purpose.description
+        )
+
+      def getDailyCalls(versions: Seq[PurposeManagementDependency.PurposeVersion]): Int = {
+
+        val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
+
+        val latestNoWaiting: Option[Int] = versions
+          .filterNot(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+          .sortBy(_.createdAt)(ordering)
+          .map(_.dailyCalls)
+          .headOption
+
+        val latestAll: Option[Int] = versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
+
+        latestNoWaiting.getOrElse(latestAll.getOrElse(0))
+      }
+
+      val result: Future[Purpose] = for {
+        purposeUUID <- purposeId.toFutureUUID
+        purpose     <- purposeManagementService.getPurpose(purposeUUID)
+        _           <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
+        dependencySeed = createPurposeSeed(purpose)
+        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed).toFuture
+        newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
+        dailyCalls            = getDailyCalls(purpose.versions)
+        dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
+        apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
+        _ <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
+      } yield PurposeConverter.dependencyToApi(purpose)
+
+      onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
+    }
 
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)

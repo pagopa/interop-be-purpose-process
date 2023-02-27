@@ -22,13 +22,425 @@ import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import spray.json.JsonReader
 
-import java.time.OffsetDateTime
+import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
   import PurposeApiMarshallerImpl._
+
+  "Purpose cloning" should {
+    "succeed when there is only a WAITING FOR APPROVAL version" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToClone = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
+            createdAt = timestamp,
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 1000,
+            riskAnalysis = None
+          )
+        ),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      val purposeCloned = PurposeManagementDependency.Purpose(
+        id = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title - clone",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToClone))
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(*, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
+      (mockPurposeManagementService
+        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, *, context)
+        .once()
+        .returns(Future.successful(SpecData.purposeVersion))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "succeed with multiple versions when latest is WAITING FOR APPROVAL" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToClone = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
+            createdAt = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC),
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 100,
+            riskAnalysis = None
+          ),
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+            createdAt = OffsetDateTime.of(2022, 11, 30, 11, 22, 33, 44, ZoneOffset.UTC),
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 50,
+            riskAnalysis = None
+          )
+        ),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      val purposeCloned = PurposeManagementDependency.Purpose(
+        id = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title - clone",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToClone))
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(*, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
+      (mockPurposeManagementService
+        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(50, None), context)
+        .once()
+        .returns(Future.successful(SpecData.purposeVersion))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "succeed with multiple versions when there is no WAITING FOR APPROVAL" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToClone = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+            createdAt = OffsetDateTime.of(2022, 11, 30, 11, 22, 33, 44, ZoneOffset.UTC),
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 50,
+            riskAnalysis = None
+          ),
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.ARCHIVED,
+            createdAt = OffsetDateTime.of(2022, 12, 30, 11, 22, 33, 44, ZoneOffset.UTC),
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 100,
+            riskAnalysis = None
+          )
+        ),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      val purposeCloned = PurposeManagementDependency.Purpose(
+        id = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title - clone",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToClone))
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(*, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
+      (mockPurposeManagementService
+        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(100, None), context)
+        .once()
+        .returns(Future.successful(SpecData.purposeVersion))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "succeed with check of new purpose title" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToClone = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.ACTIVE,
+            createdAt = OffsetDateTime.of(2022, 11, 30, 11, 22, 33, 44, ZoneOffset.UTC),
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 500,
+            riskAnalysis = None
+          )
+        ),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = None,
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      val purposeCloned = PurposeManagementDependency.Purpose(
+        id = UUID.randomUUID(),
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title - clone",
+        description = "description",
+        riskAnalysisForm = None,
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      val purposeSeed = PurposeManagementDependency.PurposeSeed(
+        eserviceId = purposeToClone.eserviceId,
+        consumerId = purposeToClone.consumerId,
+        riskAnalysisForm = None,
+        title = s"${purposeToClone.title} - clone",
+        description = purposeToClone.description
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToClone))
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(purposeSeed, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
+      (mockPurposeManagementService
+        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(500, None), context)
+        .once()
+        .returns(Future.successful(SpecData.purposeVersion))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "fail if Purpose does not exist" in {
+
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.failed(PurposeNotFound(purposeId)))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+
+    "fail if Purpose has empty states" in {
+      val purposeId  = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToCloneDraft = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToCloneDraft))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Conflict
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Conflict.intValue
+        problem.errors.head.code shouldBe "012-0014"
+      }
+    }
+
+    "fail if Purpose has DRAFT state" in {
+      val purposeId  = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeToCloneDraft = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(
+          PurposeManagementDependency.PurposeVersion(
+            id = UUID.randomUUID(),
+            state = PurposeManagementDependency.PurposeVersionState.DRAFT,
+            createdAt = timestamp,
+            updatedAt = None,
+            firstActivationAt = None,
+            expectedApprovalDate = None,
+            dailyCalls = 1000,
+            riskAnalysis = None
+          )
+        ),
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = "title",
+        description = "description",
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, context)
+        .once()
+        .returns(Future.successful(purposeToCloneDraft))
+
+      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+        status shouldEqual StatusCodes.Conflict
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Conflict.intValue
+        problem.errors.head.code shouldBe "012-0014"
+      }
+    }
+  }
 
   "Purpose creation" should {
     "succeed without risk analysis" in {
