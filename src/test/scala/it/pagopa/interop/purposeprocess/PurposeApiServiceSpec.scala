@@ -96,6 +96,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purposeVersion))
 
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -175,6 +181,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(50, None), context)
         .once()
         .returns(Future.successful(SpecData.purposeVersion))
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -256,6 +268,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.purposeVersion))
 
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
+
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -333,6 +351,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(500, None), context)
         .once()
         .returns(Future.successful(SpecData.purposeVersion))
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeCloned.id, context)
+        .once()
+        .returns(Future.successful(purposeCloned))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
