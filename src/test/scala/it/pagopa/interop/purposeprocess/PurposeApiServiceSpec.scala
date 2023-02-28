@@ -629,6 +629,28 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
   }
 
+  "Purpose updating" should {
+    "fail if User is not a Consumer" in {
+
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+  }
+
   "Purpose retrieve" should {
     "succeed if requested by consumer" in {
       val purposeId = UUID.randomUUID()
