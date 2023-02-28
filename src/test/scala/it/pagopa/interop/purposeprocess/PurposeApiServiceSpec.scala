@@ -485,20 +485,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      mockEServiceRetrieve(
-        managementResponse.eserviceId,
-        SpecData.eService
-          .copy(
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-
-      mockPurposeEnhancement(managementResponse, isConsumer = true)
-
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[OldPurpose].id shouldEqual managementResponse.id
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -545,20 +534,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(managementResponse))
 
-      mockEServiceRetrieve(
-        managementResponse.eserviceId,
-        SpecData.eService
-          .copy(
-            producerId = SpecData.agreement.producerId,
-            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
-          )
-      )
-
-      mockPurposeEnhancement(managementResponse, isConsumer = true)
-
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[OldPurpose].id shouldEqual managementResponse.id
+        responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
 
@@ -626,6 +604,51 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "fail if User is not a Consumer" in {
+
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+  }
+
+  "Purpose updating" should {
+    "fail if User is not a Consumer" in {
+
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
   }
 
   "Purpose retrieve" should {
@@ -655,13 +678,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(SpecData.purpose, isConsumer = true)
-
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual SpecData.purpose.id
-        response.clients should not be empty
         response.riskAnalysisForm should not be empty
       }
     }
@@ -690,13 +710,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      mockPurposeEnhancement(purpose, isConsumer = false)
-
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
-        response.clients shouldBe empty
         response.riskAnalysisForm should not be empty
       }
     }
@@ -719,13 +736,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
 
-      mockPurposeEnhancement(purpose, isConsumer = false)
-
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
-        val response = responseAs[OldPurpose]
+        val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
-        response.clients shouldBe empty
         response.riskAnalysisForm shouldBe empty
       }
     }

@@ -5,24 +5,17 @@ import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposeprocess.model._
 
 object PurposeConverter {
-  def dependencyToOldApi(
-    purpose: DependencyPurpose,
-    eService: EService,
-    agreement: Agreement,
-    consumer: Organization,
-    clients: Seq[Client]
-  ): OldPurpose = OldPurpose(
+
+  def dependencyToApi(purpose: DependencyPurpose): Purpose = Purpose(
     id = purpose.id,
-    agreement = agreement,
-    eservice = eService,
-    clients = clients,
-    consumer = consumer,
+    eserviceId = purpose.eserviceId,
+    consumerId = purpose.consumerId,
     versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
     suspendedByConsumer = purpose.suspendedByConsumer,
     suspendedByProducer = purpose.suspendedByProducer,
     title = purpose.title,
-    riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
     description = purpose.description,
+    riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
     createdAt = purpose.createdAt,
     updatedAt = purpose.updatedAt
   )
@@ -37,20 +30,6 @@ object PurposeConverter {
     title = purpose.title,
     description = purpose.description,
     riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.persistentToApi),
-    createdAt = purpose.createdAt,
-    updatedAt = purpose.updatedAt
-  )
-
-  def dependencyToApi(purpose: DependencyPurpose): Purpose = Purpose(
-    id = purpose.id,
-    eserviceId = purpose.eserviceId,
-    consumerId = purpose.consumerId,
-    versions = purpose.versions.map(PurposeVersionConverter.dependencyToApi),
-    suspendedByConsumer = purpose.suspendedByConsumer,
-    suspendedByProducer = purpose.suspendedByProducer,
-    title = purpose.title,
-    description = purpose.description,
-    riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
     createdAt = purpose.createdAt,
     updatedAt = purpose.updatedAt
   )

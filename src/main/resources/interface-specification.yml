@@ -119,7 +119,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OldPurpose'
+                $ref: '#/components/schemas/Purpose'
         '400':
           description: Bad Request
           content:
@@ -154,7 +154,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OldPurpose'
+                $ref: '#/components/schemas/Purpose'
         '400':
           description: Bad Request
           content:
@@ -187,7 +187,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OldPurpose'
+                $ref: '#/components/schemas/Purpose'
         '400':
           description: Bad Request
           content:
@@ -733,51 +733,6 @@ components:
       required:
         - id
         - name
-    OldPurpose:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        agreement:
-          $ref: '#/components/schemas/Agreement'
-        eservice:
-          $ref: '#/components/schemas/EService'
-        consumer:
-          $ref: '#/components/schemas/Organization'
-        clients:
-          $ref: '#/components/schemas/Clients'
-        versions:
-          type: array
-          items:
-            $ref: '#/components/schemas/PurposeVersion'
-        suspendedByConsumer:
-          type: boolean
-        suspendedByProducer:
-          type: boolean
-        title:
-          type: string
-        riskAnalysisForm:
-          $ref: '#/components/schemas/RiskAnalysisForm'
-        description:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-      required:
-        - id
-        - agreement
-        - eservice
-        - clients
-        - consumer
-        - versions
-        - title
-        - description
-        - createdAt
-      description: business representation of a purpose
     Purpose:
       type: object
       properties:

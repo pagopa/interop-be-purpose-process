@@ -9,8 +9,6 @@ import spray.json._
 
 object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSupport with DefaultJsonProtocol {
 
-  override implicit def toEntityMarshallerOldPurpose: ToEntityMarshaller[OldPurpose] = sprayJsonMarshaller[OldPurpose]
-
   override implicit def fromEntityUnmarshallerPurposeSeed: FromEntityUnmarshaller[PurposeSeed] =
     sprayJsonUnmarshaller[PurposeSeed]
 
@@ -38,5 +36,4 @@ object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSuppo
 
   override implicit def toEntityMarshallerPurposeVersionDocument: ToEntityMarshaller[PurposeVersionDocument] =
     sprayJsonMarshaller[PurposeVersionDocument]
-
 }
