@@ -464,8 +464,9 @@ final case class PurposeApiServiceImpl(
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
         apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
-        _ <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
-      } yield PurposeConverter.dependencyToApi(purpose)
+        _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
+        updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
+      } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
