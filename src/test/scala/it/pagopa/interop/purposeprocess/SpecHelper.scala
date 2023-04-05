@@ -231,7 +231,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     )
   }
 
-  def mockVersionLoadValidationFailed(
+  def mockVersionLoadValidationAgreementNotFound(
     activatingPurpose: PurposeManagement.Purpose,
     existingPurposes: PurposeManagement.Purposes
   )(implicit contexts: Seq[(String, String)]) = {

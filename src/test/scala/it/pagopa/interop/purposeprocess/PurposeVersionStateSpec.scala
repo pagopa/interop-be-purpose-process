@@ -3,7 +3,6 @@ package it.pagopa.interop.purposeprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
-// import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
@@ -345,12 +344,12 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, purpose)
 
       mockEServiceRetrieve(eServiceId, eService)
-      mockVersionLoadValidationFailed(purpose, purposes)
+      mockVersionLoadValidationAgreementNotFound(purpose, purposes)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
-        status shouldEqual StatusCodes.Forbidden
+        status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.status shouldBe StatusCodes.BadRequest.intValue
         problem.errors.head.code shouldBe "012-0005"
       }
     }
