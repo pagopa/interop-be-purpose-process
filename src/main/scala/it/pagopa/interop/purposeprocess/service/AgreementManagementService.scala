@@ -12,5 +12,5 @@ trait AgreementManagementService {
 }
 
 object AgreementManagementService {
-  val OPERATIVE_AGREEMENT_STATES: Seq[AgreementState] = Seq(AgreementState.ACTIVE, AgreementState.SUSPENDED)
+  val OPERATIVE_AGREEMENT_STATES: Seq[AgreementState] = Seq(AgreementState.ACTIVE)
 }
