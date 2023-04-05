@@ -219,7 +219,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementsRetrieve(
       activatingPurpose.eserviceId,
       activatingPurpose.consumerId,
-      Seq(AgreementManagement.AgreementState.ACTIVE, AgreementManagement.AgreementState.SUSPENDED),
+      Seq(AgreementManagement.AgreementState.ACTIVE),
       Seq(
         SpecData.agreement.copy(
           consumerId = activatingPurpose.consumerId,
@@ -228,6 +228,30 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
           producerId = producerId
         )
       )
+    )
+  }
+
+  def mockVersionLoadValidationFailed(
+    activatingPurpose: PurposeManagement.Purpose,
+    existingPurposes: PurposeManagement.Purposes
+  )(implicit contexts: Seq[(String, String)]) = {
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = Some(activatingPurpose.consumerId),
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = None,
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
+    mockAgreementsRetrieve(
+      activatingPurpose.eserviceId,
+      activatingPurpose.consumerId,
+      Seq(AgreementManagement.AgreementState.ACTIVE),
+      Seq.empty
     )
   }
 

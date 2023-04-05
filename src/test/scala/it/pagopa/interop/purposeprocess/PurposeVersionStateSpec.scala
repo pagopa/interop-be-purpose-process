@@ -3,6 +3,7 @@ package it.pagopa.interop.purposeprocess
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
+// import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
@@ -304,6 +305,53 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
+    "fail if agreement is in a SUSPENDED state" in {
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version))
+
+      val version2_1 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
+        state = PurposeManagement.PurposeVersionState.ACTIVE,
+        dailyCalls = 2000
+      )
+      val version2_2 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
+        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        dailyCalls = 10000000
+      )
+      val purpose2   =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockEServiceRetrieve(eServiceId, eService)
+      mockVersionLoadValidationFailed(purpose, purposes)
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0005"
       }
     }
 
