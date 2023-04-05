@@ -121,7 +121,7 @@ object ReadModelQueries {
       Filters
         .and(
           Filters.eq("data.consumerId", requesterId.toString),
-          Filters.ne("data.producerId", requesterId.toString),
+          Filters.ne("eservices.data.producerId", requesterId.toString),
           Filters.eq("data.versions.state", Draft.toString)
         ),
       Filters.ne("data.versions.state", Draft.toString)
