@@ -119,7 +119,11 @@ object ReadModelQueries {
     // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
     val versionsFilter = Filters.or(
       Filters
-        .and(Filters.eq("data.consumerId", requesterId.toString), Filters.ne("data.producerId", requesterId.toString), Filters.eq("data.versions.state", Draft.toString)),
+        .and(
+          Filters.eq("data.consumerId", requesterId.toString),
+          Filters.ne("data.producerId", requesterId.toString),
+          Filters.eq("data.versions.state", Draft.toString)
+        ),
       Filters.ne("data.versions.state", Draft.toString)
     )
 
