@@ -15,6 +15,7 @@ import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -84,14 +85,14 @@ final case class PurposeVersionActivation(
     (version.state, ownership) match {
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
-          firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
+          firstVersionActivation(organizationId, purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
           changeToWaitForApproval(version, ChangedBy.CONSUMER)
         )
       case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
       case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
-        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
+        firstVersionActivation(organizationId, purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
 
       case (SUSPENDED, CONSUMER)
           if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>
@@ -161,9 +162,13 @@ final case class PurposeVersionActivation(
 
   }
 
-  def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
     tenant <- tenantManagementService.getTenant(tenantId)
   } yield tenant.name
+
+  private def getTenantKind(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[TenantKind] = for {
+    tenant <- tenantManagementService.getTenant(tenantId)
+  } yield tenant.kind
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
@@ -175,6 +180,7 @@ final case class PurposeVersionActivation(
     * @return The updated Version
     */
   def firstVersionActivation(
+    requesterId: UUID,
     purpose: Purpose,
     version: PurposeVersion,
     stateChangeDetails: StateChangeDetails,
@@ -190,7 +196,8 @@ final case class PurposeVersionActivation(
         producerName = producerDescription,
         consumerName = consumerDescription
       )
-      path <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)
+      tenantKind <- getTenantKind(requesterId)
+      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(
@@ -223,7 +230,7 @@ final case class PurposeVersionActivation(
     purpose: Purpose,
     version: PurposeVersion,
     eServiceInfo: EServiceInfo
-  ): Future[String] = {
+  )(kind: TenantKind): Future[String] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
@@ -232,7 +239,7 @@ final case class PurposeVersionActivation(
         version.dailyCalls,
         eServiceInfo,
         LanguageIt // TODO Language should be a request parameter
-      )
+      )(kind)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId.toString,

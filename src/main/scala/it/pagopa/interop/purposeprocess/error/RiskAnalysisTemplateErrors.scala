@@ -1,8 +1,12 @@
 package it.pagopa.interop.purposeprocess.error
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object RiskAnalysisTemplateErrors {
   final case class FormTemplateConfigNotFound(templateVersion: String)
       extends Throwable(s"Config version $templateVersion not found")
+
+  final case class TenantKindTemplateConfigNotFound(tenantKind: TenantKind)
+      extends Throwable(s"Config for Tenant Kind $tenantKind not found")
 
   final case class IncompatibleConfig(questionId: String, configId: String)
       extends Throwable(s"Question $questionId not compatible with config $configId")

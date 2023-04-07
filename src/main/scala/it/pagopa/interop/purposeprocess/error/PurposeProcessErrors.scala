@@ -47,4 +47,6 @@ object PurposeProcessErrors {
   final case class PurposeCannotBeCloned(purposeId: String)
       extends ComponentError("0014", s"Purpose $purposeId cannot be cloned")
 
+  final case class TenantNotFound(tenantId: UUID)
+      extends ComponentError("0015", s"Tenant ${tenantId.toString} not found")
 }

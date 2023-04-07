@@ -5,15 +5,18 @@ import it.pagopa.interop.purposemanagement.client.model.{PurposeSeed => Dependen
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.purposeprocess.model.PurposeSeed
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeSeedConverter {
 
-  def apiToDependency(seed: PurposeSeed): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+  def apiToDependency(
+    seed: PurposeSeed
+  )(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
     for {
       riskAnalysisFormSeed <- seed.riskAnalysisForm
         .traverse(
           RiskAnalysisValidation
-            .validate(_)
+            .validate(_)(kind)
             .leftMap(RiskAnalysisValidationFailed(_))
             .toEither
         )

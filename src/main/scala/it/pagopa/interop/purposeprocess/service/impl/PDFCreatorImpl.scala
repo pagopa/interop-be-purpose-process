@@ -13,6 +13,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.{PDFCreator, RiskAnalysisService}
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 import java.io.File
 import java.time.LocalDateTime
@@ -38,11 +39,14 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
     language: Language
-  ): Future[File] =
+  )(kind: TenantKind): Future[File] =
     Future.fromTry {
       for {
         file       <- createTempFile
-        formConfig <- RiskAnalysisService.riskAnalysisForms
+        kindConfig <- RiskAnalysisService.riskAnalysisForms
+          .get(kind)
+          .toTry(TenantKindTemplateConfigNotFound(kind))
+        formConfig <- kindConfig
           .get(riskAnalysisForm.version)
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))
         data       <- setupData(formConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language)

@@ -93,8 +93,9 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
+      tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
+      clientSeed     <- PurposeSeedConverter.apiToDependency(seed)(tenant.kind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -139,9 +140,10 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
-      updatedPurpose              <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
+      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent)(tenant.kind).toFuture
+      updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
@@ -455,11 +457,13 @@ final case class PurposeApiServiceImpl(
       }
 
       val result: Future[Purpose] = for {
-        purposeUUID <- purposeId.toFutureUUID
-        purpose     <- purposeManagementService.getPurpose(purposeUUID)
-        _           <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
+        organizationId <- getOrganizationIdFutureUUID(contexts)
+        tenant         <- tenantManagementService.getTenant(organizationId)
+        purposeUUID    <- purposeId.toFutureUUID
+        purpose        <- purposeManagementService.getPurpose(purposeUUID)
+        _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed).toFuture
+        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed)(tenant.kind).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)

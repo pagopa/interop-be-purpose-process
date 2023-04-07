@@ -18,6 +18,7 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFou
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{Purpose, Problem, PurposeVersion, Purposes, PurposeVersionDocument}
 import it.pagopa.interop.purposeprocess.service._
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import org.scalamock.scalatest.MockFactory
 import spray.json._
 
@@ -169,13 +170,16 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
     (mockPdfCreator
-      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language))
-      .expects(*, *, *, *, *)
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language)(
+        _: TenantKind
+      ))
+      .expects(*, *, *, *, *, *)
       .returning(Future.successful(tempFile))
       .once()
   }
 
   def mockVersionFirstActivation(
+    requesterId: UUID,
     purposeId: UUID,
     versionId: UUID,
     producerId: UUID,
@@ -188,6 +192,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     mockOrganizationRetrieve(producerId)
     mockOrganizationRetrieve(consumerId)
+    mockOrganizationRetrieve(requesterId)
 
     (mockPurposeManagementService
       .activatePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload)(

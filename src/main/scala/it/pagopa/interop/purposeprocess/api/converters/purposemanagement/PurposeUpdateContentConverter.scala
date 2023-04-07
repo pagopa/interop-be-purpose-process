@@ -5,12 +5,15 @@ import it.pagopa.interop.purposemanagement.client.model.{PurposeUpdateContent =>
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.purposeprocess.model.PurposeUpdateContent
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeUpdateContentConverter {
-  def apiToDependency(content: PurposeUpdateContent): Either[Throwable, DependencyPurposeUpdateContent] = {
+  def apiToDependency(
+    content: PurposeUpdateContent
+  )(kind: TenantKind): Either[Throwable, DependencyPurposeUpdateContent] = {
     for {
       riskAnalysisForm <- content.riskAnalysisForm
-        .traverse(RiskAnalysisValidation.validate)
+        .traverse(RiskAnalysisValidation.validate(_)(kind))
         .leftMap(RiskAnalysisValidationFailed(_))
         .toEither
     } yield DependencyPurposeUpdateContent(

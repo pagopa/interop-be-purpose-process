@@ -297,7 +297,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
-      mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
+      mockVersionFirstActivation(
+        consumerId,
+        purposeId,
+        versionId,
+        eService.producerId,
+        purpose.consumerId,
+        updatedVersion
+      )
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
 
@@ -868,7 +875,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, purpose)
       mockEServiceRetrieve(eServiceId, eService)
-      mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
+      mockVersionFirstActivation(
+        producerId,
+        purposeId,
+        versionId,
+        eService.producerId,
+        purpose.consumerId,
+        updatedVersion
+      )
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
 
@@ -906,7 +920,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, purpose)
       mockEServiceRetrieve(eServiceId, eService)
-      mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
+      mockVersionFirstActivation(
+        producerId,
+        purposeId,
+        versionId,
+        eService.producerId,
+        purpose.consumerId,
+        updatedVersion
+      )
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
 
@@ -1128,6 +1149,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, purpose)
 
       mockEServiceRetrieve(eServiceId, eService)
+      mockTenantRetrieve(consumerId)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockOrganizationRetrieve(eService.producerId)
       mockOrganizationRetrieve(purpose.consumerId)
