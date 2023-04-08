@@ -9,14 +9,18 @@ import spray.json._
 
 object RiskAnalysisService {
 
+  val riskAnalysisTemplatePath: String = "riskAnalysisTemplate/forms"
+
   // The Map key must correspond to the version field of the risk analysis form
   val riskAnalysisForms: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
     PA      -> Map(
-      "1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json"),
-      "2.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/2.0.json")
+      "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/1.0.json"),
+      "2.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/2.0.json")
     ),
-    PRIVATE -> Map("1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json")),
-    GSP     -> Map("1.0" -> loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/1.0.json"))
+    PRIVATE -> Map(
+      "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PRIVATE.toString}/1.0.json")
+    ),
+    GSP -> Map("1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.GSP.toString}/1.0.json"))
   )
 
   def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =
