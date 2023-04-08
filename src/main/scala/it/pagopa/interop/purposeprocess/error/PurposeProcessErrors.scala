@@ -2,6 +2,7 @@ package it.pagopa.interop.purposeprocess.error
 
 import cats.data.NonEmptyChain
 import it.pagopa.interop.commons.utils.errors.ComponentError
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 import java.util.UUID
 
@@ -48,5 +49,17 @@ object PurposeProcessErrors {
       extends ComponentError("0014", s"Purpose $purposeId cannot be cloned")
 
   final case class TenantNotFound(tenantId: UUID)
-      extends ComponentError("0015", s"Tenant ${tenantId.toString} not found")
+      extends ComponentError("0015", s"Tenant ${tenantId.toString} not founsd")
+
+  final case class RiskAnalysisConfigForTenantKindNotFound(tenantKind: TenantKind)
+      extends ComponentError("0016", s"Risk Analysis Configuration for Tenant Kind ${tenantKind.toString} not found")
+
+  final case class RiskAnalysisConfigVersionNotFound(tenantKind: TenantKind, version: String)
+      extends ComponentError(
+        "0017",
+        s"Risk Analysis Configuration for tenant kind ${tenantKind.toString} and ${version} not found"
+      )
+
+  final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
+      extends ComponentError("0017", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
 }

@@ -475,6 +475,32 @@ final case class PurposeApiServiceImpl(
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
 
+  override def retrieveLatestRiskAnalysisConfiguration()(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Retrieve latest risk analysis configuration"
+    logger.info(operationLabel)
+
+    val result: Future[RiskAnalysisFormConfigResponse] = for {
+      organizationId                   <- getOrganizationIdFutureUUID(contexts)
+      tenant                           <- tenantManagementService.getTenant(organizationId)
+      kindConfig                       <- RiskAnalysisService.riskAnalysisForms
+        .get(tenant.kind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.kind))
+      (latest, riskAnalysisFormConfig) <- kindConfig.lastOption.toFuture(
+        RiskAnalysisConfigLatestVersionNotFound(tenant.kind)
+      )
+    } yield RiskAnalysisConverter.toResponse(riskAnalysisFormConfig)
+
+    onComplete(result) {
+      retrieveLatestRiskAnalysisConfigurationResponse[RiskAnalysisFormConfigResponse](operationLabel)(
+        retrieveLatestRiskAnalysisConfiguration200
+      )
+    }
+  }
+
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)
     else Future.failed(OrganizationIsNotTheConsumer(organizationId))
