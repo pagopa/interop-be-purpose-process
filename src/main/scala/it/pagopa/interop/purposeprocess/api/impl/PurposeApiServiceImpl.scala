@@ -17,6 +17,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.RiskAnalysisConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
@@ -492,7 +493,7 @@ final case class PurposeApiServiceImpl(
       (latest, riskAnalysisFormConfig) <- kindConfig.lastOption.toFuture(
         RiskAnalysisConfigLatestVersionNotFound(tenant.kind)
       )
-    } yield RiskAnalysisConverter.toResponse(riskAnalysisFormConfig)
+    } yield riskAnalysisFormConfig.toApi
 
     onComplete(result) {
       retrieveLatestRiskAnalysisConfigurationResponse[RiskAnalysisFormConfigResponse](operationLabel)(

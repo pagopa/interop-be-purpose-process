@@ -1395,6 +1395,26 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   }
 
+  "Purpose Risk Analysis Configuration" should {
+    "succeed when Tenant kind is PA" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+  }
+
   "Purpose Risk Analysis Document" should {
     "succeed if User is the Producer" in {
 

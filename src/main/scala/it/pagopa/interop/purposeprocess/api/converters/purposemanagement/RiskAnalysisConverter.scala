@@ -56,32 +56,43 @@ object RiskAnalysisConverter {
   def persistentMultiAnswersToApi(multiAnswers: Seq[PersistentRiskAnalysisMultiAnswer]): Map[String, Seq[String]] =
     multiAnswers.map(a => (a.key, a.values)).toMap
 
-  def toResponse(riskAnalysisFormConfig: RiskAnalysisFormConfig): RiskAnalysisFormConfigResponse =
-    RiskAnalysisFormConfigResponse(
-      version = riskAnalysisFormConfig.version,
-      questions = riskAnalysisFormConfig.questions.map(toResponse)
-    )
+  implicit class RiskAnalysisFormConfigWrapper(private val riskAnalysisFormConfig: RiskAnalysisFormConfig)
+      extends AnyVal {
+    def toApi: RiskAnalysisFormConfigResponse =
+      RiskAnalysisFormConfigResponse(
+        version = riskAnalysisFormConfig.version,
+        questions = riskAnalysisFormConfig.questions.map(_.toApi)
+      )
+  }
 
-  def toResponse(question: FormConfigQuestion): FormConfigQuestionResponse =
-    FormConfigQuestionResponse(
-      id = question.id,
-      label = toResponse(question.label),
-      infoLabel = question.infoLabel.map(toResponse),
-      dataType = toResponse(question.dataType),
-      required = question.required,
-      dependencies = question.dependencies.map(toResponse)
-    )
+  implicit class FormConfigQuestionWrapper(private val question: FormConfigQuestion) extends AnyVal {
+    def toApi: FormConfigQuestionResponse =
+      FormConfigQuestionResponse(
+        id = question.id,
+        label = question.label.toApi,
+        infoLabel = question.infoLabel.map(_.toApi),
+        dataType = question.dataType.toApi,
+        required = question.required,
+        dependencies = question.dependencies.map(_.toApi)
+      )
+  }
 
-  def toResponse(localizedText: LocalizedText): LocalizedTextResponse =
-    LocalizedTextResponse(it = localizedText.it, en = localizedText.en)
+  implicit class LocalizedTextWrapper(private val localizedText: LocalizedText) extends AnyVal {
+    def toApi: LocalizedTextResponse =
+      LocalizedTextResponse(it = localizedText.it, en = localizedText.en)
+  }
 
-  def toResponse(dataType: DataType): DataTypeResponse =
-    dataType match {
-      case Single   => DataTypeResponse.SINGLE
-      case Multi    => DataTypeResponse.MULTI
-      case FreeText => DataTypeResponse.FREETEXT
-    }
+  implicit class DataTypeWrapper(private val dataType: DataType) extends AnyVal {
+    def toApi: DataTypeResponse =
+      dataType match {
+        case Single   => DataTypeResponse.SINGLE
+        case Multi    => DataTypeResponse.MULTI
+        case FreeText => DataTypeResponse.FREETEXT
+      }
+  }
 
-  def toResponse(dependency: Dependency): DependencyResponse =
-    DependencyResponse(id = dependency.id, value = dependency.value)
+  implicit class DependencyWrapper(private val dependency: Dependency) extends AnyVal {
+    def toApi: DependencyResponse =
+      DependencyResponse(id = dependency.id, value = dependency.value)
+  }
 }
