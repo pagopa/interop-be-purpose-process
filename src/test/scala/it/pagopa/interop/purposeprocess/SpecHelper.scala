@@ -43,9 +43,11 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
-  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
-  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
-  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
+  val mockPdfCreator: PDFCreator                                   = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier                               = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier                 = mock[OffsetDateTimeSupplier]
+  val mockRiskAnalysisServiceSupplier: RiskAnalysisServiceSupplier = mock[RiskAnalysisServiceSupplier]
+  val mockRiskAnalysisService: RiskAnalysisService                 = mock[RiskAnalysisService]
 
   val service: PurposeApiService = PurposeApiServiceImpl(
     mockAgreementManagementService,
@@ -57,8 +59,24 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockfileManager,
     mockPdfCreator,
     mockUUIDSupplier,
-    mockDateTimeSupplier
+    mockDateTimeSupplier,
+    mockRiskAnalysisServiceSupplier
   )(ExecutionContext.global)
+
+  def mockRiskAnalysisServiceNoPA = {
+    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoPA)
+    (() => mockRiskAnalysisServiceSupplier.get()).expects().once().returns(mockRiskAnalysisService)
+  }
+
+  def mockRiskAnalysisServiceCompleteVersion1 = {
+    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceComplete)
+    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
+  }
+
+  def mockRiskAnalysisServiceEmptyVersion = {
+    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoVersion)
+    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
+  }
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))

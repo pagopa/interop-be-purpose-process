@@ -7,12 +7,30 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind.{GSP, PA, PRIV
 import scala.io.Source
 import spray.json._
 
-object RiskAnalysisService {
+trait RiskAnalysisServiceSupplier {
+  def get(): RiskAnalysisService
+}
 
-  val riskAnalysisTemplatePath: String = "riskAnalysisTemplate/forms"
+object RiskAnalysisServiceSupplier extends RiskAnalysisServiceSupplier {
+  override def get(): RiskAnalysisService = new RiskAnalysisServiceImpl
+}
 
-  // The Map key must correspond to the version field of the risk analysis form
-  val riskAnalysisForms: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
+trait RiskAnalysisService {
+  def riskAnalysisForms(): Map[TenantKind, Map[String, RiskAnalysisFormConfig]]
+  def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig
+}
+class RiskAnalysisServiceImpl extends RiskAnalysisService {
+  override def riskAnalysisForms(): Map[TenantKind, Map[String, RiskAnalysisFormConfig]] =
+    RiskAnalysisServiceImpl.riskAnalysisForms
+  override def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig  =
+    RiskAnalysisServiceImpl.loadRiskAnalysisFormConfig(resourcePath)
+}
+
+private object RiskAnalysisServiceImpl {
+
+  private val riskAnalysisTemplatePath: String = "riskAnalysisTemplate/forms"
+
+  private def riskAnalysisForms: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
     PA      -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/1.0.json"),
       "2.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/2.0.json")
@@ -23,7 +41,7 @@ object RiskAnalysisService {
     GSP -> Map("1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.GSP.toString}/1.0.json"))
   )
 
-  def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =
+  private def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =
     Source
       .fromResource(resourcePath)
       .getLines()

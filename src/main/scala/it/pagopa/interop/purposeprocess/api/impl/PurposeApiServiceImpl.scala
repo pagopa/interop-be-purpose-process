@@ -39,7 +39,8 @@ final case class PurposeApiServiceImpl(
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
-  dateTimeSupplier: OffsetDateTimeSupplier
+  dateTimeSupplier: OffsetDateTimeSupplier,
+  riskAnalysisServiceSupplier: RiskAnalysisServiceSupplier
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
 
@@ -487,7 +488,9 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
       tenant                           <- tenantManagementService.getTenant(organizationId)
-      kindConfig                       <- RiskAnalysisService.riskAnalysisForms
+      kindConfig                       <- riskAnalysisServiceSupplier
+        .get()
+        .riskAnalysisForms()
         .get(tenant.kind)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.kind))
       (latest, riskAnalysisFormConfig) <- kindConfig.lastOption.toFuture(

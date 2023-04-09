@@ -1409,8 +1409,56 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant))
 
+      mockRiskAnalysisServiceCompleteVersion1
+
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+
+    "fail when Tenant kind is not managed" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant))
+
+      mockRiskAnalysisServiceNoPA
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.NotFound
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.NotFound.intValue
+        problem.errors.head.code shouldBe "012-0016"
+      }
+    }
+
+    "fail when version is not managed" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant))
+
+      mockRiskAnalysisServiceEmptyVersion
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.NotFound
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.NotFound.intValue
+        problem.errors.head.code shouldBe "012-0017"
       }
     }
   }

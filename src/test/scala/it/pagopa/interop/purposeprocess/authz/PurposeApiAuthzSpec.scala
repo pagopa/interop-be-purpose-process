@@ -64,6 +64,9 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       },
       dateTimeSupplier = new OffsetDateTimeSupplier {
         override def get: OffsetDateTime = OffsetDateTime.now()
+      },
+      riskAnalysisServiceSupplier = new RiskAnalysisServiceSupplier {
+        override def get(): RiskAnalysisService = new RiskAnalysisServiceImpl
       }
     )
 
