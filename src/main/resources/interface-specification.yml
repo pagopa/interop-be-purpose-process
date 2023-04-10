@@ -655,6 +655,39 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'        
+  '/purposes/riskAnalysis/{riskAnalysisVersion}':
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: riskAnalysisVersion
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - purpose
+      operationId: retrieveRiskAnalysisConfigurationByVersion
+      description: Retrieve a specified version of risk analysis configuration
+      responses:
+        '200':
+          description: Risk analysis requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAnalysisFormConfigResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'         
 components:
   parameters:
     CorrelationIdHeader:

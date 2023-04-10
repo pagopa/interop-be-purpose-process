@@ -117,6 +117,13 @@
         "admin"
       ],
       "route": "retrieveLatestRiskAnalysisConfiguration"
+    },
+    {
+      "verb": "GET",
+      "roles": [
+        "admin"
+      ],
+      "route": "retrieveRiskAnalysisConfigurationByVersion"
     }
   ]
 }

@@ -507,6 +507,34 @@ final case class PurposeApiServiceImpl(
     }
   }
 
+  override def retrieveRiskAnalysisConfigurationByVersion(riskAnalysisVersion: String)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Retrieve version $riskAnalysisVersion of risk analysis configuration"
+    logger.info(operationLabel)
+
+    val result: Future[RiskAnalysisFormConfigResponse] = for {
+      organizationId         <- getOrganizationIdFutureUUID(contexts)
+      tenant                 <- tenantManagementService.getTenant(organizationId)
+      kindConfig             <- riskAnalysisServiceSupplier
+        .get()
+        .riskAnalysisForms()
+        .get(tenant.kind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.kind))
+      riskAnalysisFormConfig <- kindConfig
+        .get(riskAnalysisVersion)
+        .toFuture(RiskAnalysisConfigVersionNotFound(tenant.kind, riskAnalysisVersion))
+    } yield riskAnalysisFormConfig.toApi
+
+    onComplete(result) {
+      retrieveRiskAnalysisConfigurationByVersionResponse[RiskAnalysisFormConfigResponse](operationLabel)(
+        retrieveRiskAnalysisConfigurationByVersion200
+      )
+    }
+  }
+
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)
     else Future.failed(OrganizationIsNotTheConsumer(organizationId))
