@@ -56,8 +56,9 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
           riskAnalysisForm: RiskAnalysisForm,
           dailyCalls: Int,
           eServiceInfo: EServiceInfo,
-          language: Language
-        )(kind: TenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
+          language: Language,
+          kind: TenantKind
+        ): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {
         override def get: UUID = UUID.randomUUID()

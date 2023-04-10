@@ -197,7 +197,7 @@ final case class PurposeVersionActivation(
         consumerName = consumerDescription
       )
       tenantKind <- getTenantKind(requesterId)
-      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
+      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo, tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(
@@ -223,14 +223,16 @@ final case class PurposeVersionActivation(
     * @param documentId Document unique ID
     * @param purpose Purpose of the Version
     * @param version Version to activate
+    * @param kind Tenant kind for validation
     * @return The path of the new document
     */
   def createRiskAnalysisDocument(
     documentId: UUID,
     purpose: Purpose,
     version: PurposeVersion,
-    eServiceInfo: EServiceInfo
-  )(kind: TenantKind): Future[String] = {
+    eServiceInfo: EServiceInfo,
+    kind: TenantKind
+  ): Future[String] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
@@ -238,8 +240,9 @@ final case class PurposeVersionActivation(
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,
-        LanguageIt // TODO Language should be a request parameter
-      )(kind)
+        LanguageIt, // TODO Language should be a request parameter
+        kind
+      )
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId.toString,

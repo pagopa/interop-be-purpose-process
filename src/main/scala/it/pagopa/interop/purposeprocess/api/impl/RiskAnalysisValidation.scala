@@ -24,7 +24,7 @@ object RiskAnalysisValidation {
     * @param kind The Tenant Kind
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm)(kind: TenantKind): ValidationResult[RiskAnalysisFormSeed] = {
+  def validate(form: RiskAnalysisForm, kind: TenantKind): ValidationResult[RiskAnalysisFormSeed] = {
     RiskAnalysisServiceSupplier
       .get()
       .riskAnalysisForms()

@@ -17,7 +17,9 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.RiskAnalysisConverter._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeUpdateContentConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
@@ -97,7 +99,7 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed)(tenant.kind).toFuture
+      clientSeed     <- seed.apiToDependency(tenant.kind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -144,7 +146,7 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent)(tenant.kind).toFuture
+      depPayload     <- purposeUpdateContent.apiToDependency(tenant.kind).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
@@ -465,7 +467,7 @@ final case class PurposeApiServiceImpl(
         purpose        <- purposeManagementService.getPurpose(purposeUUID)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed)(tenant.kind).toFuture
+        apiPurposeSeed <- dependencySeed.apiToDependency(tenant.kind).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)

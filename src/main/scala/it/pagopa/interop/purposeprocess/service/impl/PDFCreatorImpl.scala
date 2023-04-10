@@ -38,8 +38,9 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
-    language: Language
-  )(kind: TenantKind): Future[File] =
+    language: Language,
+    kind: TenantKind
+  ): Future[File] =
     Future.fromTry {
       for {
         file       <- createTempFile

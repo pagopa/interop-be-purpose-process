@@ -46,7 +46,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PA)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PA)
 
       verifyValidationFormResult(result, expected)
 
@@ -82,7 +82,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PA)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PA)
 
       verifyValidationFormResult(result, expected)
 
@@ -92,7 +92,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       val riskAnalysis = SpecData.validRiskAnalysis2_0
 
       val result: ValidationResult[RiskAnalysisFormSeed] =
-        RiskAnalysisValidation.validate(riskAnalysis)(null)
+        RiskAnalysisValidation.validate(riskAnalysis, null)
 
       verifyValidationFailure(result, _.contains(UnexpectedTenantKind(null)) shouldBe true)
 
@@ -102,7 +102,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       val riskAnalysis = SpecData.validRiskAnalysis2_0
 
       val result: ValidationResult[RiskAnalysisFormSeed] =
-        RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PRIVATE)
+        RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PRIVATE)
 
       verifyValidationFailure(result, _.contains(UnexpectedTemplateVersion("2.0")) shouldBe true)
 
@@ -119,7 +119,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PA)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PA)
 
       verifyValidationFailure(
         result,
@@ -138,7 +138,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PA)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PA)
 
       verifyValidationFailure(
         result,
@@ -160,7 +160,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)(TenantKind.PA)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, TenantKind.PA)
 
       verifyValidationFailure(
         result,

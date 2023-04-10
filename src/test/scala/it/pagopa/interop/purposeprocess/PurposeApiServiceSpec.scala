@@ -11,6 +11,7 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDep
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
 import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
@@ -522,7 +523,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed)(TenantKind.PA).toOption.get, context)
+        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -573,7 +574,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed)(TenantKind.PA).toOption.get, context)
+        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 

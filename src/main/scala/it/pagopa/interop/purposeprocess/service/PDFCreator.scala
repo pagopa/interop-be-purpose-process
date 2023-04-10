@@ -13,6 +13,7 @@ trait PDFCreator {
     riskAnalysisForm: RiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
-    language: Language
-  )(kind: TenantKind): Future[File]
+    language: Language,
+    kind: TenantKind
+  ): Future[File]
 }

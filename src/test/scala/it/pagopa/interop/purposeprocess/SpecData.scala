@@ -129,7 +129,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0)(tenant.kind).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0, tenant.kind).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
