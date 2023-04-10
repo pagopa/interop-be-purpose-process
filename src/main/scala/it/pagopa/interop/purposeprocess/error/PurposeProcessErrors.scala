@@ -61,5 +61,5 @@ object PurposeProcessErrors {
       )
 
   final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
-      extends ComponentError("0017", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
+      extends ComponentError("0018", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
 }
