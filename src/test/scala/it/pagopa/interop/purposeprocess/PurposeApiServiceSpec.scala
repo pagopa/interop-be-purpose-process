@@ -1396,7 +1396,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
   }
 
-  "Purpose Risk Analysis Configuration" should {
+  "Purpose Risk Analysis Configuration retrieving latest version" should {
     "succeed when Tenant kind is PA" in {
 
       val producerId: UUID = UUID.randomUUID()
@@ -1459,7 +1459,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.NotFound
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0017"
+        problem.errors.head.code shouldBe "012-0018"
       }
     }
   }
