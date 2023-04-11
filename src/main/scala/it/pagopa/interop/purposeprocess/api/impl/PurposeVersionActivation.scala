@@ -17,7 +17,6 @@ import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
-import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
@@ -69,13 +68,16 @@ final case class PurposeVersionActivation(
     } yield waitingForApprovalVersion
 
     def activate(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
+      val newSuspendedAt =
+        if (purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true))
+          version.suspendedAt
+        else None
+
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
           riskAnalysis = version.riskAnalysis,
-          stateChangeDetails = StateChangeDetails(changedBy, None)
+          stateChangeDetails = StateChangeDetails(changedBy, newSuspendedAt)
         )
-
-      val op: Option[OffsetDateTime] = none
 
       for {
         version <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
