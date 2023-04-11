@@ -17,6 +17,7 @@ import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 
+import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
@@ -46,7 +47,11 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
     def changeToWaitForApproval(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] =
-      purposeManagementService.waitForApprovalPurposeVersion(purpose.id, version.id, StateChangeDetails(changedBy))
+      purposeManagementService.waitForApprovalPurposeVersion(
+        purpose.id,
+        version.id,
+        StateChangeDetails(changedBy, Some(dateTimeSupplier.get()))
+      )
 
     def createWaitForApproval(version: PurposeVersion): Future[PurposeVersion] = for {
       _                         <- Future.traverse(purpose.versions.find(_.state == WAITING_FOR_APPROVAL).toList) { v =>
@@ -59,7 +64,7 @@ final case class PurposeVersionActivation(
       waitingForApprovalVersion <- purposeManagementService.waitForApprovalPurposeVersion(
         purpose.id,
         draftVersion.id,
-        StateChangeDetails(ChangedBy.CONSUMER)
+        StateChangeDetails(ChangedBy.CONSUMER, Some(dateTimeSupplier.get()))
       )
     } yield waitingForApprovalVersion
 
@@ -67,8 +72,10 @@ final case class PurposeVersionActivation(
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
           riskAnalysis = version.riskAnalysis,
-          stateChangeDetails = StateChangeDetails(changedBy)
+          stateChangeDetails = StateChangeDetails(changedBy, None)
         )
+
+      val op: Option[OffsetDateTime] = none
 
       for {
         version <- purposeManagementService.activatePurposeVersion(purpose.id, version.id, payload)
@@ -84,14 +91,24 @@ final case class PurposeVersionActivation(
     (version.state, ownership) match {
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
-          firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.CONSUMER), eService),
+          firstVersionActivation(
+            purpose,
+            version,
+            StateChangeDetails(ChangedBy.CONSUMER, Some(dateTimeSupplier.get())),
+            eService
+          ),
           changeToWaitForApproval(version, ChangedBy.CONSUMER)
         )
       case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
       case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
-        firstVersionActivation(purpose, version, StateChangeDetails(ChangedBy.PRODUCER), eService)
+        firstVersionActivation(
+          purpose,
+          version,
+          StateChangeDetails(ChangedBy.PRODUCER, Some(dateTimeSupplier.get())),
+          eService
+        )
 
       case (SUSPENDED, CONSUMER)
           if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>

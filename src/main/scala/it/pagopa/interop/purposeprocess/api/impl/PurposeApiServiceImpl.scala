@@ -141,7 +141,7 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
-      updatedPurpose              <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
+      updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
@@ -313,7 +313,7 @@ final case class PurposeApiServiceImpl(
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
       _              <- getVersion(purpose, versionUUID)
-      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy, Some(dateTimeSupplier.get()))
       response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
@@ -340,7 +340,10 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- getVersion(purpose, versionUUID)
-      stateDetails = PurposeManagementDependency.StateChangeDetails(PurposeManagementDependency.ChangedBy.CONSUMER)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(
+        PurposeManagementDependency.ChangedBy.CONSUMER,
+        Some(dateTimeSupplier.get())
+      )
       _        <- Future.traverse(
         purpose.versions.find(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL).toList
       )(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
@@ -426,7 +429,7 @@ final case class PurposeApiServiceImpl(
       def isClonable(purpose: PurposeManagementDependency.Purpose): Boolean = {
         val states = purpose.versions.map(_.state)
 
-        !states.isEmpty &&
+        states.nonEmpty &&
         states != Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
       }
 

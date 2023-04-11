@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionConverter
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
@@ -35,12 +36,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       (mockPurposeManagementService
         .archivePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
         .expects(
           purposeId,
           versionId,
-          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER),
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp),
           *
         )
         .once()
@@ -70,6 +73,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, purpose)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       (mockPurposeManagementService
         .deletePurposeVersion(_: UUID, _: UUID)(_: Seq[(String, String)]))
         .expects(purposeId, waitingForApprovalVersion.id, *)
@@ -81,7 +86,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .expects(
           purposeId,
           versionId,
-          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER),
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp),
           *
         )
         .once()
@@ -148,12 +153,14 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       (mockPurposeManagementService
         .suspendPurposeVersion(_: UUID, _: UUID, _: PurposeManagement.StateChangeDetails)(_: Seq[(String, String)]))
         .expects(
           purposeId,
           versionId,
-          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER),
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp),
           context
         )
         .once()
@@ -188,6 +195,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val version = SpecData.purposeVersion.copy(id = versionId, state = PurposeManagement.PurposeVersionState.ACTIVE)
       val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.SUSPENDED)
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       mockPurposeRetrieve(
         purposeId,
         SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId, versions = Seq(version))
@@ -200,7 +209,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .expects(
           purposeId,
           versionId,
-          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER),
+          PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER, timestamp),
           *
         )
         .once()
@@ -294,7 +303,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
@@ -371,12 +380,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -423,12 +433,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -474,12 +485,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -526,12 +538,13 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       val updatedVersion =
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
-      val payload        = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER)
+      val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -582,7 +595,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockVersionActivate(purposeId, versionId, updatedVersion)
@@ -629,10 +642,9 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = createdVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
-
       mockWaitingForApprovalVersionCreate(purposeId, createdVersion)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -685,7 +697,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockPurposeVersionDelete(purpose.id, oldWaitingVersionId)
       mockWaitingForApprovalVersionCreate(purposeId, createdVersion)
 
@@ -724,7 +736,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = createdVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockWaitingForApprovalVersionCreate(purposeId, createdVersion)
@@ -763,6 +775,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -798,6 +811,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -871,6 +885,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -909,6 +924,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       mockVersionFirstActivation(purposeId, versionId, eService.producerId, purpose.consumerId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
       mockFileManagerStore("whateverPath")
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -947,7 +963,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
@@ -1126,7 +1142,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockOrganizationRetrieve(eService.producerId)
