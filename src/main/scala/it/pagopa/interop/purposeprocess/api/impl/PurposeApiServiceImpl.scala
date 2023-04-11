@@ -141,7 +141,7 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
-      updatedPurpose              <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
+      updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
