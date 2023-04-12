@@ -14,7 +14,8 @@ object PurposeVersionConverter {
       firstActivationAt = version.firstActivationAt,
       expectedApprovalDate = version.expectedApprovalDate,
       riskAnalysis = version.riskAnalysis.map(PurposeVersionDocumentConverter.dependencyToApi),
-      dailyCalls = version.dailyCalls
+      dailyCalls = version.dailyCalls,
+      suspendedAt = version.suspendedAt
     )
 
   def persistentToApi(version: PersistentPurposeVersion): PurposeVersion =
@@ -26,6 +27,7 @@ object PurposeVersionConverter {
       firstActivationAt = version.firstActivationAt,
       expectedApprovalDate = version.expectedApprovalDate,
       riskAnalysis = version.riskAnalysis.map(PurposeVersionDocumentConverter.persistentToApi),
-      dailyCalls = version.dailyCalls
+      dailyCalls = version.dailyCalls,
+      suspendedAt = version.suspendedAt
     )
 }

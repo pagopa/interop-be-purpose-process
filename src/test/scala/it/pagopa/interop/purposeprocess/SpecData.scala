@@ -161,7 +161,8 @@ object SpecData {
     firstActivationAt = None,
     expectedApprovalDate = None,
     dailyCalls = 1000,
-    riskAnalysis = None
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val persistentPurpose: PersistentPurpose = PersistentPurpose(
