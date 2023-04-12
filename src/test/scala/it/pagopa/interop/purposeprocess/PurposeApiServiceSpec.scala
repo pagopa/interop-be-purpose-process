@@ -597,7 +597,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val incorrectRiskAnalysis =
         RiskAnalysisForm(
           version = "1.0",
-          answers = Map("purpose" -> List("purpose"), "usesPersonalData" -> List("YES"))
+          answers = Map("purpose1" -> List("purpose"), "usesPersonalData" -> List("YES"))
         )
 
       val seed: PurposeSeed = PurposeSeed(
