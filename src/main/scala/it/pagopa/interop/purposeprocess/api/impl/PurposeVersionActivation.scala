@@ -49,7 +49,7 @@ final case class PurposeVersionActivation(
       purposeManagementService.waitForApprovalPurposeVersion(
         purpose.id,
         version.id,
-        StateChangeDetails(changedBy, Some(dateTimeSupplier.get()))
+        StateChangeDetails(changedBy, dateTimeSupplier.get())
       )
 
     def createWaitForApproval(version: PurposeVersion): Future[PurposeVersion] = for {
@@ -63,20 +63,16 @@ final case class PurposeVersionActivation(
       waitingForApprovalVersion <- purposeManagementService.waitForApprovalPurposeVersion(
         purpose.id,
         draftVersion.id,
-        StateChangeDetails(ChangedBy.CONSUMER, Some(dateTimeSupplier.get()))
+        StateChangeDetails(ChangedBy.CONSUMER, dateTimeSupplier.get())
       )
     } yield waitingForApprovalVersion
 
     def activate(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
-      val newSuspendedAt =
-        if (purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true))
-          version.suspendedAt
-        else None
 
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
           riskAnalysis = version.riskAnalysis,
-          stateChangeDetails = StateChangeDetails(changedBy, newSuspendedAt)
+          stateChangeDetails = StateChangeDetails(changedBy, dateTimeSupplier.get())
         )
 
       for {
@@ -96,7 +92,7 @@ final case class PurposeVersionActivation(
           firstVersionActivation(
             purpose,
             version,
-            StateChangeDetails(ChangedBy.CONSUMER, Some(dateTimeSupplier.get())),
+            StateChangeDetails(ChangedBy.CONSUMER, dateTimeSupplier.get()),
             eService
           ),
           changeToWaitForApproval(version, ChangedBy.CONSUMER)
@@ -108,7 +104,7 @@ final case class PurposeVersionActivation(
         firstVersionActivation(
           purpose,
           version,
-          StateChangeDetails(ChangedBy.PRODUCER, Some(dateTimeSupplier.get())),
+          StateChangeDetails(ChangedBy.PRODUCER, dateTimeSupplier.get()),
           eService
         )
 

@@ -313,7 +313,7 @@ final case class PurposeApiServiceImpl(
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
       _              <- getVersion(purpose, versionUUID)
-      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy, Some(dateTimeSupplier.get()))
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy, dateTimeSupplier.get())
       response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
@@ -342,7 +342,7 @@ final case class PurposeApiServiceImpl(
       _              <- getVersion(purpose, versionUUID)
       stateDetails = PurposeManagementDependency.StateChangeDetails(
         PurposeManagementDependency.ChangedBy.CONSUMER,
-        Some(dateTimeSupplier.get())
+        dateTimeSupplier.get()
       )
       _        <- Future.traverse(
         purpose.versions.find(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL).toList
