@@ -135,12 +135,23 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
+    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean = {
+      val states = purpose.versions.map(_.state)
+      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+    }
+
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent).toFuture
+      depPayload     <-
+        if (isDraft(purpose))
+          PurposeUpdateContentConverter
+            .apiToDependency(purposeUpdateContent, RiskAnalysisValidation.validateOnlyFormal)
+            .toFuture
+        else
+          PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent, RiskAnalysisValidation.validate).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 

@@ -24,6 +24,19 @@ object RiskAnalysisValidation {
     */
   def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
 
+    val (sanitizedForm, validationRules) = sanitizeAndRules(form)
+
+    validationRules.andThen(validateFormWithRules(_, sanitizedForm))
+  }
+
+  def validateOnlyFormal(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+
+    val (sanitizedForm, validationRules) = sanitizeAndRules(form)
+
+    validationRules.andThen(validateFormWithRulesOnlyFormal(_, sanitizedForm))
+  }
+
+  private def sanitizeAndRules(form: RiskAnalysisForm): (RiskAnalysisForm, ValidationResult[List[ValidationEntry]]) = {
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
     val validationRules: ValidationResult[List[ValidationEntry]] =
@@ -33,10 +46,10 @@ object RiskAnalysisValidation {
           configsToRules(_).validNec
         )
 
-    validationRules.andThen(validateFormWithRules(_, sanitizedForm))
+    (sanitizedForm, validationRules)
   }
 
-  def validateFormWithRules(
+  private def validateFormWithRules(
     validationRules: List[ValidationEntry],
     form: RiskAnalysisForm
   ): ValidationResult[RiskAnalysisFormSeed] = {
@@ -52,12 +65,59 @@ object RiskAnalysisValidation {
     )
   }
 
+  private def validateFormWithRulesOnlyFormal(
+    validationRules: List[ValidationEntry],
+    form: RiskAnalysisForm
+  ): ValidationResult[RiskAnalysisFormSeed] = {
+    val answersJson: JsObject = form.answers.toJson.asJsObject
+    val validations           = validateFormOnlyFormal(answersJson, validationRules)
+
+    val singleAnswers: ValidationResult[Seq[SingleAnswerSeed]] = validations.collect { case Left(s) => s }.sequence
+    val multiAnswers: ValidationResult[Seq[MultiAnswerSeed]]   = validations.collect { case Right(m) => m }.sequence
+
+    (singleAnswers, multiAnswers).mapN((l1, l2) =>
+      RiskAnalysisFormSeed(version = form.version, singleAnswers = l1, multiAnswers = l2)
+    )
+  }
+
+  /** Validate the form using the validation rules
+    * @param answersJson form in json format
+    * @param validationRules validation rules
+    * @return List of validations for single and multiple answers
+    */
+  private def validateFormOnlyFormal(
+    answersJson: JsObject,
+    validationRules: List[ValidationEntry]
+  ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
+    answersJson.fields.map { case (key, value) =>
+      validateFieldOnlyFormal(validationRules)(key).fold(
+        err => Left[ValidationResult[SingleAnswerSeed], Nothing](err.invalid),
+        rule => answerToDependency(rule, key, value)
+      )
+    }.toSeq
+  }
+
+  /** Verify that the field found in the form satisfies the validation rules
+    * @param answersJson form in json format
+    * @param validationRules validation rules
+    * @param fieldName field name
+    * @return
+    */
+  private def validateFieldOnlyFormal(
+    validationRules: List[ValidationEntry]
+  )(fieldName: String): ValidationResult[ValidationEntry] =
+    validationRules.find(_.fieldName == fieldName) match {
+      case Some(rule) => rule.validNec
+      case None       =>
+        UnexpectedField(fieldName).invalidNec
+    }
+
   /** Verify that each field is present when the related dependencies are met
     * @param answersJson form in json format
     * @param validationRules validation rules
     * @return
     */
-  def validateExpectedFields(
+  private def validateExpectedFields(
     answersJson: JsObject,
     validationRules: List[ValidationEntry]
   ): ValidationResult[List[Unit]] = {
@@ -82,7 +142,7 @@ object RiskAnalysisValidation {
     * @param dependency dependency
     * @return true if contained, false otherwise
     */
-  def formContainsDependency(answersJson: JsObject, dependency: DependencyEntry): Boolean =
+  private def formContainsDependency(answersJson: JsObject, dependency: DependencyEntry): Boolean =
     answersJson.getFields(dependency.fieldName).exists { f =>
       f match {
         case str: JsString => str.value == dependency.fieldValue
@@ -96,7 +156,7 @@ object RiskAnalysisValidation {
     * @param validationRules validation rules
     * @return List of validations for single and multiple answers
     */
-  def validateForm(
+  private def validateForm(
     answersJson: JsObject,
     validationRules: List[ValidationEntry]
   ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
@@ -113,7 +173,7 @@ object RiskAnalysisValidation {
     * @param value form field value
     * @return Either for the validation of the SingleAnswer (Left) or MultiAnswer (Right)
     */
-  def answerToDependency(
+  private def answerToDependency(
     rule: ValidationEntry,
     fieldName: String,
     value: JsValue
@@ -145,7 +205,7 @@ object RiskAnalysisValidation {
     * @param fieldName field name
     * @return
     */
-  def validateField(
+  private def validateField(
     answersJson: JsObject,
     validationRules: List[ValidationEntry]
   )(fieldName: String, value: JsValue): ValidationResult[ValidationEntry] =
@@ -163,7 +223,7 @@ object RiskAnalysisValidation {
     * @param dependency dependency
     * @return Validation result
     */
-  def validateDependency(answersJson: JsObject, dependentField: String)(
+  private def validateDependency(answersJson: JsObject, dependentField: String)(
     dependency: DependencyEntry
   ): ValidationResult[Unit] =
     answersJson.getFields(dependency.fieldName) match {
@@ -181,7 +241,7 @@ object RiskAnalysisValidation {
       case _        => TooManyOccurrences(dependency.fieldName).invalidNec
     }
 
-  def validateAllowedValue(rule: ValidationEntry, value: JsValue): ValidationResult[Unit] =
+  private def validateAllowedValue(rule: ValidationEntry, value: JsValue): ValidationResult[Unit] =
     value match {
       case str: JsString =>
         if (rule.allowedValues.forall(_.contains(str.value))) ().validNec
@@ -197,19 +257,19 @@ object RiskAnalysisValidation {
     * @param value the string
     * @return true if array contains the string, false otherwise
     */
-  def jsArrayContains(arr: JsArray, value: String): Boolean =
+  private def jsArrayContains(arr: JsArray, value: String): Boolean =
     arr.elements.collectFirst { case v: JsString if v.value == value => () }.nonEmpty
 
-  def jsArrayIsSubset(fieldName: String, arr: JsArray, values: Set[String]): ValidationResult[Unit] =
+  private def jsArrayIsSubset(fieldName: String, arr: JsArray, values: Set[String]): ValidationResult[Unit] =
     arr.elements.traverse {
       case v: JsString if values.contains(v.value) => ().validNec
       case _                                       => UnexpectedFieldValue(fieldName, values.some).invalidNec
     }.void
 
-  def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
+  private def dependencyConfigToRule(dependency: Dependency): DependencyEntry =
     DependencyEntry(fieldName = dependency.id, fieldValue = dependency.value)
 
-  def questionToValidationEntry(question: FormConfigQuestion): ValidationEntry =
+  private def questionToValidationEntry(question: FormConfigQuestion): ValidationEntry =
     question match {
       case c: FreeInputQuestion =>
         ValidationEntry(
@@ -237,7 +297,7 @@ object RiskAnalysisValidation {
         )
     }
 
-  def configsToRules(config: RiskAnalysisFormConfig): List[ValidationEntry] =
+  private def configsToRules(config: RiskAnalysisFormConfig): List[ValidationEntry] =
     config.questions.map(questionToValidationEntry)
 
 }

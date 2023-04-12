@@ -13,7 +13,7 @@ object PurposeSeedConverter {
       riskAnalysisFormSeed <- seed.riskAnalysisForm
         .traverse(
           RiskAnalysisValidation
-            .validate(_)
+            .validateOnlyFormal(_)
             .leftMap(RiskAnalysisValidationFailed(_))
             .toEither
         )
