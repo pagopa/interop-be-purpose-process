@@ -115,6 +115,7 @@ object ResponseHandlers extends AkkaResponses {
       case Success(s)                                => success(s)
       case Failure(ex: MissingRiskAnalysis)          => badRequest(ex, logMessage)
       case Failure(ex: AgreementNotFound)            => badRequest(ex, logMessage)
+      case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheProducer) => forbidden(ex, logMessage)
       case Failure(ex: OrganizationNotAllowed)       => forbidden(ex, logMessage)

@@ -171,7 +171,7 @@ final case class PurposeApiServiceImpl(
       riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
     ): Future[Option[Boolean]] = {
       if (riskAnalysisFormCanPassValidation) {
-        val raf = riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi(_))
+        val raf = riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
         Future.successful(
           raf
             .map(
@@ -307,6 +307,12 @@ final case class PurposeApiServiceImpl(
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
+      _              <- riskAnalysisForm
+        .traverse(RiskAnalysisValidation.validate(_))
+        .leftMap(RiskAnalysisValidationFailed(_))
+        .toEither
+        .toFuture
       version        <- getVersion(purpose, versionUUID)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
