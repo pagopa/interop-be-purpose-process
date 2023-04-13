@@ -125,9 +125,8 @@ object ReadModelQueries {
     val versionsFilterWithDraft: Bson    = Filters.and(Filters.eq("data.versions.state", Draft.toString))
 
     val versionsFilter: Bson = excludeDraft match {
-      case Some(true)  => versionsFilterWithoutDraft
-      case Some(false) => versionsFilterWithDraft
-      case None        => versionsFilterWithDraft
+      case Some(true) => versionsFilterWithoutDraft
+      case _          => versionsFilterWithDraft
     }
 
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
