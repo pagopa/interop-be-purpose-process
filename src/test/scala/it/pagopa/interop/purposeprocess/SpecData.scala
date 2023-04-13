@@ -86,6 +86,31 @@ object SpecData {
     )
   )
 
+  val validOnlyFormalRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = Map(
+      "purpose"                    -> List("MyPurpose"),
+      "usesPersonalData"           -> Nil,
+      "usesThirdPartyPersonalData" -> Nil,
+      "usesConfidentialData"       -> Nil
+    )
+  )
+
+  val validOnlyFormalManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
+    RiskAnalysisValidation.validateOnlyFormal(validOnlyFormalRiskAnalysis1_0).toOption.get
+
+  val validOnlyFormalManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+    PurposeManagement.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validOnlyFormalManagementRiskAnalysisSeed.version,
+      singleAnswers = validOnlyFormalManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validOnlyFormalManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
+
   val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "2.0",
     answers = Map(
