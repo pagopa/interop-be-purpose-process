@@ -17,6 +17,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
@@ -102,7 +103,7 @@ final case class PurposeApiServiceImpl(
       )
       _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose <- purposeManagementService.createPurpose(clientSeed)
-    } yield PurposeConverter.dependencyToApi(purpose)
+    } yield purpose.dependencyToApi(isRiskAnalysisValid = None)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
   }
@@ -153,12 +154,12 @@ final case class PurposeApiServiceImpl(
         else
           PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent, RiskAnalysisValidation.validate).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-    } yield PurposeConverter.dependencyToApi(updatedPurpose)
+    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = None)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
 
-  override def getPurpose(id: String)(implicit
+  override def getPurpose(riskAnalysisFormCanPassValidation: Boolean, id: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -166,15 +167,32 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
+    def tryToValidateRiskAnalysisForm(
+      riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
+    ): Future[Option[Boolean]] = {
+      if (riskAnalysisFormCanPassValidation) {
+        val raf = riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi(_))
+        Future.successful(
+          raf
+            .map(
+              RiskAnalysisValidation
+                .validate(_)
+                .isValid
+            )
+        )
+      } else Future.successful(None)
+    }
+
     val result: Future[Purpose] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      uuid           <- id.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(uuid)
-      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      organizationId            <- getOrganizationIdFutureUUID(contexts)
+      uuid                      <- id.toFutureUUID
+      purpose                   <- purposeManagementService.getPurpose(uuid)
+      isRiskAnalysisFormIsValid <- tryToValidateRiskAnalysisForm(purpose.riskAnalysisForm)
+      eService                  <- catalogManagementService.getEServiceById(purpose.eserviceId)
       authorizedPurpose =
         if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
         else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
-    } yield PurposeConverter.dependencyToApi(authorizedPurpose)
+    } yield authorizedPurpose.dependencyToApi(isRiskAnalysisFormIsValid)
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
   }
@@ -208,7 +226,7 @@ final case class PurposeApiServiceImpl(
         offset,
         limit
       )(readModel)
-      apiPurposes = purposes.results.map(PurposeConverter.persistentToApi)
+      apiPurposes = purposes.results.map(_.persistentToApi)
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -480,7 +498,7 @@ final case class PurposeApiServiceImpl(
         apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
         _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
         updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
-      } yield PurposeConverter.dependencyToApi(updatedPurpose)
+      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = None)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
