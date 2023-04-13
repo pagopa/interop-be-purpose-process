@@ -24,6 +24,7 @@ object ReadModelQueries {
     consumersIds: List[String],
     producersIds: List[String],
     states: List[PurposeVersionState],
+    excludeDraft: Option[Boolean],
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
@@ -32,7 +33,10 @@ object ReadModelQueries {
       `match`(simpleFilters),
       lookup("eservices", "data.eserviceId", "data.id", "eservices"),
       addFields(Field("eservice", Document("""{ $arrayElemAt: [ "$eservices", 0 ] }"""))),
-      `match`(Filters.and(listPurposesAuthorizationFilters(requesterId), listPurposesProducersFilters(producersIds)))
+      `match`(
+        Filters
+          .and(listPurposesAuthorizationFilters(excludeDraft), listPurposesProducersFilters(producersIds))
+      )
     )
 
     for {
@@ -114,18 +118,17 @@ object ReadModelQueries {
     )(Filters.and).getOrElse(Filters.empty())
   }
 
-  private def listPurposesAuthorizationFilters(requesterId: UUID): Bson = {
-    // Include draft purposes only if the requester is the consumer
+  private def listPurposesAuthorizationFilters(excludeDraft: Option[Boolean]): Bson = {
+    // Exclude draft purposes only if requested
     // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
-    val versionsFilter = Filters.or(
-      Filters
-        .and(
-          Filters.eq("data.consumerId", requesterId.toString),
-          Filters.ne("eservice.data.producerId", requesterId.toString),
-          Filters.eq("data.versions.state", Draft.toString)
-        ),
-      Filters.ne("data.versions.state", Draft.toString)
-    )
+    val versionsFilterWithDraft: Bson    = Filters.or(Filters.ne("data.versions.state", Draft.toString))
+    val versionsFilterWithoutDraft: Bson = Filters.or(Filters.eq("data.versions.state", Draft.toString))
+
+    val versionsFilter: Bson = excludeDraft match {
+      case Some(true)  => versionsFilterWithoutDraft
+      case Some(false) => versionsFilterWithDraft
+      case None        => versionsFilterWithDraft
+    }
 
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
   }

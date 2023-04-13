@@ -143,7 +143,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("getPurposes")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.getPurposes(None, "fake", "fake", "fake", "fake", 0, 0) }
+        { implicit c: Seq[(String, String)] => service.getPurposes(None, "fake", "fake", "fake", "fake", None, 0, 0) }
       )
     }
 
