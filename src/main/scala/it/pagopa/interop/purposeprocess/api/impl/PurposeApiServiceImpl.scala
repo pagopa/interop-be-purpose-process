@@ -379,7 +379,8 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      _              <- getVersion(purpose, versionUUID)
+      purposeVersion <- getVersion(purpose, versionUUID)
+      _              <- assertPurposeVersionIsInDraftState(purpose.id, purposeVersion)
       update = DraftPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
       response <- purposeManagementService.updateDraftPurposeVersion(purposeUUID, versionUUID, update)
     } yield PurposeVersionConverter.dependencyToApi(response)
@@ -496,5 +497,14 @@ final case class PurposeApiServiceImpl(
     if (purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT))
       Future.successful(())
     else Future.failed(PurposeHasNotDraftState(purpose.id))
+  }
+
+  private def assertPurposeVersionIsInDraftState(
+    purposeId: UUID,
+    purposeVersion: PurposeManagementDependency.PurposeVersion
+  ): Future[Unit] = {
+    if (purposeVersion.state == PurposeManagementDependency.PurposeVersionState.DRAFT)
+      Future.successful(())
+    else Future.failed(PurposeVersionIsNotInDraftState(purposeId, purposeVersion.id))
   }
 }

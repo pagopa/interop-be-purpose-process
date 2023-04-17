@@ -49,4 +49,7 @@ object PurposeProcessErrors {
 
   final case class PurposeHasNotDraftState(purposeId: UUID)
       extends ComponentError("0015", s"Purpose $purposeId is not in a DRAFT state")
+
+  final case class PurposeVersionIsNotInDraftState(purposeId: UUID, versionId: UUID)
+      extends ComponentError("0016", s"Version $versionId of Purpose $purposeId is not in a DRAFT state")
 }

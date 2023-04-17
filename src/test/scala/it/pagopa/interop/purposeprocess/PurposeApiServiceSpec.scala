@@ -1330,6 +1330,32 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
 
+    "fail if Purpose Version is not in DRAFT state" in {
+
+      val consumerId       = UUID.randomUUID()
+      val purposeId        = UUID.randomUUID()
+      val purposeVersionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version: PurposeManagementDependency.PurposeVersion =
+        SpecData.purposeVersionNotInDraftState.copy(id = purposeVersionId)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
+
+      Post() ~> service.updateDraftPurposeVersion(
+        purposeId.toString,
+        purposeVersionId.toString,
+        SpecData.draftUpdate(100)
+      ) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0016"
+      }
+    }
+
   }
 
   "Purpose waiting for approval version update" should {
