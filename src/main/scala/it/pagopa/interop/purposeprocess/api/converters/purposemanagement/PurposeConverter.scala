@@ -7,7 +7,7 @@ import it.pagopa.interop.purposeprocess.model._
 object PurposeConverter {
 
   implicit class DependencyPurposeWrapper(private val purpose: DependencyPurpose) extends AnyVal {
-    def dependencyToApi(isRiskAnalysisValid: Option[Boolean]): Purpose = Purpose(
+    def dependencyToApi(isRiskAnalysisValid: Boolean): Purpose = Purpose(
       id = purpose.id,
       eserviceId = purpose.eserviceId,
       consumerId = purpose.consumerId,
@@ -19,7 +19,7 @@ object PurposeConverter {
       riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt,
-      isRiskAnalysisValid = isRiskAnalysisValid
+      isRiskAnalysisValid = if (purpose.riskAnalysisForm.isDefined) isRiskAnalysisValid else false
     )
   }
 
@@ -35,7 +35,8 @@ object PurposeConverter {
       description = purpose.description,
       riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.persistentToApi),
       createdAt = purpose.createdAt,
-      updatedAt = purpose.updatedAt
+      updatedAt = purpose.updatedAt,
+      isRiskAnalysisValid = false
     )
   }
 }
