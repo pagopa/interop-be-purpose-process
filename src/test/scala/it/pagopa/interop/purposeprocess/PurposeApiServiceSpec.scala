@@ -673,7 +673,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose updating" should {
-    "succed if User is a Consumer and Purpose is in Draft State" in {
+    "succeed if User is a Consumer and Purpose is in Draft State" in {
 
       val purposeId            = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()

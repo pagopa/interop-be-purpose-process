@@ -512,7 +512,7 @@ final case class PurposeApiServiceImpl(
   private def assertPurposeIsInDraftState(purpose: PurposeManagementDependency.Purpose): Future[Unit] = {
     if (purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT))
       Future.successful(())
-    else Future.failed(PurposeHasNotDraftState(purpose.id))
+    else Future.failed(PurposeNotInDraftState(purpose.id))
   }
 
   private def assertPurposeVersionIsInDraftState(
@@ -521,6 +521,6 @@ final case class PurposeApiServiceImpl(
   ): Future[Unit] = {
     if (purposeVersion.state == PurposeManagementDependency.PurposeVersionState.DRAFT)
       Future.successful(())
-    else Future.failed(PurposeVersionIsNotInDraftState(purposeId, purposeVersion.id))
+    else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
   }
 }
