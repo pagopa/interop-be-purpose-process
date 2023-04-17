@@ -86,7 +86,7 @@ object SpecData {
     )
   )
 
-  val validOnlyFormalRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
+  val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
     answers = Map(
       "purpose"                    -> List("MyPurpose"),
@@ -97,7 +97,7 @@ object SpecData {
   )
 
   val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validOnlyFormalRiskAnalysis1_0, true).toOption.get
+    RiskAnalysisValidation.validate(validOnlySchemaRiskAnalysis1_0, true).toOption.get
 
   val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
