@@ -96,17 +96,17 @@ object SpecData {
     )
   )
 
-  val validOnlyFormalManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validateOnlyFormal(validOnlyFormalRiskAnalysis1_0).toOption.get
+  val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
+    RiskAnalysisValidation.validate(validOnlyFormalRiskAnalysis1_0, true).toOption.get
 
-  val validOnlyFormalManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+  val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
       id = UUID.randomUUID(),
-      version = validOnlyFormalManagementRiskAnalysisSeed.version,
-      singleAnswers = validOnlyFormalManagementRiskAnalysisSeed.singleAnswers.map(a =>
+      version = validOnlySchemaManagementRiskAnalysisSeed.version,
+      singleAnswers = validOnlySchemaManagementRiskAnalysisSeed.singleAnswers.map(a =>
         PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
-      multiAnswers = validOnlyFormalManagementRiskAnalysisSeed.multiAnswers.map(a =>
+      multiAnswers = validOnlySchemaManagementRiskAnalysisSeed.multiAnswers.map(a =>
         PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
       )
     )
@@ -138,7 +138,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0, false).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -176,6 +176,18 @@ object SpecData {
     riskAnalysisForm = Some(validManagementRiskAnalysis),
     createdAt = timestamp,
     updatedAt = None
+  )
+
+  val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(

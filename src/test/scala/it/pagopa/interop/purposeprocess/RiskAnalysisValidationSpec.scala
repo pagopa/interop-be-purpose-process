@@ -45,13 +45,13 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, false)
 
       verifyValidationFormResult(result, expected)
 
     }
 
-    "succeed on correct form 1.0 only formal" in {
+    "succeed on correct form 1.0 only schema" in {
       val riskAnalysis = SpecData.validRiskAnalysis1_0
 
       val expected = RiskAnalysisFormSeed(
@@ -76,7 +76,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       verifyValidationFormResult(result, expected)
 
@@ -112,13 +112,13 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, false)
 
       verifyValidationFormResult(result, expected)
 
     }
 
-    "succeed on correct form 2.0 only formal" in {
+    "succeed on correct form 2.0 only schema" in {
       val riskAnalysis = SpecData.validRiskAnalysis2_0
 
       val expected = RiskAnalysisFormSeed(
@@ -148,7 +148,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       verifyValidationFormResult(result, expected)
 
@@ -165,7 +165,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, false)
 
       verifyValidationFailure(
         result,
@@ -173,7 +173,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       )
     }
 
-    "succeed only formal (fail if a provided answer depends on a missing field)" in {
+    "succeed only schema (fail if a provided answer depends on a missing field)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
         answers = Map(
@@ -184,7 +184,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -210,7 +210,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, false)
 
       verifyValidationFailure(
         result,
@@ -220,7 +220,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       )
     }
 
-    "succeed only formal (fail if a provided answer depends on an existing field with an unexpected value)" in {
+    "succeed only schema (complete validation should fail because provided answer depends on an existing field with an unexpected value)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
         answers = Map(
@@ -231,7 +231,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -260,7 +260,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, false)
 
       verifyValidationFailure(
         result,
@@ -271,7 +271,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed only formal (fail on missing expected answer (answer tree is not complete))" in {
+    "succeed only schema (complete validation should fail because missing expected answer, as tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
         answers = Map(
@@ -283,7 +283,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -299,7 +299,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "fail on unexpected field name in formal validation" in {
+    "fail on unexpected field name in only schema validation" in {
       val riskAnalysis = RiskAnalysisForm(
         version = "1.0",
         answers = Map(
@@ -311,9 +311,30 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
         )
       )
 
-      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validateOnlyFormal(riskAnalysis)
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
 
       verifyValidationFailure(result, _.contains(UnexpectedField("purpose1")) shouldBe true)
+
+    }
+
+    "fail on unexpected field value in only schema validation" in {
+      val riskAnalysis = RiskAnalysisForm(
+        version = "1.0",
+        answers = Map(
+          "purpose"                    -> List("purpose"),
+          "usesPersonalData"           -> List("pippo"),
+          "usesThirdPartyPersonalData" -> List("YES"),
+          "usesConfidentialData"       -> Nil,
+          "securedDataAccess"          -> Nil
+        )
+      )
+
+      val result: ValidationResult[RiskAnalysisFormSeed] = RiskAnalysisValidation.validate(riskAnalysis, true)
+
+      verifyValidationFailure(
+        result,
+        _.contains(UnexpectedFieldValue("usesPersonalData", Option(Set("YES", "NO")))) shouldBe true
+      )
 
     }
   }

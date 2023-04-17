@@ -334,7 +334,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         eserviceId = eServiceId,
         consumerId = consumerId,
         versions = Seq(version),
-        riskAnalysisForm = Option(SpecData.validOnlyFormalManagementRiskAnalysis)
+        riskAnalysisForm = Option(SpecData.validOnlySchemaManagementRiskAnalysis)
       )
 
       (mockPurposeManagementService

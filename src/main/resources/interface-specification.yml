@@ -144,13 +144,6 @@ paths:
           type: string
           format: uuid
     get:
-      parameters:
-      - name: riskAnalysisFormCanPassValidation
-        in: query
-        description: Boolean indicating if risk analysis form can pass validation
-        required: true
-        schema:
-          type: boolean    
       tags:
         - purpose
       operationId: getPurpose
