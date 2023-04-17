@@ -775,6 +775,7 @@ components:
         - title
         - description
         - createdAt
+        - isRiskAnalysisValid
       description: business representation of a purpose
     Purposes:
       type: object

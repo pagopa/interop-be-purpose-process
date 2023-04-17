@@ -103,7 +103,8 @@ final case class PurposeApiServiceImpl(
       )
       _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose <- purposeManagementService.createPurpose(clientSeed)
-    } yield purpose.dependencyToApi(isRiskAnalysisValid = None)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+    } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
   }
@@ -146,7 +147,8 @@ final case class PurposeApiServiceImpl(
         .apiToDependency(purposeUpdateContent, schemaOnlyValidation = true)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = None)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
@@ -159,30 +161,16 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
-    def tryToValidateRiskAnalysisForm(
-      riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
-    ): Future[Option[Boolean]] = {
-      Future.successful(
-        riskAnalysisForm
-          .map(RiskAnalysisConverter.dependencyToApi(_))
-          .map(
-            RiskAnalysisValidation
-              .validate(_, schemaOnlyValidation = false)
-              .isValid
-          )
-      )
-    }
-
     val result: Future[Purpose] = for {
-      organizationId          <- getOrganizationIdFutureUUID(contexts)
-      uuid                    <- id.toFutureUUID
-      purpose                 <- purposeManagementService.getPurpose(uuid)
-      isRiskAnalysisFormValid <- tryToValidateRiskAnalysisForm(purpose.riskAnalysisForm)
-      eService                <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      uuid           <- id.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(uuid)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+      eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
       authorizedPurpose =
         if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
         else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
-    } yield authorizedPurpose.dependencyToApi(isRiskAnalysisFormValid)
+    } yield authorizedPurpose.dependencyToApi(isValidRiskAnalysisForm)
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
   }
@@ -495,7 +483,8 @@ final case class PurposeApiServiceImpl(
         apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
         _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
         updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
-      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = None)
+        isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
@@ -529,4 +518,15 @@ final case class PurposeApiServiceImpl(
       Future.successful(())
     else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
   }
+
+  private def isRiskAnalysisFormValid(riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]): Boolean =
+    riskAnalysisForm
+      .map(RiskAnalysisConverter.dependencyToApi(_))
+      .map(
+        RiskAnalysisValidation
+          .validate(_, schemaOnlyValidation = false)
+          .isValid
+      )
+      .getOrElse(false)
+
 }
