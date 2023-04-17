@@ -53,6 +53,7 @@ object ResponseHandlers extends AkkaResponses {
       case Success(s)                                => success(s)
       case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
+      case Failure(ex: PurposeHasNotDraftState)      => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
@@ -149,11 +150,12 @@ object ResponseHandlers extends AkkaResponses {
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                                => success(s)
-      case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
-      case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
-      case Failure(ex: PurposeVersionNotFound)       => notFound(ex, logMessage)
-      case Failure(ex)                               => internalServerError(ex, logMessage)
+      case Success(s)                                   => success(s)
+      case Failure(ex: OrganizationIsNotTheConsumer)    => forbidden(ex, logMessage)
+      case Failure(ex: PurposeVersionIsNotInDraftState) => forbidden(ex, logMessage)
+      case Failure(ex: PurposeNotFound)                 => notFound(ex, logMessage)
+      case Failure(ex: PurposeVersionNotFound)          => notFound(ex, logMessage)
+      case Failure(ex)                                  => internalServerError(ex, logMessage)
     }
 
   def updateWaitingForApprovalPurposeVersionResponse[T](logMessage: String)(
