@@ -316,7 +316,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
-    "fail if risk analysis form is not valid" in {
+    "fail if risk analysis form is not valid on Version activation" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
       val purposeId  = UUID.randomUUID()

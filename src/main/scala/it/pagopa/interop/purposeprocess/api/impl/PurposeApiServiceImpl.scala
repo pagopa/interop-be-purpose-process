@@ -169,26 +169,24 @@ final case class PurposeApiServiceImpl(
 
     def tryToValidateRiskAnalysisForm(
       riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
-    ): Future[Option[Boolean]] = {
+    ): Option[Boolean] = {
       if (riskAnalysisFormCanPassValidation) {
-        val raf = riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
-        Future.successful(
-          raf
-            .map(
-              RiskAnalysisValidation
-                .validate(_)
-                .isValid
-            )
-        )
-      } else Future.successful(None)
+        riskAnalysisForm
+          .map(RiskAnalysisConverter.dependencyToApi)
+          .map(
+            RiskAnalysisValidation
+              .validate(_)
+              .isValid
+          )
+      } else None
     }
 
     val result: Future[Purpose] = for {
-      organizationId            <- getOrganizationIdFutureUUID(contexts)
-      uuid                      <- id.toFutureUUID
-      purpose                   <- purposeManagementService.getPurpose(uuid)
-      isRiskAnalysisFormIsValid <- tryToValidateRiskAnalysisForm(purpose.riskAnalysisForm)
-      eService                  <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      uuid           <- id.toFutureUUID
+      purpose        <- purposeManagementService.getPurpose(uuid)
+      isRiskAnalysisFormIsValid = tryToValidateRiskAnalysisForm(purpose.riskAnalysisForm)
+      eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
       authorizedPurpose =
         if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
         else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
