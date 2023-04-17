@@ -121,13 +121,9 @@ object ReadModelQueries {
   private def listPurposesAuthorizationFilters(excludeDraft: Boolean): Bson = {
     // Exclude draft purposes only if requested
     // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
-    val versionsFilterWithoutDraft: Bson = Filters.and(Filters.ne("data.versions.state", Draft.toString))
-    val versionsFilterWithDraft: Bson    = Filters.empty()
 
-    val versionsFilter: Bson = excludeDraft match {
-      case true => versionsFilterWithoutDraft
-      case _    => versionsFilterWithDraft
-    }
+    val versionsFilter: Bson =
+      if (excludeDraft) Filters.and(Filters.ne("data.versions.state", Draft.toString)) else Filters.empty()
 
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
   }
