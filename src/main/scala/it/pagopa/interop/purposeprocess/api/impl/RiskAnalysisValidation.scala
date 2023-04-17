@@ -23,16 +23,12 @@ object RiskAnalysisValidation {
     * @return Validated risk analysis
     */
   def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
-
     val (sanitizedForm, validationRules) = sanitizeAndRules(form)
-
     validationRules.andThen(validateFormWithRules(_, sanitizedForm))
   }
 
   def validateOnlyFormal(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
-
     val (sanitizedForm, validationRules) = sanitizeAndRules(form)
-
     validationRules.andThen(validateFormWithRulesOnlyFormal(_, sanitizedForm))
   }
 

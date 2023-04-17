@@ -721,7 +721,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      Get() ~> service.getPurpose(true, purposeId.toString) ~> check {
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
         response.id shouldEqual SpecData.purpose.id
@@ -753,7 +753,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
-      Get() ~> service.getPurpose(false, purposeId.toString) ~> check {
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
@@ -779,7 +779,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
 
-      Get() ~> service.getPurpose(false, purposeId.toString) ~> check {
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
         response.id shouldEqual purpose.id
@@ -799,7 +799,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.failed(PurposeNotFound(purposeId)))
 
-      Get() ~> service.getPurpose(false, purposeId.toString) ~> check {
+      Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }

@@ -159,7 +159,7 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
 
-  override def getPurpose(riskAnalysisFormCanPassValidation: Boolean, id: String)(implicit
+  override def getPurpose(id: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -170,17 +170,15 @@ final case class PurposeApiServiceImpl(
     def tryToValidateRiskAnalysisForm(
       riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
     ): Future[Option[Boolean]] = {
-      if (riskAnalysisFormCanPassValidation) {
-        val raf = riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi(_))
-        Future.successful(
-          raf
-            .map(
-              RiskAnalysisValidation
-                .validate(_)
-                .isValid
-            )
-        )
-      } else Future.successful(None)
+      Future.successful(
+        riskAnalysisForm
+          .map(RiskAnalysisConverter.dependencyToApi(_))
+          .map(
+            RiskAnalysisValidation
+              .validate(_)
+              .isValid
+          )
+      )
     }
 
     val result: Future[Purpose] = for {
