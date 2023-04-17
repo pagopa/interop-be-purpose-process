@@ -174,7 +174,7 @@ final case class PurposeApiServiceImpl(
     consumersIds: String,
     producersIds: String,
     states: String,
-    excludeDraft: Option[Boolean],
+    excludeDraft: Boolean,
     offset: Int,
     limit: Int
   )(implicit

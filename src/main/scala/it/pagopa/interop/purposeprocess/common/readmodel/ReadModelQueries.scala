@@ -24,7 +24,7 @@ object ReadModelQueries {
     consumersIds: List[String],
     producersIds: List[String],
     states: List[PurposeVersionState],
-    excludeDraft: Option[Boolean],
+    excludeDraft: Boolean,
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
@@ -118,15 +118,15 @@ object ReadModelQueries {
     )(Filters.and).getOrElse(Filters.empty())
   }
 
-  private def listPurposesAuthorizationFilters(excludeDraft: Option[Boolean]): Bson = {
+  private def listPurposesAuthorizationFilters(excludeDraft: Boolean): Bson = {
     // Exclude draft purposes only if requested
     // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
     val versionsFilterWithoutDraft: Bson = Filters.and(Filters.ne("data.versions.state", Draft.toString))
-    val versionsFilterWithDraft: Bson    = Filters.and(Filters.eq("data.versions.state", Draft.toString))
+    val versionsFilterWithDraft: Bson    = Filters.empty()
 
     val versionsFilter: Bson = excludeDraft match {
-      case Some(true) => versionsFilterWithoutDraft
-      case _          => versionsFilterWithDraft
+      case true => versionsFilterWithoutDraft
+      case _    => versionsFilterWithDraft
     }
 
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())

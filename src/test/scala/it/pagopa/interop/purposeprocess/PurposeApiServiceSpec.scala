@@ -843,7 +843,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId.toString,
         producerId.toString,
         states.mkString(","),
-        None,
+        false,
         0,
         10
       ) ~> check {
