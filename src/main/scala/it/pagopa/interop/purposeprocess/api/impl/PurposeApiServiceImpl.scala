@@ -94,7 +94,7 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed).toFuture
+      clientSeed     <- PurposeSeedConverter.apiToDependency(seed, schemaOnlyValidation = true).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -135,23 +135,15 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean = {
-      val states = purpose.versions.map(_.state)
-      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
-    }
-
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <-
-        if (isDraft(purpose))
-          PurposeUpdateContentConverter
-            .apiToDependency(purposeUpdateContent, RiskAnalysisValidation.validateOnlyFormal)
-            .toFuture
-        else
-          PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent, RiskAnalysisValidation.validate).toFuture
+      _              <- assertPurposeIsInDraftState(purpose)
+      depPayload     <- PurposeUpdateContentConverter
+        .apiToDependency(purposeUpdateContent, schemaOnlyValidation = true)
+        .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
@@ -473,7 +465,7 @@ final case class PurposeApiServiceImpl(
         purpose     <- purposeManagementService.getPurpose(purposeUUID)
         _           <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed).toFuture
+        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed, schemaOnlyValidation = true).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
@@ -500,4 +492,9 @@ final case class PurposeApiServiceImpl(
   private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
 
+  private def assertPurposeIsInDraftState(purpose: PurposeManagementDependency.Purpose): Future[Unit] = {
+    if (purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT))
+      Future.successful(())
+    else Future.failed(PurposeHasNotDraftState(purpose.id))
+  }
 }

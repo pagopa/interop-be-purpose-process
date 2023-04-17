@@ -47,4 +47,6 @@ object PurposeProcessErrors {
   final case class PurposeCannotBeCloned(purposeId: String)
       extends ComponentError("0014", s"Purpose $purposeId cannot be cloned")
 
+  final case class PurposeHasNotDraftState(purposeId: UUID)
+      extends ComponentError("0015", s"Purpose $purposeId is not in a DRAFT state")
 }

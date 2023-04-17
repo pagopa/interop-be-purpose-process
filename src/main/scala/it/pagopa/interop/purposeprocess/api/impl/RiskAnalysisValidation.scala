@@ -20,97 +20,40 @@ object RiskAnalysisValidation {
 
   /** Validate a Process risk analysis form and returns the same in the Management format
     * @param form Risk Analysis Form
+    * @param schemaOnlyValidation flag indicating if should validate only schema
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
-
-    val (sanitizedForm, validationRules) = sanitizeAndRules(form)
-
-    validationRules.andThen(validateFormWithRules(_, sanitizedForm))
+  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean): ValidationResult[RiskAnalysisFormSeed] = {
+    getRules(form.version).andThen(validateFormWithRules(_, form = sanitize(form), schemaOnlyValidation))
   }
 
-  def validateOnlyFormal(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+  private def sanitize(form: RiskAnalysisForm): RiskAnalysisForm =
+    form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
-    val (sanitizedForm, validationRules) = sanitizeAndRules(form)
-
-    validationRules.andThen(validateFormWithRulesOnlyFormal(_, sanitizedForm))
-  }
-
-  private def sanitizeAndRules(form: RiskAnalysisForm): (RiskAnalysisForm, ValidationResult[List[ValidationEntry]]) = {
-    val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
-
-    val validationRules: ValidationResult[List[ValidationEntry]] =
-      RiskAnalysisService.riskAnalysisForms
-        .get(sanitizedForm.version)
-        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(sanitizedForm.version).invalidNec)(
-          configsToRules(_).validNec
-        )
-
-    (sanitizedForm, validationRules)
-  }
+  private def getRules(version: String): ValidationResult[List[ValidationEntry]] =
+    RiskAnalysisService.riskAnalysisForms
+      .get(version)
+      .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(version).invalidNec)(
+        configsToRules(_).validNec
+      )
 
   private def validateFormWithRules(
     validationRules: List[ValidationEntry],
-    form: RiskAnalysisForm
+    form: RiskAnalysisForm,
+    schemaOnlyValidation: Boolean
   ): ValidationResult[RiskAnalysisFormSeed] = {
     val answersJson: JsObject = form.answers.toJson.asJsObject
-    val validations           = validateForm(answersJson, validationRules)
+    val validations           = validateForm(answersJson, validationRules, schemaOnlyValidation)
 
     val singleAnswers: ValidationResult[Seq[SingleAnswerSeed]] = validations.collect { case Left(s) => s }.sequence
     val multiAnswers: ValidationResult[Seq[MultiAnswerSeed]]   = validations.collect { case Right(m) => m }.sequence
-    val expectedFields: ValidationResult[List[Unit]]           = validateExpectedFields(answersJson, validationRules)
+    val expectedFields: ValidationResult[List[Unit]]           =
+      if (schemaOnlyValidation) List(()).validNec else validateExpectedFields(answersJson, validationRules)
 
     (singleAnswers, multiAnswers, expectedFields).mapN((l1, l2, _) =>
       RiskAnalysisFormSeed(version = form.version, singleAnswers = l1, multiAnswers = l2)
     )
   }
-
-  private def validateFormWithRulesOnlyFormal(
-    validationRules: List[ValidationEntry],
-    form: RiskAnalysisForm
-  ): ValidationResult[RiskAnalysisFormSeed] = {
-    val answersJson: JsObject = form.answers.toJson.asJsObject
-    val validations           = validateFormOnlyFormal(answersJson, validationRules)
-
-    val singleAnswers: ValidationResult[Seq[SingleAnswerSeed]] = validations.collect { case Left(s) => s }.sequence
-    val multiAnswers: ValidationResult[Seq[MultiAnswerSeed]]   = validations.collect { case Right(m) => m }.sequence
-
-    (singleAnswers, multiAnswers).mapN((l1, l2) =>
-      RiskAnalysisFormSeed(version = form.version, singleAnswers = l1, multiAnswers = l2)
-    )
-  }
-
-  /** Validate the form using the validation rules
-    * @param answersJson form in json format
-    * @param validationRules validation rules
-    * @return List of validations for single and multiple answers
-    */
-  private def validateFormOnlyFormal(
-    answersJson: JsObject,
-    validationRules: List[ValidationEntry]
-  ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
-    answersJson.fields.map { case (key, value) =>
-      validateFieldOnlyFormal(validationRules)(key).fold(
-        err => Left[ValidationResult[SingleAnswerSeed], Nothing](err.invalid),
-        rule => answerToDependency(rule, key, value)
-      )
-    }.toSeq
-  }
-
-  /** Verify that the field found in the form satisfies the validation rules
-    * @param answersJson form in json format
-    * @param validationRules validation rules
-    * @param fieldName field name
-    * @return
-    */
-  private def validateFieldOnlyFormal(
-    validationRules: List[ValidationEntry]
-  )(fieldName: String): ValidationResult[ValidationEntry] =
-    validationRules.find(_.fieldName == fieldName) match {
-      case Some(rule) => rule.validNec
-      case None       =>
-        UnexpectedField(fieldName).invalidNec
-    }
 
   /** Verify that each field is present when the related dependencies are met
     * @param answersJson form in json format
@@ -154,14 +97,16 @@ object RiskAnalysisValidation {
   /** Validate the form using the validation rules
     * @param answersJson form in json format
     * @param validationRules validation rules
+    * @param schemaOnlyValidation flag indicating if should validate only schema
     * @return List of validations for single and multiple answers
     */
   private def validateForm(
     answersJson: JsObject,
-    validationRules: List[ValidationEntry]
+    validationRules: List[ValidationEntry],
+    schemaOnlyValidation: Boolean
   ): Seq[Either[ValidationResult[SingleAnswerSeed], ValidationResult[MultiAnswerSeed]]] = {
     answersJson.fields.map { case (key, value) =>
-      validateField(answersJson, validationRules)(key, value).fold(
+      validateField(answersJson, validationRules, schemaOnlyValidation)(key, value).fold(
         err => Left[ValidationResult[SingleAnswerSeed], Nothing](err.invalid),
         rule => answerToDependency(rule, key, value)
       )
@@ -207,14 +152,18 @@ object RiskAnalysisValidation {
     */
   private def validateField(
     answersJson: JsObject,
-    validationRules: List[ValidationEntry]
+    validationRules: List[ValidationEntry],
+    schemaOnlyValidation: Boolean
   )(fieldName: String, value: JsValue): ValidationResult[ValidationEntry] =
     validationRules.find(_.fieldName == fieldName) match {
-      case Some(rule) =>
+      case Some(rule) if (schemaOnlyValidation) =>
+        validateAllowedValue(rule, value)
+          .as(rule)
+      case Some(rule)                           =>
         validateAllowedValue(rule, value)
           .andThen(_ => rule.dependencies.traverse(validateDependency(answersJson, rule.fieldName)))
           .as(rule)
-      case None       =>
+      case None                                 =>
         UnexpectedField(fieldName).invalidNec
     }
 
