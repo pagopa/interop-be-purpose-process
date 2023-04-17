@@ -23,9 +23,8 @@ object RiskAnalysisValidation {
     * @param schemaOnlyValidation flag indicating if should validate only schema
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean): ValidationResult[RiskAnalysisFormSeed] = {
+  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean): ValidationResult[RiskAnalysisFormSeed] =
     getRules(form.version).andThen(validateFormWithRules(_, form = sanitize(form), schemaOnlyValidation))
-  }
 
   private def sanitize(form: RiskAnalysisForm): RiskAnalysisForm =
     form.copy(answers = form.answers.filter(_._2.nonEmpty))
