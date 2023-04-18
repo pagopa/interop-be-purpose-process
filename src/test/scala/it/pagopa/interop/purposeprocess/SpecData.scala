@@ -49,8 +49,21 @@ object SpecData {
   )
 
   val tenant: Tenant = Tenant(
-    UUID.randomUUID(),
-    TenantKind.PA,
+    id = UUID.randomUUID(),
+    kind = TenantKind.PA.some,
+    selfcareId = UUID.randomUUID.toString.some,
+    externalId = ExternalId("foo", "bar"),
+    features = Nil,
+    attributes = Nil,
+    createdAt = OffsetDateTimeSupplier.get(),
+    updatedAt = None,
+    mails = Nil,
+    name = "test_name"
+  )
+
+  val tenantWithoutKind: Tenant = Tenant(
+    id = UUID.randomUUID(),
+    kind = None,
     selfcareId = UUID.randomUUID.toString.some,
     externalId = ExternalId("foo", "bar"),
     features = Nil,
@@ -114,7 +127,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0)(tenant.kind).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0)(tenant.kind.get).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(

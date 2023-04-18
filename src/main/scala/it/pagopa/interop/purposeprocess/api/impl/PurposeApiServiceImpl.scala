@@ -34,6 +34,7 @@ final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
+  attributeRegistryManagementService: AttributeRegistryManagementService,
   readModel: ReadModelService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
@@ -46,6 +47,7 @@ final case class PurposeApiServiceImpl(
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
+    attributeRegistryManagementService,
     agreementManagementService,
     authorizationManagementService,
     purposeManagementService,
@@ -95,7 +97,10 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed)(tenant.kind).toFuture
+      tenantKind     <- tenant.kind.fold(
+        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      )(Future.successful(_))
+      clientSeed     <- PurposeSeedConverter.apiToDependency(seed)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -142,7 +147,10 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent)(tenant.kind).toFuture
+      tenantKind     <- tenant.kind.fold(
+        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      )(Future.successful(_))
+      depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent)(tenantKind).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
@@ -466,7 +474,10 @@ final case class PurposeApiServiceImpl(
         purpose        <- purposeManagementService.getPurpose(purposeUUID)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed)(tenant.kind).toFuture
+        tenantKind     <- tenant.kind.fold(
+          purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+        )(Future.successful(_))
+        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed)(tenantKind).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
@@ -492,5 +503,4 @@ final case class PurposeApiServiceImpl(
 
   private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
-
 }
