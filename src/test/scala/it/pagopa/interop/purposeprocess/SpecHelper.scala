@@ -12,11 +12,12 @@ import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{Purpose, Problem, PurposeVersion, Purposes, PurposeVersionDocument}
+import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import org.scalamock.scalatest.MockFactory
@@ -224,7 +225,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockAgreementsRetrieve(
       activatingPurpose.eserviceId,
       activatingPurpose.consumerId,
-      Seq(AgreementManagement.AgreementState.ACTIVE, AgreementManagement.AgreementState.SUSPENDED),
+      Seq(AgreementManagement.AgreementState.ACTIVE),
       Seq(
         SpecData.agreement.copy(
           consumerId = activatingPurpose.consumerId,
@@ -233,6 +234,30 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
           producerId = producerId
         )
       )
+    )
+  }
+
+  def mockVersionLoadValidationAgreementNotFound(
+    activatingPurpose: PurposeManagement.Purpose,
+    existingPurposes: PurposeManagement.Purposes
+  )(implicit contexts: Seq[(String, String)]) = {
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = Some(activatingPurpose.consumerId),
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
+    mockPurposesRetrieve(
+      eServiceId = Some(activatingPurpose.eserviceId),
+      consumerId = None,
+      states = Seq(PurposeManagement.PurposeVersionState.ACTIVE),
+      result = existingPurposes
+    )
+    mockAgreementsRetrieve(
+      activatingPurpose.eserviceId,
+      activatingPurpose.consumerId,
+      Seq(AgreementManagement.AgreementState.ACTIVE),
+      Seq.empty
     )
   }
 
@@ -274,7 +299,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockVersionWaitForApproval(
       purposeId,
       result.id,
-      PurposeManagement.StateChangeDetails(PurposeManagement.ChangedBy.CONSUMER),
+      PurposeManagement.StateChangeDetails(PurposeManagement.ChangedBy.CONSUMER, timestamp),
       result.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
     )
   }

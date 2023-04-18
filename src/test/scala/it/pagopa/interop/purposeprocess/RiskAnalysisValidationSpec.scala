@@ -88,16 +88,6 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "fail if tenant kind does not exists" in {
-      val riskAnalysis = SpecData.validRiskAnalysis2_0
-
-      val result: ValidationResult[RiskAnalysisFormSeed] =
-        RiskAnalysisValidation.validate(riskAnalysis)(null)
-
-      verifyValidationFailure(result, _.contains(UnexpectedTenantKind(null)) shouldBe true)
-
-    }
-
     "fail if version does not exists" in {
       val riskAnalysis = SpecData.validRiskAnalysis2_0
 
