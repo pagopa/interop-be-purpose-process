@@ -959,6 +959,9 @@ components:
         createdAt:
           type: string
           format: date-time
+        suspendedAt:
+          type: string
+          format: date-time
         updatedAt:
           type: string
           format: date-time
