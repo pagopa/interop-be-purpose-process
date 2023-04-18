@@ -515,12 +515,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockTenantRetrieve(consumerId)
 
-      mockAgreementsRetrieve(
-        eServiceId,
-        consumerId,
-        Seq(AgreementManagementDependency.AgreementState.ACTIVE, AgreementManagementDependency.AgreementState.SUSPENDED)
-      )
-
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
         .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
@@ -566,11 +561,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockTenantRetrieve(consumerId)
 
-      mockAgreementsRetrieve(
-        eServiceId,
-        consumerId,
-        Seq(AgreementManagementDependency.AgreementState.ACTIVE, AgreementManagementDependency.AgreementState.SUSPENDED)
-      )
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -581,6 +572,85 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[Purpose].id shouldEqual managementResponse.id
+      }
+    }
+
+    "succeed with recalculate Tenant Kind" in {
+
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+      )
+
+      val managementResponse = PurposeManagementDependency.Purpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        createdAt = SpecData.timestamp,
+        updatedAt = None
+      )
+
+      mockTenantRetrieveWithoutTenantKind(consumerId)
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
+        .once()
+        .returns(Future.successful(managementResponse))
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[Purpose].id shouldEqual managementResponse.id
+      }
+    }
+
+    "fail on SUSPENDED agreement " in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+      )
+
+      mockTenantRetrieve(consumerId)
+
+      mockAgreementsRetrieve(
+        eServiceId,
+        consumerId,
+        Seq(AgreementManagementDependency.AgreementState.ACTIVE),
+        Seq.empty
+      )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0005"
       }
     }
 
@@ -637,10 +707,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAgreementsRetrieve(
         eServiceId,
         consumerId,
-        Seq(
-          AgreementManagementDependency.AgreementState.ACTIVE,
-          AgreementManagementDependency.AgreementState.SUSPENDED
-        ),
+        Seq(AgreementManagementDependency.AgreementState.ACTIVE),
         Seq.empty
       )
 

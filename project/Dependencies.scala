@@ -25,6 +25,8 @@ object Dependencies {
 
   private[this] object pagopa {
     lazy val namespace                 = "it.pagopa"
+    lazy val attributeRegistryManagementClient =
+      namespace %% "interop-be-attribute-registry-management-client" % attributeRegistryManagementVersion
     lazy val agreementManagementClient =
       namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
     lazy val authorizationManagementClient =
@@ -89,33 +91,34 @@ object Dependencies {
       // For making Java 12 happy
       "javax.annotation"                   % "javax.annotation-api" % "1.3.2" % "compile",
       //
-      akka.actor                           % Compile,
-      akka.actorTyped                      % Compile,
-      akka.http                            % Compile,
-      akka.httpJson                        % Compile,
-      akka.management                      % Compile,
-      akka.managementLogLevels             % Compile,
-      akka.persistence                     % Compile,
-      akka.slf4j                           % Compile,
-      akka.stream                          % Compile,
-      cats.core                            % Compile,
-      logback.classic                      % Compile,
-      mustache.mustache                    % Compile,
-      pagopa.agreementManagementClient     % Compile,
-      pagopa.authorizationManagementClient % Compile,
-      pagopa.purposeManagementClient       % Compile,
-      pagopa.purposeManagementModels       % Compile,
-      pagopa.catalogManagementClient       % Compile,
-      pagopa.tenantManagementClient        % Compile,
-      pagopa.utils                         % Compile,
-      pagopa.fileManager                   % Compile,
-      pagopa.jwt                           % Compile,
-      pagopa.cqrs                          % Compile,
-      akka.httpTestkit                     % Test,
-      akka.testkit                         % Test,
-      akka.untypedTestkit                  % Test,
-      scalamock.core                       % Test,
-      scalatest.core                       % Test
+      akka.actor                                % Compile,
+      akka.actorTyped                           % Compile,
+      akka.http                                 % Compile,
+      akka.httpJson                             % Compile,
+      akka.management                           % Compile,
+      akka.managementLogLevels                  % Compile,
+      akka.persistence                          % Compile,
+      akka.slf4j                                % Compile,
+      akka.stream                               % Compile,
+      cats.core                                 % Compile,
+      logback.classic                           % Compile,
+      mustache.mustache                         % Compile,
+      pagopa.attributeRegistryManagementClient  % Compile,
+      pagopa.agreementManagementClient          % Compile,
+      pagopa.authorizationManagementClient      % Compile,
+      pagopa.purposeManagementClient            % Compile,
+      pagopa.purposeManagementModels            % Compile,
+      pagopa.catalogManagementClient            % Compile,
+      pagopa.tenantManagementClient             % Compile,
+      pagopa.utils                              % Compile,
+      pagopa.fileManager                        % Compile,
+      pagopa.jwt                                % Compile,
+      pagopa.cqrs                               % Compile,
+      akka.httpTestkit                          % Test,
+      akka.testkit                              % Test,
+      akka.untypedTestkit                       % Test,
+      scalamock.core                            % Test,
+      scalatest.core                            % Test
     )
     lazy val client: Seq[ModuleID]    =
       Seq(akka.stream, akka.http, akka.httpJson4s, akka.slf4j, json4s.jackson, json4s.ext, pagopa.utils).map(

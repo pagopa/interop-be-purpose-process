@@ -9,6 +9,7 @@ import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
+import it.pagopa.interop.attributeregistrymanagement.client.{model => AttributeRegistryDependency}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -210,7 +211,7 @@ object FakeDependencies {
       Future.successful(
         Tenant(
           id = UUID.randomUUID(),
-          kind = TenantKind.PA,
+          kind = TenantKind.PA.some,
           selfcareId = UUID.randomUUID().toString.some,
           externalId = ExternalId("Foo", "Bar"),
           features = Nil,
@@ -223,4 +224,20 @@ object FakeDependencies {
       )
   }
 
+  class FakeAttributeRegistryManagementService extends AttributeRegistryManagementService {
+    override def getAttributeById(
+      id: UUID
+    )(implicit contexts: Seq[(String, String)]): Future[AttributeRegistryDependency.Attribute] =
+      Future.successful(
+        AttributeRegistryDependency.Attribute(
+          id = UUID.randomUUID(),
+          code = "CODE".some,
+          kind = AttributeRegistryDependency.AttributeKind.CERTIFIED,
+          description = "description",
+          origin = "ORIGIN".some,
+          name = "IPA",
+          creationTime = OffsetDateTimeSupplier.get()
+        )
+      )
+  }
 }

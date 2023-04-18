@@ -37,6 +37,7 @@ final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
+  attributeRegistryManagementService: AttributeRegistryManagementService,
   readModel: ReadModelService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
@@ -50,6 +51,7 @@ final case class PurposeApiServiceImpl(
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
+    attributeRegistryManagementService,
     agreementManagementService,
     authorizationManagementService,
     purposeManagementService,
@@ -99,7 +101,10 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      clientSeed     <- seed.apiToDependency(tenant.kind).toFuture
+      tenantKind     <- tenant.kind.fold(
+        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      )(Future.successful(_))
+      clientSeed     <- seed.apiToDependency(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -146,7 +151,10 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depPayload     <- purposeUpdateContent.apiToDependency(tenant.kind).toFuture
+      tenantKind     <- tenant.kind.fold(
+        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      )(Future.successful(_))
+      depPayload     <- purposeUpdateContent.apiToDependency(tenantKind).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
@@ -319,7 +327,7 @@ final case class PurposeApiServiceImpl(
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
       _              <- getVersion(purpose, versionUUID)
-      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy, dateTimeSupplier.get())
       response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
       _        <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
@@ -346,7 +354,10 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- getVersion(purpose, versionUUID)
-      stateDetails = PurposeManagementDependency.StateChangeDetails(PurposeManagementDependency.ChangedBy.CONSUMER)
+      stateDetails = PurposeManagementDependency.StateChangeDetails(
+        PurposeManagementDependency.ChangedBy.CONSUMER,
+        dateTimeSupplier.get()
+      )
       _        <- Future.traverse(
         purpose.versions.find(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL).toList
       )(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
@@ -432,7 +443,7 @@ final case class PurposeApiServiceImpl(
       def isClonable(purpose: PurposeManagementDependency.Purpose): Boolean = {
         val states = purpose.versions.map(_.state)
 
-        !states.isEmpty &&
+        states.nonEmpty &&
         states != Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
       }
 
@@ -467,7 +478,10 @@ final case class PurposeApiServiceImpl(
         purpose        <- purposeManagementService.getPurpose(purposeUUID)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        apiPurposeSeed <- dependencySeed.apiToDependency(tenant.kind).toFuture
+        tenantKind     <- tenant.kind.fold(
+          purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+        )(Future.successful(_))
+        apiPurposeSeed <- dependencySeed.apiToDependency(tenantKind).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
@@ -490,13 +504,16 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
       tenant                           <- tenantManagementService.getTenant(organizationId)
+      tenantKind                       <- tenant.kind.fold(
+        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
+      )(Future.successful(_))
       kindConfig                       <- riskAnalysisServiceSupplier
         .get()
         .riskAnalysisForms()
-        .get(tenant.kind)
-        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.kind))
+        .get(tenantKind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenantKind))
       (latest, riskAnalysisFormConfig) <- kindConfig.lastOption.toFuture(
-        RiskAnalysisConfigLatestVersionNotFound(tenant.kind)
+        RiskAnalysisConfigLatestVersionNotFound(tenantKind)
       )
     } yield riskAnalysisFormConfig.toApi
 
@@ -521,5 +538,4 @@ final case class PurposeApiServiceImpl(
 
   private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
-
 }
