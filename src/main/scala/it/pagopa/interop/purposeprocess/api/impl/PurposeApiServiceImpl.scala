@@ -95,7 +95,7 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       clientSeed     <- PurposeSeedConverter.apiToDependency(seed)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
@@ -143,7 +143,7 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- PurposeUpdateContentConverter.apiToDependency(purposeUpdateContent)(tenantKind).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
@@ -468,7 +468,7 @@ final case class PurposeApiServiceImpl(
         purpose        <- purposeManagementService.getPurpose(purposeUUID)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        tenantKind     <- tenant.kind.toFuture(TenantKindNotFound)
+        tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
         apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed)(tenantKind).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)

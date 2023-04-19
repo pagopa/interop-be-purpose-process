@@ -24,11 +24,9 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with AuthzScalatestRouteTest {
 
-  val fakeCatalogManagementService: CatalogManagementService                     = new FakeCatalogManagementService()
-  val fakePurposeManagementService: PurposeManagementService                     = new FakePurposeManagementService()
-  val fakeAttributeRegistryManagementService: AttributeRegistryManagementService =
-    new FakeAttributeRegistryManagementService()
-  val fakeAgreementManagementService: AgreementManagementService                 = new FakeAgreementManagementService()
+  val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
+  val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
+  val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val dummyReadModel: ReadModelService                                   = new MongoDbReadModelService(
@@ -50,7 +48,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeCatalogManagementService,
       fakePurposeManagementService,
       fakeTenantManagementService,
-      fakeAttributeRegistryManagementService,
       dummyReadModel,
       fakeFileManager,
       pdfCreator = new PDFCreator {

@@ -27,7 +27,9 @@ object RiskAnalysisValidation {
   def validate(form: RiskAnalysisForm)(kind: TenantKind): ValidationResult[RiskAnalysisFormSeed] = {
     RiskAnalysisService.riskAnalysisForms
       .get(kind)
-      .fold[ValidationResult[RiskAnalysisFormSeed]](UnexpectedTenantKind(kind).invalidNec)(validateLatestVersion(_)(form))
+      .fold[ValidationResult[RiskAnalysisFormSeed]](UnexpectedTenantKind(kind).invalidNec)(
+        validateLatestVersion(_, kind)(form)
+      )
   }
 
   /** Validate a Process risk analysis form and returns the same in the Management format
@@ -35,16 +37,17 @@ object RiskAnalysisValidation {
     * @param form Risk Analysis Form
     * @return Validated risk analysis
     */
-  private def validateLatestVersion(
-    versions: Map[String, RiskAnalysisFormConfig]
-  )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+  private def validateLatestVersion(versions: Map[String, RiskAnalysisFormConfig], tenantkind: TenantKind)(
+    form: RiskAnalysisForm
+  ): ValidationResult[RiskAnalysisFormSeed] = {
 
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
     val validationRules: ValidationResult[List[ValidationEntry]] =
-        versions.lastOption
-        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedVersion.invalidNec)(
-          configsToRules(_).validNec
+      versions.lastOption
+        .fold[ValidationResult[List[ValidationEntry]]](TemplateVersionNotFound(tenantkind).invalidNec)(v =>
+          if (v._1 == form.version) configsToRules(v._2).validNec
+          else UnexpectedTemplateVersion(form.version).invalidNec
         )
 
     validationRules.andThen(validateFormWithRules(_, sanitizedForm))

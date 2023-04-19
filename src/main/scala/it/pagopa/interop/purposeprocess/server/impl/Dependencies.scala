@@ -89,7 +89,6 @@ trait Dependencies {
         catalogManagement(blockingEc),
         purposeManagement(blockingEc),
         tenantManagement(blockingEc),
-        attributeRegistryManagement(blockingEc),
         readModelService,
         fileManager,
         pdfCreator,

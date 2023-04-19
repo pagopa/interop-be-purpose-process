@@ -209,7 +209,7 @@ final case class PurposeVersionActivation(
         consumerName = consumerDescription
       )
       tenant     <- getTenant(requesterId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound)
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(

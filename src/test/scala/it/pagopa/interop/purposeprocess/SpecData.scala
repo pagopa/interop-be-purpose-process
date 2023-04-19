@@ -61,19 +61,6 @@ object SpecData {
     name = "test_name"
   )
 
-  val tenantWithoutKind: Tenant = Tenant(
-    id = UUID.randomUUID(),
-    kind = None,
-    selfcareId = UUID.randomUUID.toString.some,
-    externalId = ExternalId("foo", "bar"),
-    features = Nil,
-    attributes = Nil,
-    createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None,
-    mails = Nil,
-    name = "test_name"
-  )
-
   val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
     answers = Map(
@@ -127,7 +114,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0)(tenant.kind.get).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis2_0)(tenant.kind.get).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -229,7 +216,8 @@ object SpecData {
       description = None,
       purposes = Seq.empty,
       relationships = Set.empty,
-      kind = AuthorizationManagement.ClientKind.CONSUMER
+      kind = AuthorizationManagement.ClientKind.CONSUMER,
+      createdAt = timestamp
     )
 
 }

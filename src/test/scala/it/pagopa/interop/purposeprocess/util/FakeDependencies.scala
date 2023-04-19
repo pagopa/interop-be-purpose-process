@@ -9,7 +9,6 @@ import it.pagopa.interop.purposemanagement.client.model
 import it.pagopa.interop.purposemanagement.client.model._
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
-import it.pagopa.interop.attributeregistrymanagement.client.{model => AttributeRegistryDependency}
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -220,23 +219,6 @@ object FakeDependencies {
           updatedAt = None,
           mails = Nil,
           name = "test_name"
-        )
-      )
-  }
-
-  class FakeAttributeRegistryManagementService extends AttributeRegistryManagementService {
-    override def getAttributeById(
-      id: UUID
-    )(implicit contexts: Seq[(String, String)]): Future[AttributeRegistryDependency.Attribute] =
-      Future.successful(
-        AttributeRegistryDependency.Attribute(
-          id = UUID.randomUUID(),
-          code = "CODE".some,
-          kind = AttributeRegistryDependency.AttributeKind.CERTIFIED,
-          description = "description",
-          origin = "ORIGIN".some,
-          name = "IPA",
-          creationTime = OffsetDateTimeSupplier.get()
         )
       )
   }
