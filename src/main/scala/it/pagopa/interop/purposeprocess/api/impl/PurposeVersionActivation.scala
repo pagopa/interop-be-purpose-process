@@ -175,8 +175,11 @@ final case class PurposeVersionActivation(
       maxDailyCallsTotal       = currentDescriptor.dailyCallsTotal
 
     } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
-
   }
+
+  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+    tenant <- getTenant(tenantId)
+  } yield tenant.name
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
@@ -263,9 +266,4 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[TenantManagementDependency.Tenant] = for {
     tenant <- tenantManagementService.getTenant(tenantId)
   } yield tenant
-
-  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
-    tenant <- getTenant(tenantId)
-  } yield tenant.name
-
 }

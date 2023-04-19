@@ -32,7 +32,6 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
       case Failure(ex: AgreementNotFound)            => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
-      case Failure(ex: TenantNotFound)               => notFound(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
 
@@ -54,7 +53,6 @@ object ResponseHandlers extends AkkaResponses {
       case Success(s)                                => success(s)
       case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
-      case Failure(ex: TenantNotFound)               => notFound(ex, logMessage)
       case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
@@ -93,7 +91,6 @@ object ResponseHandlers extends AkkaResponses {
     result match {
       case Success(s)                                => success(s)
       case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
-      case Failure(ex: TenantNotFound)               => notFound(ex, logMessage)
       case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
       case Failure(ex: PurposeCannotBeCloned)        => conflict(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)

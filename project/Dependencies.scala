@@ -25,8 +25,6 @@ object Dependencies {
 
   private[this] object pagopa {
     lazy val namespace                 = "it.pagopa"
-    lazy val attributeRegistryManagementClient =
-      namespace %% "interop-be-attribute-registry-management-client" % attributeRegistryManagementVersion
     lazy val agreementManagementClient =
       namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
     lazy val authorizationManagementClient =
@@ -103,7 +101,6 @@ object Dependencies {
       cats.core                                 % Compile,
       logback.classic                           % Compile,
       mustache.mustache                         % Compile,
-      pagopa.attributeRegistryManagementClient  % Compile,
       pagopa.agreementManagementClient          % Compile,
       pagopa.authorizationManagementClient      % Compile,
       pagopa.purposeManagementClient            % Compile,

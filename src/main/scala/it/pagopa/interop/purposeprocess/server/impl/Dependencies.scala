@@ -29,7 +29,6 @@ import it.pagopa.interop.purposeprocess.api.impl.{
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
 import it.pagopa.interop.tenantmanagement.client.api.{TenantApi => TenantManagementApi}
 import it.pagopa.interop.tenantmanagement.client.invoker.{ApiInvoker => TenantManagementInvoker}
-import it.pagopa.interop.attributeregistrymanagement.client.invoker.{ApiInvoker => AttributeRegistryManagementInvoker}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.impl._
@@ -99,23 +98,6 @@ trait Dependencies {
       ),
       PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
-    )
-
-  private def attributeRegistryManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AttributeRegistryManagementInvoker =
-    AttributeRegistryManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  private final val attributeRegistryManagementApi: AttributeRegistryManagementApi = AttributeRegistryManagementApi(
-    ApplicationConfiguration.attributeRegistryManagementURL
-  )
-
-  def attributeRegistryManagement(
-    blockingEc: ExecutionContextExecutor
-  )(implicit actorSystem: ActorSystem[_]): AttributeRegistryManagementService =
-    AttributeRegistryManagementServiceImpl(
-      attributeRegistryManagementInvoker(blockingEc),
-      attributeRegistryManagementApi
     )
 
   private def agreementManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit

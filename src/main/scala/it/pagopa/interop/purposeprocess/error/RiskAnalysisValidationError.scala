@@ -41,3 +41,6 @@ final case class UnexpectedTemplateVersion(templateVersion: String)            e
 final case class UnexpectedTenantKind(kind: TenantKind)                        extends RiskAnalysisValidationError {
   val message: String = s"Unexpected tenant kind $kind"
 }
+final case object UnexpectedVersion            extends RiskAnalysisValidationError {
+  val message: String = s"Unexpected version"
+}

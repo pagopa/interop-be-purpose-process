@@ -49,4 +49,7 @@ object PurposeProcessErrors {
 
   final case class TenantNotFound(tenantId: UUID)
       extends ComponentError("0015", s"Tenant ${tenantId.toString} not found")
+  
+  final case class TenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0016", s"Tenant kind for tenant ${tenantId.toString} not found")    
 }

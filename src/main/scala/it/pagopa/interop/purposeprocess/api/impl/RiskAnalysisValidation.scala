@@ -27,7 +27,7 @@ object RiskAnalysisValidation {
   def validate(form: RiskAnalysisForm)(kind: TenantKind): ValidationResult[RiskAnalysisFormSeed] = {
     RiskAnalysisService.riskAnalysisForms
       .get(kind)
-      .fold[ValidationResult[RiskAnalysisFormSeed]](UnexpectedTenantKind(kind).invalidNec)(start(_)(form))
+      .fold[ValidationResult[RiskAnalysisFormSeed]](UnexpectedTenantKind(kind).invalidNec)(validateLatestVersion(_)(form))
   }
 
   /** Validate a Process risk analysis form and returns the same in the Management format
@@ -35,16 +35,15 @@ object RiskAnalysisValidation {
     * @param form Risk Analysis Form
     * @return Validated risk analysis
     */
-  private def start(
+  private def validateLatestVersion(
     versions: Map[String, RiskAnalysisFormConfig]
   )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
 
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
     val validationRules: ValidationResult[List[ValidationEntry]] =
-      versions
-        .get(sanitizedForm.version)
-        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(sanitizedForm.version).invalidNec)(
+        versions.lastOption
+        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedVersion.invalidNec)(
           configsToRules(_).validNec
         )
 
