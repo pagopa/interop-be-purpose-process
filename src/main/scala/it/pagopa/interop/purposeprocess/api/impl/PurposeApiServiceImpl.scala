@@ -288,6 +288,12 @@ final case class PurposeApiServiceImpl(
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
+      _              <- riskAnalysisForm
+        .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false))
+        .leftMap(RiskAnalysisValidationFailed(_))
+        .toEither
+        .toFuture
       version        <- getVersion(purpose, versionUUID)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
