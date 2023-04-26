@@ -36,7 +36,8 @@ object PurposeConverter {
       riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.persistentToApi),
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt,
-      isRiskAnalysisValid = false //Ugly fake value here, but I see the point in removing a not required activity that may impact performances in listing.
+      isRiskAnalysisValid =
+        false // Ugly fake value here, but I see the point in removing a not required activity that may impact performances in listing.
 
     )
   }

@@ -165,10 +165,14 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
-      eService <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       authorizedPurpose =
-        if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm))
-        else purpose.copy(riskAnalysisForm = None).dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+        if (organizationId == purpose.consumerId || organizationId == eService.producerId)
+          purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm))
+        else
+          purpose
+            .copy(riskAnalysisForm = None)
+            .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
     } yield authorizedPurpose
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
