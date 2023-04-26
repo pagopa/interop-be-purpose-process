@@ -244,7 +244,8 @@ object SpecData {
       description = None,
       purposes = Seq.empty,
       relationships = Set.empty,
-      kind = AuthorizationManagement.ClientKind.CONSUMER
+      kind = AuthorizationManagement.ClientKind.CONSUMER,
+      createdAt = timestamp
     )
 
 }

@@ -29,25 +29,29 @@ object RiskAnalysisValidation {
       .get()
       .riskAnalysisForms()
       .get(kind)
-      .fold[ValidationResult[RiskAnalysisFormSeed]](UnexpectedTenantKind(kind).invalidNec)(start(_)(form))
+      .fold[ValidationResult[RiskAnalysisFormSeed]](MissingTenantKindConfiguration(kind).invalidNec)(
+        validateLatestVersion(_, kind)(form)
+      )
   }
 
   /** Validate a Process risk analysis form and returns the same in the Management format
     * @param versions Versions for this Tenant Kind
+    * @param tenantkind Tenant Kind
     * @param form Risk Analysis Form
     * @return Validated risk analysis
     */
-  private def start(
-    versions: Map[String, RiskAnalysisFormConfig]
-  )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+  private def validateLatestVersion(versions: Map[String, RiskAnalysisFormConfig], tenantkind: TenantKind)(
+    form: RiskAnalysisForm
+  ): ValidationResult[RiskAnalysisFormSeed] = {
 
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
     val validationRules: ValidationResult[List[ValidationEntry]] =
       versions
-        .get(sanitizedForm.version)
-        .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(sanitizedForm.version).invalidNec)(
-          configsToRules(_).validNec
+        .maxByOption(_._1)
+        .fold[ValidationResult[List[ValidationEntry]]](NoTemplateVersionFound(tenantkind).invalidNec)(v =>
+          if (v._1 == form.version) configsToRules(v._2).validNec
+          else UnexpectedTemplateVersion(form.version).invalidNec
         )
 
     validationRules.andThen(validateFormWithRules(_, sanitizedForm))
@@ -126,6 +130,7 @@ object RiskAnalysisValidation {
   }
 
   /** Convert a form answer to a Management answer
+    * @param rule Validation Entry
     * @param fieldName form field name
     * @param value form field value
     * @return Either for the validation of the SingleAnswer (Left) or MultiAnswer (Right)

@@ -16,7 +16,6 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
-import it.pagopa.interop.attributeregistrymanagement.client.{model => AttributerRegistryManagementDependency}
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -24,7 +23,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 
 final case class PurposeVersionActivation(
-  attributeRegistryManagementService: AttributeRegistryManagementService,
   agreementManagementService: AgreementManagementService,
   authorizationManagementService: AuthorizationManagementService,
   purposeManagementService: PurposeManagementService,
@@ -34,13 +32,6 @@ final case class PurposeVersionActivation(
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext) {
-  // Enti Pubblici
-  private val PUBLIC_ADMINISTRATIONS_IDENTIFIER: String           = "IPA"
-  // Stazioni Appaltanti Gestori di Pubblici Servizi
-  private val CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS: String = "SAG"
-  // Gestori di Pubblici Servizi
-  private val PUBLIC_SERVICES_MANAGERS: String                    = "L37"
-
   private[this] val riskAnalysisTemplate = Source
     .fromResource("riskAnalysisTemplate/index.html")
     .getLines()
@@ -184,8 +175,11 @@ final case class PurposeVersionActivation(
       maxDailyCallsTotal       = currentDescriptor.dailyCallsTotal
 
     } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
-
   }
+
+  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+    tenant <- getTenant(tenantId)
+  } yield tenant.name
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
@@ -215,9 +209,7 @@ final case class PurposeVersionActivation(
         consumerName = consumerDescription
       )
       tenant     <- getTenant(requesterId)
-      tenantKind <- tenant.kind.fold(getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId))(
-        Future.successful(_)
-      )
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
@@ -271,60 +263,9 @@ final case class PurposeVersionActivation(
     } yield path
   }
 
-  private def getTenantKind(
-    attributes: Seq[TenantManagementDependency.ExternalId],
-    externalId: TenantManagementDependency.ExternalId
-  ): TenantManagementDependency.TenantKind = {
-    externalId.origin match {
-      case PUBLIC_ADMINISTRATIONS_IDENTIFIER
-          if (attributes.exists(attr =>
-            attr.origin == PUBLIC_ADMINISTRATIONS_IDENTIFIER && (attr.value == PUBLIC_SERVICES_MANAGERS || attr.value == CONTRACT_AUTHORITY_PUBLIC_SERVICES_MANAGERS)
-          )) =>
-        TenantManagementDependency.TenantKind.GSP
-      case PUBLIC_ADMINISTRATIONS_IDENTIFIER => TenantManagementDependency.TenantKind.PA
-      case _                                 => TenantManagementDependency.TenantKind.PRIVATE
-    }
-  }
-
-  def getTenantKindLoadingCertifiedAttributes(
-    attributes: Seq[TenantManagementDependency.TenantAttribute],
-    externalId: TenantManagementDependency.ExternalId
-  )(implicit contexts: Seq[(String, String)]): Future[TenantManagementDependency.TenantKind] = {
-
-    def getCertifiedAttributesIds(attributes: Seq[TenantManagementDependency.TenantAttribute]): Seq[UUID] = for {
-      attributes <- attributes
-      certified  <- attributes.certified
-    } yield certified.id
-
-    def convertAttributes(
-      attributes: Seq[AttributerRegistryManagementDependency.Attribute]
-    ): Seq[TenantManagementDependency.ExternalId] = for {
-      attributes <- attributes
-      origin     <- attributes.origin
-      code       <- attributes.code
-    } yield TenantManagementDependency.ExternalId(origin, code)
-
-    def getDependencyAttributes(attributes: Seq[UUID])(implicit
-      contexts: Seq[(String, String)]
-    ): Future[Seq[AttributerRegistryManagementDependency.Attribute]] =
-      Future.traverse(attributes)(attributeRegistryManagementService.getAttributeById)
-
-    for {
-      attributesIds <- Future.successful(getCertifiedAttributesIds(attributes))
-      attrs         <- getDependencyAttributes(attributesIds)
-      extIds     = convertAttributes(attrs)
-      tenantKind = getTenantKind(extIds, externalId)
-    } yield tenantKind
-  }
-
   private def getTenant(
     tenantId: UUID
   )(implicit contexts: Seq[(String, String)]): Future[TenantManagementDependency.Tenant] = for {
     tenant <- tenantManagementService.getTenant(tenantId)
   } yield tenant
-
-  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
-    tenant <- getTenant(tenantId)
-  } yield tenant.name
-
 }

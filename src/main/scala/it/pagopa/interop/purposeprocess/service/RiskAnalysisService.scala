@@ -38,7 +38,9 @@ private object RiskAnalysisServiceImpl {
     PRIVATE -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PRIVATE.toString}/1.0.json")
     ),
-    GSP -> Map("1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.GSP.toString}/1.0.json"))
+    GSP     -> Map(
+      "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PRIVATE.toString}/1.0.json")
+    )
   )
 
   private def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =

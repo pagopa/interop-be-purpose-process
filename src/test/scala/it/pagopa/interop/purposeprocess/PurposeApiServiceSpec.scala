@@ -49,7 +49,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           PurposeManagementDependency.PurposeVersion(
             id = UUID.randomUUID(),
             state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
-            createdAt = timestamp,
+            createdAt = SpecData.timestamp,
             updatedAt = None,
             firstActivationAt = None,
             expectedApprovalDate = None,
@@ -542,7 +542,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0)
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -634,7 +634,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0)
       )
 
       mockTenantRetrieve(consumerId)
