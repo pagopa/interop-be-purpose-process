@@ -8,12 +8,15 @@ import it.pagopa.interop.purposeprocess.model.PurposeSeed
 
 object PurposeSeedConverter {
 
-  def apiToDependency(seed: PurposeSeed): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+  def apiToDependency(
+    seed: PurposeSeed,
+    schemaOnlyValidation: Boolean
+  ): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
     for {
       riskAnalysisFormSeed <- seed.riskAnalysisForm
         .traverse(
           RiskAnalysisValidation
-            .validate(_)
+            .validate(_, schemaOnlyValidation = schemaOnlyValidation)
             .leftMap(RiskAnalysisValidationFailed(_))
             .toEither
         )
