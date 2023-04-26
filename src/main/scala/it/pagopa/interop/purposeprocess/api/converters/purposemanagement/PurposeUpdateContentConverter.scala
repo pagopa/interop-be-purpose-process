@@ -7,12 +7,18 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisV
 import it.pagopa.interop.purposeprocess.model.PurposeUpdateContent
 
 object PurposeUpdateContentConverter {
-  def apiToDependency(content: PurposeUpdateContent): Either[Throwable, DependencyPurposeUpdateContent] = {
+  def apiToDependency(
+    content: PurposeUpdateContent,
+    schemaOnlyValidation: Boolean
+  ): Either[Throwable, DependencyPurposeUpdateContent] = {
     for {
       riskAnalysisForm <- content.riskAnalysisForm
-        .traverse(RiskAnalysisValidation.validate)
-        .leftMap(RiskAnalysisValidationFailed(_))
-        .toEither
+        .traverse(
+          RiskAnalysisValidation
+            .validate(_, schemaOnlyValidation = schemaOnlyValidation)
+            .leftMap(RiskAnalysisValidationFailed(_))
+            .toEither
+        )
     } yield DependencyPurposeUpdateContent(
       title = content.title,
       description = content.description,

@@ -113,7 +113,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0, false).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -151,6 +151,18 @@ object SpecData {
     riskAnalysisForm = Some(validManagementRiskAnalysis),
     createdAt = timestamp,
     updatedAt = None
+  )
+
+  val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
