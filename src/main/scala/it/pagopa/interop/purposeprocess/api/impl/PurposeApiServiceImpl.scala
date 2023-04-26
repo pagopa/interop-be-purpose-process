@@ -17,6 +17,7 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
@@ -102,7 +103,8 @@ final case class PurposeApiServiceImpl(
       )
       _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose <- purposeManagementService.createPurpose(clientSeed)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+    } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
   }
@@ -145,7 +147,8 @@ final case class PurposeApiServiceImpl(
         .apiToDependency(purposeUpdateContent, schemaOnlyValidation = true)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-    } yield PurposeConverter.dependencyToApi(updatedPurpose)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
@@ -164,9 +167,13 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(uuid)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       authorizedPurpose =
-        if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
-        else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
-    } yield PurposeConverter.dependencyToApi(authorizedPurpose)
+        if (organizationId == purpose.consumerId || organizationId == eService.producerId)
+          purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm))
+        else
+          purpose
+            .copy(riskAnalysisForm = None)
+            .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+    } yield authorizedPurpose
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
   }
@@ -200,7 +207,7 @@ final case class PurposeApiServiceImpl(
         offset,
         limit
       )(readModel)
-      apiPurposes = purposes.results.map(PurposeConverter.persistentToApi)
+      apiPurposes = purposes.results.map(_.persistentToApi)
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -473,7 +480,8 @@ final case class PurposeApiServiceImpl(
         apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
         _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
         updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
-      } yield PurposeConverter.dependencyToApi(updatedPurpose)
+        isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)
+      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
@@ -507,4 +515,15 @@ final case class PurposeApiServiceImpl(
       Future.successful(())
     else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
   }
+
+  private def isRiskAnalysisFormValid(riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]): Boolean =
+    riskAnalysisForm
+      .map(RiskAnalysisConverter.dependencyToApi(_))
+      .map(
+        RiskAnalysisValidation
+          .validate(_, schemaOnlyValidation = false)
+          .isValid
+      )
+      .getOrElse(false)
+
 }
