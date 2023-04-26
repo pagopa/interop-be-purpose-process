@@ -38,9 +38,9 @@ final case class UnexpectedFieldFormat(fieldName: String)                      e
 final case class UnexpectedTemplateVersion(templateVersion: String)            extends RiskAnalysisValidationError {
   val message: String = s"Unexpected template version $templateVersion"
 }
-final case class UnexpectedTenantKind(kind: TenantKind)                        extends RiskAnalysisValidationError {
+final case class MissingTenantKindConfiguration(kind: TenantKind)              extends RiskAnalysisValidationError {
   val message: String = s"Unexpected tenant kind $kind"
 }
-final case class TemplateVersionNotFound(kind: TenantKind)                     extends RiskAnalysisValidationError {
+final case class NoTemplateVersionFound(kind: TenantKind)                      extends RiskAnalysisValidationError {
   val message: String = s"Template version for tenant kind $kind not found"
 }
