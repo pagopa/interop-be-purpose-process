@@ -6,16 +6,20 @@ import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.purposeprocess.model.PurposeSeed
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 
 object PurposeSeedConverter {
 
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
-    def apiToDependency(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+    def apiToDependency(
+      kind: TenantKind,
+      riskAnalysisService: RiskAnalysisService
+    ): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
       for {
         riskAnalysisFormSeed <- seed.riskAnalysisForm
           .traverse(
             RiskAnalysisValidation
-              .validate(_, kind)
+              .validate(riskAnalysisService, _, kind)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
           )

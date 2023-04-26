@@ -698,12 +698,32 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DependencyResponse'
+        visualType:
+          type: string
+        defaultValue:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabeledValueResponse'
       required:
         - id
         - label
         - dataType
         - required
         - dependencies
+        - visualType
+        - defaultValue
+    LabeledValueResponse:
+      type: object
+      properties:
+        label:
+          $ref: '#/components/schemas/LocalizedTextResponse'
+        value:
+          type: string
+      required:
+        - label
+        - value  
     LocalizedTextResponse:
       type: object
       properties:

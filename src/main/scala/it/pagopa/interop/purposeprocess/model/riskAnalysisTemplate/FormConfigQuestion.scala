@@ -11,6 +11,8 @@ sealed trait FormConfigQuestion {
   def dataType: DataType
   def required: Boolean
   def dependencies: List[Dependency]
+  def `type`: String
+  def defaultValue: String
 }
 
 object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
@@ -39,11 +41,13 @@ final case class FreeInputQuestion(
   infoLabel: Option[LocalizedText],
   dataType: DataType,
   required: Boolean,
-  dependencies: List[Dependency]
+  dependencies: List[Dependency],
+  `type`: String,
+  defaultValue: String
 ) extends FormConfigQuestion
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat6(FreeInputQuestion.apply)
+  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat8(FreeInputQuestion.apply)
 }
 
 final case class SingleQuestion(
@@ -51,13 +55,15 @@ final case class SingleQuestion(
   label: LocalizedText,
   infoLabel: Option[LocalizedText],
   dataType: DataType,
-  options: List[LabeledValue],
   required: Boolean,
-  dependencies: List[Dependency]
+  dependencies: List[Dependency],
+  `type`: String,
+  defaultValue: String,
+  options: List[LabeledValue]
 ) extends FormConfigQuestion
 
 object SingleQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat7(SingleQuestion.apply)
+  implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat9(SingleQuestion.apply)
 }
 
 final case class MultiQuestion(
@@ -65,11 +71,13 @@ final case class MultiQuestion(
   label: LocalizedText,
   infoLabel: Option[LocalizedText],
   dataType: DataType,
-  options: List[LabeledValue],
   required: Boolean,
-  dependencies: List[Dependency]
+  dependencies: List[Dependency],
+  `type`: String,
+  defaultValue: String,
+  options: List[LabeledValue]
 ) extends FormConfigQuestion
 
 object MultiQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat7(MultiQuestion.apply)
+  implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat9(MultiQuestion.apply)
 }

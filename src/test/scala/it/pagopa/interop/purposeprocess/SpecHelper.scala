@@ -45,11 +45,10 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
-  val mockPdfCreator: PDFCreator                                   = mock[PDFCreator]
-  val mockUUIDSupplier: UUIDSupplier                               = mock[UUIDSupplier]
-  val mockDateTimeSupplier: OffsetDateTimeSupplier                 = mock[OffsetDateTimeSupplier]
-  val mockRiskAnalysisServiceSupplier: RiskAnalysisServiceSupplier = mock[RiskAnalysisServiceSupplier]
-  val mockRiskAnalysisService: RiskAnalysisService                 = mock[RiskAnalysisService]
+  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
+  val mockRiskAnalysisService: RiskAnalysisService = mock[RiskAnalysisService]
 
   val service: PurposeApiService = PurposeApiServiceImpl(
     mockAgreementManagementService,
@@ -62,31 +61,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockPdfCreator,
     mockUUIDSupplier,
     mockDateTimeSupplier,
-    mockRiskAnalysisServiceSupplier
+    mockRiskAnalysisService
   )(ExecutionContext.global)
-  def mockGetAttributeByExternalId(attributeId: UUID, result: AttributeRegistryDependency.Attribute)(implicit
-    contexts: Seq[(String, String)]
-  ) =
-    (mockAttributeRegistryManagementService
-      .getAttributeById(_: UUID)(_: Seq[(String, String)]))
-      .expects(attributeId, contexts)
-      .once()
-      .returns(Future.successful(result))
-
-  def mockRiskAnalysisServiceNoPA = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoPA)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().once().returns(mockRiskAnalysisService)
-  }
-
-  def mockRiskAnalysisServiceCompleteVersion1 = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceComplete)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
-  }
-
-  def mockRiskAnalysisServiceEmptyVersion = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoVersion)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
-  }
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))

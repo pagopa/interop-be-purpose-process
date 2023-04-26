@@ -7,14 +7,6 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind.{GSP, PA, PRIV
 import scala.io.Source
 import spray.json._
 
-trait RiskAnalysisServiceSupplier {
-  def get(): RiskAnalysisService
-}
-
-object RiskAnalysisServiceSupplier extends RiskAnalysisServiceSupplier {
-  override def get(): RiskAnalysisService = new RiskAnalysisServiceImpl
-}
-
 trait RiskAnalysisService {
   def riskAnalysisForms(): Map[TenantKind, Map[String, RiskAnalysisFormConfig]]
   def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig

@@ -16,8 +16,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.RiskAnalysisFormConfig
-
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisServiceImpl
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
@@ -60,33 +59,6 @@ object SpecData {
     updatedAt = None,
     mails = Nil,
     name = "test_name"
-  )
-
-  val tenantWithoutKind: Tenant = Tenant(
-    id = UUID.randomUUID(),
-    kind = None,
-    selfcareId = UUID.randomUUID.toString.some,
-    externalId = ExternalId("foo", "bar"),
-    features = Nil,
-    attributes = Nil,
-    createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None,
-    mails = Nil,
-    name = "test_name"
-  )
-
-  val riskAnalysisServiceNoVersion: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] =
-    Map(TenantKind.PA -> Map.empty, TenantKind.PRIVATE -> Map.empty, TenantKind.GSP -> Map.empty)
-
-  val riskAnalysisServiceComplete: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
-    TenantKind.PA      -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.PRIVATE -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.GSP     -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil))
-  )
-
-  val riskAnalysisServiceNoPA: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
-    TenantKind.PRIVATE -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.GSP     -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil))
   )
 
   val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
@@ -142,7 +114,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0, tenant.kind.get).toOption.get
+    RiskAnalysisValidation.validate(new RiskAnalysisServiceImpl(), validRiskAnalysis1_0, tenant.kind.get).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(

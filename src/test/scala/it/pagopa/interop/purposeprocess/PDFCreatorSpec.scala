@@ -8,7 +8,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisServiceSupplier
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisServiceImpl
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -20,8 +20,9 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
   import PDFCreatorSpec._
 
+  val testRiskAnalysisService            = new RiskAnalysisServiceImpl()
   val testConfig: RiskAnalysisFormConfig =
-    RiskAnalysisServiceSupplier.get().loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/test.json")
+    testRiskAnalysisService.loadRiskAnalysisFormConfig("riskAnalysisTemplate/forms/test.json")
 
   val languages = List(LanguageIt, LanguageEn)
 

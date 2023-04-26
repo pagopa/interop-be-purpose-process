@@ -518,7 +518,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
+        .expects(seed.apiToDependency(TenantKind.PA, mockRiskAnalysisService).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -565,54 +565,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
-        .once()
-        .returns(Future.successful(managementResponse))
-
-      Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.Created
-        responseAs[Purpose].id shouldEqual managementResponse.id
-      }
-    }
-
-    "succeed with recalculate Tenant Kind" in {
-
-      val eServiceId = UUID.randomUUID()
-      val consumerId = UUID.randomUUID()
-      val purposeId  = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      val seed: PurposeSeed = PurposeSeed(
-        eserviceId = eServiceId,
-        consumerId = consumerId,
-        title = "A title",
-        description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
-      )
-
-      val managementResponse = PurposeManagementDependency.Purpose(
-        id = purposeId,
-        eserviceId = eServiceId,
-        consumerId = consumerId,
-        versions = Seq.empty,
-        suspendedByConsumer = None,
-        suspendedByProducer = None,
-        title = seed.title,
-        description = seed.description,
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
-        createdAt = SpecData.timestamp,
-        updatedAt = None
-      )
-
-      mockTenantRetrieveWithoutTenantKind(consumerId)
-
-      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
-
-      (mockPurposeManagementService
-        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(TenantKind.PA).toOption.get, context)
+        .expects(seed.apiToDependency(TenantKind.PA, mockRiskAnalysisService).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -1460,10 +1413,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         problem.errors.head.code shouldBe "012-0002"
       }
     }
-
   }
 
-  "Purpose Risk Analysis Configuration retrieving latest version" should {
+  "Purpose Risk Analysis Configuration latest version retrieve" should {
     "succeed when Tenant kind is PA" in {
 
       val producerId: UUID = UUID.randomUUID()
@@ -1477,56 +1429,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant))
 
-      mockRiskAnalysisServiceCompleteVersion1
-
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-      }
-    }
-
-    "fail when Tenant kind is not managed" in {
-
-      val producerId: UUID = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
-
-      (mockTenantManagementService
-        .getTenant(_: UUID)(_: Seq[(String, String)]))
-        .expects(producerId, context)
-        .once()
-        .returns(Future.successful(SpecData.tenant))
-
-      mockRiskAnalysisServiceNoPA
-
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
-        status shouldEqual StatusCodes.NotFound
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0016"
-      }
-    }
-
-    "fail when version is not managed" in {
-
-      val producerId: UUID = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
-
-      (mockTenantManagementService
-        .getTenant(_: UUID)(_: Seq[(String, String)]))
-        .expects(producerId, context)
-        .once()
-        .returns(Future.successful(SpecData.tenant))
-
-      mockRiskAnalysisServiceEmptyVersion
-
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
-        status shouldEqual StatusCodes.NotFound
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0018"
       }
     }
   }

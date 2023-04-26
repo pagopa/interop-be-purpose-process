@@ -16,11 +16,8 @@ object ResponseHandlers extends AkkaResponses {
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
     result match {
-      case Success(s)                                           => success(s)
-      case Failure(ex: TenantNotFound)                          => notFound(ex, logMessage)
-      case Failure(ex: RiskAnalysisConfigForTenantKindNotFound) => notFound(ex, logMessage)
-      case Failure(ex: RiskAnalysisConfigLatestVersionNotFound) => notFound(ex, logMessage)
-      case Failure(ex)                                          => internalServerError(ex, logMessage)
+      case Success(s)  => success(s)
+      case Failure(ex) => internalServerError(ex, logMessage)
     }
 
   def getRiskAnalysisDocumentResponse[T](logMessage: String)(

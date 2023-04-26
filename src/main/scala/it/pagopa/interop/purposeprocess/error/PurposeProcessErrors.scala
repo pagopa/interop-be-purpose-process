@@ -54,8 +54,8 @@ object PurposeProcessErrors {
   final case class TenantKindNotFound(tenantId: UUID)
       extends ComponentError("0016", s"Tenant kind for tenant ${tenantId.toString} not found")
 
-  final case class RiskAnalysisConfigForTenantKindNotFound(tenantKind: TenantKind)
-      extends ComponentError("0017", s"Risk Analysis Configuration for Tenant Kind ${tenantKind.toString} not found")
+  final case class RiskAnalysisConfigForTenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0017", s"Risk Analysis Configuration for Tenant ${tenantId.toString} not found")
 
   final case class RiskAnalysisConfigVersionNotFound(tenantKind: TenantKind, version: String)
       extends ComponentError(

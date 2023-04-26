@@ -16,7 +16,8 @@ import it.pagopa.interop.purposeprocess.model.{
   FormConfigQuestionResponse,
   LocalizedTextResponse,
   DataTypeResponse,
-  DependencyResponse
+  DependencyResponse,
+  LabeledValueResponse
 }
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{
   RiskAnalysisFormConfig,
@@ -26,7 +27,11 @@ import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{
   Single,
   Multi,
   FreeText,
-  Dependency
+  Dependency,
+  LabeledValue,
+  FreeInputQuestion,
+  SingleQuestion,
+  MultiQuestion
 }
 
 object RiskAnalysisConverter {
@@ -66,20 +71,63 @@ object RiskAnalysisConverter {
   }
 
   implicit class FormConfigQuestionWrapper(private val question: FormConfigQuestion) extends AnyVal {
-    def toApi: FormConfigQuestionResponse =
-      FormConfigQuestionResponse(
-        id = question.id,
-        label = question.label.toApi,
-        infoLabel = question.infoLabel.map(_.toApi),
-        dataType = question.dataType.toApi,
-        required = question.required,
-        dependencies = question.dependencies.map(_.toApi)
-      )
+    def toApi: FormConfigQuestionResponse = question match {
+      case FreeInputQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, defaultValue)      =>
+        FormConfigQuestionResponse(
+          id = id,
+          label = label.toApi,
+          infoLabel = infoLabel.map(_.toApi),
+          dataType = dataType.toApi,
+          required = required,
+          dependencies = dependencies.map(_.toApi),
+          visualType = externalType,
+          defaultValue = defaultValue
+        )
+      case SingleQuestion(
+            id,
+            label,
+            infoLabel,
+            dataType,
+            required,
+            dependencies,
+            externalType,
+            defaultValue,
+            options
+          ) =>
+        FormConfigQuestionResponse(
+          id = id,
+          label = label.toApi,
+          infoLabel = infoLabel.map(_.toApi),
+          dataType = dataType.toApi,
+          required = required,
+          dependencies = dependencies.map(_.toApi),
+          visualType = externalType,
+          defaultValue = defaultValue,
+          options = Some(options.map(_.toApi))
+        )
+      case MultiQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, defaultValue, options) =>
+        FormConfigQuestionResponse(
+          id = id,
+          label = label.toApi,
+          infoLabel = infoLabel.map(_.toApi),
+          dataType = dataType.toApi,
+          required = required,
+          dependencies = dependencies.map(_.toApi),
+          visualType = externalType,
+          defaultValue = defaultValue,
+          options = Some(options.map(_.toApi))
+        )
+    }
   }
 
   implicit class LocalizedTextWrapper(private val localizedText: LocalizedText) extends AnyVal {
     def toApi: LocalizedTextResponse =
       LocalizedTextResponse(it = localizedText.it, en = localizedText.en)
+  }
+
+  implicit class LabeledValueWrapper(private val labeledValue: LabeledValue) extends AnyVal {
+    def toApi: LabeledValueResponse =
+      LabeledValueResponse(label = labeledValue.label.toApi, value = labeledValue.value)
   }
 
   implicit class DataTypeWrapper(private val dataType: DataType) extends AnyVal {

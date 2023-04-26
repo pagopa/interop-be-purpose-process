@@ -42,7 +42,7 @@ final case class PurposeApiServiceImpl(
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier,
-  riskAnalysisServiceSupplier: RiskAnalysisServiceSupplier
+  riskAnalysisService: RiskAnalysisService
 )(implicit ec: ExecutionContext)
     extends PurposeApiService {
 
@@ -100,7 +100,7 @@ final case class PurposeApiServiceImpl(
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.apiToDependency(tenantKind).toFuture
+      clientSeed     <- seed.apiToDependency(tenantKind, riskAnalysisService).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -148,7 +148,7 @@ final case class PurposeApiServiceImpl(
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent.apiToDependency(tenantKind).toFuture
+      depPayload     <- purposeUpdateContent.apiToDependency(tenantKind, riskAnalysisService).toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
     } yield PurposeConverter.dependencyToApi(updatedPurpose)
 
@@ -473,7 +473,7 @@ final case class PurposeApiServiceImpl(
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
         tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        apiPurposeSeed <- dependencySeed.apiToDependency(tenantKind).toFuture
+        apiPurposeSeed <- dependencySeed.apiToDependency(tenantKind, riskAnalysisService).toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
@@ -496,17 +496,14 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
       tenant                           <- tenantManagementService.getTenant(organizationId)
-      tenantKind                       <- tenant.kind.fold(
-        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      )(Future.successful(_))
-      kindConfig                       <- riskAnalysisServiceSupplier
-        .get()
+      kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      kindConfig                       <- riskAnalysisService
         .riskAnalysisForms()
-        .get(tenantKind)
-        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenantKind))
-      (latest, riskAnalysisFormConfig) <- kindConfig.lastOption.toFuture(
-        RiskAnalysisConfigLatestVersionNotFound(tenantKind)
-      )
+        .get(kind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
+      (latest, riskAnalysisFormConfig) <- kindConfig
+        .maxByOption(_._1)
+        .toFuture(RiskAnalysisConfigLatestVersionNotFound(kind))
     } yield riskAnalysisFormConfig.toApi
 
     onComplete(result) {
