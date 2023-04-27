@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
+import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt._
@@ -20,6 +21,7 @@ import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.RiskAnalysisConverter._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeUpdateContentConverter._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
@@ -97,10 +99,10 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.apiToDependency(tenantKind, riskAnalysisService).toFuture
+      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -108,7 +110,8 @@ final case class PurposeApiServiceImpl(
       )
       _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       purpose <- purposeManagementService.createPurpose(clientSeed)
-    } yield PurposeConverter.dependencyToApi(purpose)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+    } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
   }
@@ -147,10 +150,14 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent.apiToDependency(tenantKind, riskAnalysisService).toFuture
+      depPayload     <- purposeUpdateContent
+        .apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService)
+        .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-    } yield PurposeConverter.dependencyToApi(updatedPurpose)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
@@ -168,10 +175,16 @@ final case class PurposeApiServiceImpl(
       uuid           <- id.toFutureUUID
       purpose        <- purposeManagementService.getPurpose(uuid)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      tenant         <- tenantManagementService.getTenant(organizationId)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       authorizedPurpose =
-        if (organizationId == purpose.consumerId || organizationId == eService.producerId) purpose
-        else purpose.copy(riskAnalysisForm = None) // Hide risk analysis to other organizations
-    } yield PurposeConverter.dependencyToApi(authorizedPurpose)
+        if (organizationId == purpose.consumerId || organizationId == eService.producerId)
+          purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
+        else
+          purpose
+            .copy(riskAnalysisForm = None)
+            .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+    } yield authorizedPurpose
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
   }
@@ -182,6 +195,7 @@ final case class PurposeApiServiceImpl(
     consumersIds: String,
     producersIds: String,
     states: String,
+    excludeDraft: Boolean,
     offset: Int,
     limit: Int
   )(implicit
@@ -202,10 +216,11 @@ final case class PurposeApiServiceImpl(
         parseArrayParameters(consumersIds),
         parseArrayParameters(producersIds),
         statesEnum,
+        excludeDraft,
         offset,
         limit
       )(readModel)
-      apiPurposes = purposes.results.map(PurposeConverter.persistentToApi)
+      apiPurposes = purposes.results.map(_.persistentToApi)
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -286,6 +301,14 @@ final case class PurposeApiServiceImpl(
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      tenant         <- tenantManagementService.getTenant(organizationId)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
+      _              <- riskAnalysisForm
+        .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind)(riskAnalysisService))
+        .leftMap(RiskAnalysisValidationFailed(_))
+        .toEither
+        .toFuture
       version        <- getVersion(purpose, versionUUID)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
@@ -384,7 +407,8 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      _              <- getVersion(purpose, versionUUID)
+      purposeVersion <- getVersion(purpose, versionUUID)
+      _              <- assertPurposeVersionIsInDraftState(purpose.id, purposeVersion)
       update = DraftPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
       response <- purposeManagementService.updateDraftPurposeVersion(purposeUUID, versionUUID, update)
     } yield PurposeVersionConverter.dependencyToApi(response)
@@ -473,14 +497,17 @@ final case class PurposeApiServiceImpl(
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
         tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        apiPurposeSeed <- dependencySeed.apiToDependency(tenantKind, riskAnalysisService).toFuture
+        apiPurposeSeed <- dependencySeed
+          .apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService)
+          .toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
         apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
         _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
         updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
-      } yield PurposeConverter.dependencyToApi(updatedPurpose)
+        isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
@@ -527,4 +554,32 @@ final case class PurposeApiServiceImpl(
 
   private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
+
+  private def assertPurposeIsInDraftState(purpose: PurposeManagementDependency.Purpose): Future[Unit] = {
+    if (purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT))
+      Future.successful(())
+    else Future.failed(PurposeNotInDraftState(purpose.id))
+  }
+
+  private def assertPurposeVersionIsInDraftState(
+    purposeId: UUID,
+    purposeVersion: PurposeManagementDependency.PurposeVersion
+  ): Future[Unit] = {
+    if (purposeVersion.state == PurposeManagementDependency.PurposeVersionState.DRAFT)
+      Future.successful(())
+    else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
+  }
+
+  private def isRiskAnalysisFormValid(
+    riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
+  )(kind: TenantManagementDependency.TenantKind): Boolean =
+    riskAnalysisForm
+      .map(RiskAnalysisConverter.dependencyToApi(_))
+      .map(
+        RiskAnalysisValidation
+          .validate(_, schemaOnlyValidation = false)(kind)(riskAnalysisService)
+          .isValid
+      )
+      .getOrElse(false)
+
 }

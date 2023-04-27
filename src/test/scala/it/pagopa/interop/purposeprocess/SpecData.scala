@@ -87,6 +87,34 @@ object SpecData {
     )
   )
 
+  val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = Map(
+      "purpose"                    -> List("MyPurpose"),
+      "usesPersonalData"           -> Nil,
+      "usesThirdPartyPersonalData" -> Nil,
+      "usesConfidentialData"       -> Nil
+    )
+  )
+
+  val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
+    RiskAnalysisValidation
+      .validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE)(new RiskAnalysisServiceImpl())
+      .toOption
+      .get
+
+  val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+    PurposeManagement.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validOnlySchemaManagementRiskAnalysisSeed.version,
+      singleAnswers = validOnlySchemaManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validOnlySchemaManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
+
   val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "2.0",
     answers = Map(
@@ -114,7 +142,10 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(new RiskAnalysisServiceImpl(), validRiskAnalysis1_0, tenant.kind.get).toOption.get
+    RiskAnalysisValidation
+      .validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE)(new RiskAnalysisServiceImpl())
+      .toOption
+      .get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -152,6 +183,18 @@ object SpecData {
     riskAnalysisForm = Some(validManagementRiskAnalysis),
     createdAt = timestamp,
     updatedAt = None
+  )
+
+  val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(

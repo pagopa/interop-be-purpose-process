@@ -10,7 +10,9 @@ import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.Purpose
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.{Problem, PurposeVersion}
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import org.scalatest.matchers.should.Matchers._
+import cats.implicits._
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
@@ -303,6 +305,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
@@ -320,6 +323,43 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
+    "fail if risk analysis form is not valid on Version activation" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(version),
+        riskAnalysisForm = Option(SpecData.validOnlySchemaManagementRiskAnalysis)
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, *)
+        .once()
+        .returns(Future.successful(purpose))
+
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0004"
       }
     }
 
@@ -359,6 +399,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidationAgreementNotFound(purpose, purposes)
 
@@ -386,6 +428,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService = SpecData.eService.copy(id = eServiceId, producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -437,6 +481,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
@@ -490,6 +535,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
@@ -542,6 +589,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
@@ -595,6 +644,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val payload = PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.CONSUMER, timestamp)
 
       mockPurposeRetrieve(purposeId, purpose1)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose1, purposes, descriptorId)
       mockVersionWaitForApproval(purposeId, versionId, payload, updatedVersion)
@@ -649,6 +700,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
@@ -696,6 +749,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = createdVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
@@ -748,6 +803,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = createdVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
@@ -790,6 +846,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = createdVersion.copy(state = PurposeManagement.PurposeVersionState.WAITING_FOR_APPROVAL)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionLoadValidation(purpose, purposes, descriptorId)
@@ -826,6 +884,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
@@ -862,6 +922,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
       mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
@@ -897,6 +959,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockEServiceRetrieve(eServiceId, eService)
 
@@ -935,6 +998,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionFirstActivation(
         producerId,
@@ -981,6 +1046,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         SpecData.purposeVersion.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionFirstActivation(
         producerId,
@@ -1031,6 +1098,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val updatedVersion = version
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
       mockVersionActivate(purposeId, versionId, updatedVersion)
@@ -1066,7 +1135,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -1101,6 +1170,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -1135,7 +1205,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
-
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -1170,6 +1240,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -1210,9 +1281,10 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
       mockEServiceRetrieve(eServiceId, eService)
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId))
       mockVersionLoadValidation(purpose, purposes, descriptorId)
       mockOrganizationRetrieve(eService.producerId)
       mockOrganizationRetrieve(purpose.consumerId)

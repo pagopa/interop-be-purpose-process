@@ -19,7 +19,7 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFou
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
 import org.scalamock.scalatest.MockFactory
 
 import spray.json._
@@ -116,6 +116,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.unit)
 
+  def mockPurposeUpdate(
+    purposeId: UUID,
+    purposeUpdateContent: PurposeManagement.PurposeUpdateContent,
+    result: PurposeManagement.Purpose
+  )(implicit contexts: Seq[(String, String)]) =
+    (mockPurposeManagementService
+      .updatePurpose(_: UUID, _: PurposeManagement.PurposeUpdateContent)(_: Seq[(String, String)]))
+      .expects(purposeId, purposeUpdateContent, contexts)
+      .once()
+      .returns(Future.successful(result))
+
   def mockPurposeVersionCreate(
     purposeId: UUID,
     seed: PurposeManagement.PurposeVersionSeed,
@@ -160,12 +171,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result))
 
-  def mockTenantRetrieve(tenantId: UUID) =
+  def mockTenantRetrieve(tenantId: UUID, result: Tenant) =
     (mockTenantManagementService
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(tenantId, *)
       .once()
-      .returns(Future.successful(SpecData.tenant.copy(id = tenantId)))
+      .returns(Future.successful(result))
 
   def mockRiskAnalysisPdfCreation() = {
     val documentId = UUID.randomUUID()

@@ -11,15 +11,14 @@ import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 object PurposeSeedConverter {
 
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
-    def apiToDependency(
-      kind: TenantKind,
-      riskAnalysisService: RiskAnalysisService
-    ): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+    def apiToDependency(schemaOnlyValidation: Boolean)(
+      kind: TenantKind
+    )(riskAnalysisService: RiskAnalysisService): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
       for {
         riskAnalysisFormSeed <- seed.riskAnalysisForm
           .traverse(
             RiskAnalysisValidation
-              .validate(riskAnalysisService, _, kind)
+              .validate(_, schemaOnlyValidation)(kind)(riskAnalysisService)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
           )

@@ -50,11 +50,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             id = UUID.randomUUID(),
             state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
             createdAt = SpecData.timestamp,
-            updatedAt = None,
-            firstActivationAt = None,
-            expectedApprovalDate = None,
-            dailyCalls = 1000,
-            riskAnalysis = None
+            dailyCalls = 1000
           )
         ),
         suspendedByConsumer = None,
@@ -80,7 +76,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -168,7 +164,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -256,7 +252,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -342,7 +338,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = purposeToClone.description
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -381,7 +377,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -416,7 +412,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -465,7 +461,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -513,12 +509,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(TenantKind.PA, mockRiskAnalysisService).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE)(mockRiskAnalysisService).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -542,7 +538,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -559,13 +555,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(TenantKind.PA, mockRiskAnalysisService).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE)(mockRiskAnalysisService).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -587,10 +583,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockAgreementsRetrieve(
         eServiceId,
@@ -618,7 +614,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val incorrectRiskAnalysis =
         RiskAnalysisForm(
           version = "1.0",
-          answers = Map("purpose" -> List("purpose"), "usesPersonalData" -> List("YES"))
+          answers = Map("purpose1" -> List("purpose"), "usesPersonalData" -> List("YES"))
         )
 
       val seed: PurposeSeed = PurposeSeed(
@@ -629,7 +625,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = Some(incorrectRiskAnalysis)
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
@@ -655,7 +651,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None
       )
 
-      mockTenantRetrieve(consumerId)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
 
       mockAgreementsRetrieve(
         eServiceId,
@@ -689,8 +685,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None
       )
 
-      mockTenantRetrieve(requesterId)
-
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
@@ -701,6 +695,32 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose updating" should {
+    "succeed if User is a Consumer and Purpose is in Draft State" in {
+
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+      val seed                 = PurposeManagementDependency.PurposeUpdateContent(
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
+      mockPurposeUpdate(purposeId, seed, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
     "fail if User is not a Consumer" in {
 
       val purposeId   = UUID.randomUUID()
@@ -713,7 +733,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      mockTenantRetrieve(requesterId)
+      mockTenantRetrieve(requesterId, SpecData.tenant.copy(id = requesterId, kind = TenantKind.PRIVATE.some))
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
 
@@ -722,6 +742,27 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+    "fail if Purpose is not in DRAFT state" in {
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+      val purpose              =
+        SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0015"
       }
     }
   }
@@ -751,6 +792,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             producerId = SpecData.agreement.producerId,
             descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
           )
+      )
+
+      mockTenantRetrieve(
+        SpecData.purpose.consumerId,
+        SpecData.tenant.copy(id = SpecData.purpose.consumerId, kind = TenantKind.PRIVATE.some)
       )
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
@@ -785,6 +831,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           )
       )
 
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some))
+
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
         val response = responseAs[Purpose]
@@ -794,11 +842,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
 
     "succeed and return empty risk analysis if User is not Producer or Consumer" in {
-      val purposeId = UUID.randomUUID()
-      val purpose   = SpecData.purpose
+      val purposeId      = UUID.randomUUID()
+      val purpose        = SpecData.purpose
+      val organizationId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> organizationId.toString)
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -810,6 +859,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         purpose.eserviceId,
         SpecData.eService.copy(descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)))
       )
+
+      mockTenantRetrieve(organizationId, SpecData.tenant.copy(id = organizationId, kind = TenantKind.PRIVATE.some))
 
       Get() ~> service.getPurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -875,6 +926,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId.toString,
         producerId.toString,
         states.mkString(","),
+        false,
         0,
         10
       ) ~> check {
@@ -1313,6 +1365,32 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+
+    "fail if Purpose Version is not in DRAFT state" in {
+
+      val consumerId       = UUID.randomUUID()
+      val purposeId        = UUID.randomUUID()
+      val purposeVersionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version: PurposeManagementDependency.PurposeVersion =
+        SpecData.purposeVersionNotInDraftState.copy(id = purposeVersionId)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
+
+      Post() ~> service.updateDraftPurposeVersion(
+        purposeId.toString,
+        purposeVersionId.toString,
+        SpecData.draftUpdate(100)
+      ) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0016"
       }
     }
 
