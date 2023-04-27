@@ -770,6 +770,8 @@ components:
         updatedAt:
           type: string
           format: date-time
+        isRiskAnalysisValid:
+          type: boolean
       required:
         - id
         - eserviceId
@@ -778,6 +780,7 @@ components:
         - title
         - description
         - createdAt
+        - isRiskAnalysisValid
       description: business representation of a purpose
     Purposes:
       type: object

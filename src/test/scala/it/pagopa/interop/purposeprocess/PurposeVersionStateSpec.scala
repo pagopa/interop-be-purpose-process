@@ -316,6 +316,41 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
+    "fail if risk analysis form is not valid on Version activation" in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.DRAFT,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(version),
+        riskAnalysisForm = Option(SpecData.validOnlySchemaManagementRiskAnalysis)
+      )
+
+      (mockPurposeManagementService
+        .getPurpose(_: UUID)(_: Seq[(String, String)]))
+        .expects(purposeId, *)
+        .once()
+        .returns(Future.successful(purpose))
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0004"
+      }
+    }
+
     "fail if agreement is in a SUSPENDED state" in {
       val eServiceId   = UUID.randomUUID()
       val consumerId   = UUID.randomUUID()
