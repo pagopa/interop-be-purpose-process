@@ -47,9 +47,15 @@ object PurposeProcessErrors {
   final case class PurposeCannotBeCloned(purposeId: String)
       extends ComponentError("0014", s"Purpose $purposeId cannot be cloned")
 
+  final case class PurposeNotInDraftState(purposeId: UUID)
+      extends ComponentError("0015", s"Purpose $purposeId is not in a DRAFT state")
+
+  final case class PurposeVersionNotInDraftState(purposeId: UUID, versionId: UUID)
+      extends ComponentError("0016", s"Version $versionId of Purpose $purposeId is not in a DRAFT state")
+  
   final case class TenantNotFound(tenantId: UUID)
-      extends ComponentError("0015", s"Tenant ${tenantId.toString} not found")
+      extends ComponentError("0017", s"Tenant ${tenantId.toString} not found")
 
   final case class TenantKindNotFound(tenantId: UUID)
-      extends ComponentError("0016", s"Tenant kind for tenant ${tenantId.toString} not found")
+      extends ComponentError("0018", s"Tenant kind for tenant ${tenantId.toString} not found")
 }

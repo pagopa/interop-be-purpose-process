@@ -9,13 +9,18 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeUpdateContentConverter {
   def apiToDependency(
-    content: PurposeUpdateContent
-  )(kind: TenantKind): Either[Throwable, DependencyPurposeUpdateContent] = {
+    content: PurposeUpdateContent,
+    schemaOnlyValidation: Boolean
+  )(kind: TenantKind
+  ): Either[Throwable, DependencyPurposeUpdateContent] = {
     for {
       riskAnalysisForm <- content.riskAnalysisForm
-        .traverse(RiskAnalysisValidation.validate(_)(kind))
-        .leftMap(RiskAnalysisValidationFailed(_))
-        .toEither
+        .traverse(
+          RiskAnalysisValidation
+            .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)
+            .leftMap(RiskAnalysisValidationFailed(_))
+            .toEither
+        )
     } yield DependencyPurposeUpdateContent(
       title = content.title,
       description = content.description,

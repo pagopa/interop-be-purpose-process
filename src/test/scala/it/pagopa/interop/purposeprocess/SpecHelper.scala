@@ -114,6 +114,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.unit)
 
+  def mockPurposeUpdate(
+    purposeId: UUID,
+    purposeUpdateContent: PurposeManagement.PurposeUpdateContent,
+    result: PurposeManagement.Purpose
+  )(implicit contexts: Seq[(String, String)]) =
+    (mockPurposeManagementService
+      .updatePurpose(_: UUID, _: PurposeManagement.PurposeUpdateContent)(_: Seq[(String, String)]))
+      .expects(purposeId, purposeUpdateContent, contexts)
+      .once()
+      .returns(Future.successful(result))
+
   def mockPurposeVersionCreate(
     purposeId: UUID,
     seed: PurposeManagement.PurposeVersionSeed,

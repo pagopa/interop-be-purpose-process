@@ -517,7 +517,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed)(TenantKind.PA).toOption.get, context)
+        .expects(PurposeSeedConverter.apiToDependency(seed, false)(TenantKind.PA).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -564,7 +564,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed)(TenantKind.PA).toOption.get, context)
+        .expects(PurposeSeedConverter.apiToDependency(seed, false)(TenantKind.PA).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -617,7 +617,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val incorrectRiskAnalysis =
         RiskAnalysisForm(
           version = "1.0",
-          answers = Map("purpose" -> List("purpose"), "usesPersonalData" -> List("YES"))
+          answers = Map("purpose1" -> List("purpose"), "usesPersonalData" -> List("YES"))
         )
 
       val seed: PurposeSeed = PurposeSeed(
@@ -700,6 +700,31 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose updating" should {
+    "succeed if User is a Consumer and Purpose is in Draft State" in {
+
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+      val seed                 = PurposeManagementDependency.PurposeUpdateContent(
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockPurposeUpdate(purposeId, seed, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
     "fail if User is not a Consumer" in {
 
       val purposeId   = UUID.randomUUID()
@@ -721,6 +746,27 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+    "fail if Purpose is not in DRAFT state" in {
+
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+      val purpose              =
+        SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0015"
       }
     }
   }
@@ -1312,6 +1358,32 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+
+    "fail if Purpose Version is not in DRAFT state" in {
+
+      val consumerId       = UUID.randomUUID()
+      val purposeId        = UUID.randomUUID()
+      val purposeVersionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version: PurposeManagementDependency.PurposeVersion =
+        SpecData.purposeVersionNotInDraftState.copy(id = purposeVersionId)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
+
+      Post() ~> service.updateDraftPurposeVersion(
+        purposeId.toString,
+        purposeVersionId.toString,
+        SpecData.draftUpdate(100)
+      ) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0016"
       }
     }
 
