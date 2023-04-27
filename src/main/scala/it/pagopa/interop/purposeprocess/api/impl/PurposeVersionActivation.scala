@@ -252,9 +252,8 @@ final case class PurposeVersionActivation(
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,
-        LanguageIt, // TODO Language should be a request parameter
-        kind
-      )
+        LanguageIt
+      )(kind) // TODO Language should be a request parameter
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId.toString,

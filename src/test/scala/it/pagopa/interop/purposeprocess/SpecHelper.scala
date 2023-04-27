@@ -185,12 +185,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
     (mockPdfCreator
-      .createDocument(
-        _: String,
-        _: PurposeManagement.RiskAnalysisForm,
-        _: Int,
-        _: EServiceInfo,
-        _: Language,
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language)(
         _: TenantKind
       ))
       .expects(*, *, *, *, *, *)
