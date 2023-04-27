@@ -191,6 +191,7 @@ final case class PurposeApiServiceImpl(
     consumersIds: String,
     producersIds: String,
     states: String,
+    excludeDraft: Boolean,
     offset: Int,
     limit: Int
   )(implicit
@@ -211,6 +212,7 @@ final case class PurposeApiServiceImpl(
         parseArrayParameters(consumersIds),
         parseArrayParameters(producersIds),
         statesEnum,
+        excludeDraft,
         offset,
         limit
       )(readModel)

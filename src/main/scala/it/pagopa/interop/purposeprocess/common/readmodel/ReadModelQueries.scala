@@ -24,6 +24,7 @@ object ReadModelQueries {
     consumersIds: List[String],
     producersIds: List[String],
     states: List[PurposeVersionState],
+    excludeDraft: Boolean,
     offset: Int,
     limit: Int
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
@@ -32,7 +33,10 @@ object ReadModelQueries {
       `match`(simpleFilters),
       lookup("eservices", "data.eserviceId", "data.id", "eservices"),
       addFields(Field("eservice", Document("""{ $arrayElemAt: [ "$eservices", 0 ] }"""))),
-      `match`(Filters.and(listPurposesAuthorizationFilters(requesterId), listPurposesProducersFilters(producersIds)))
+      `match`(
+        Filters
+          .and(listPurposesAuthorizationFilters(excludeDraft), listPurposesProducersFilters(producersIds))
+      )
     )
 
     for {
@@ -114,14 +118,12 @@ object ReadModelQueries {
     )(Filters.and).getOrElse(Filters.empty())
   }
 
-  private def listPurposesAuthorizationFilters(requesterId: UUID): Bson = {
-    // Include draft purposes only if the requester is the consumer
+  private def listPurposesAuthorizationFilters(excludeDraft: Boolean): Bson = {
+    // Exclude draft purposes only if requested
     // Note: the filter works on the assumption that if a version in Draft exists, it is the only version in the Purpose
-    val versionsFilter = Filters.or(
-      Filters
-        .and(Filters.eq("data.consumerId", requesterId.toString), Filters.eq("data.versions.state", Draft.toString)),
-      Filters.ne("data.versions.state", Draft.toString)
-    )
+
+    val versionsFilter: Bson =
+      if (excludeDraft) Filters.and(Filters.ne("data.versions.state", Draft.toString)) else Filters.empty()
 
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
   }
