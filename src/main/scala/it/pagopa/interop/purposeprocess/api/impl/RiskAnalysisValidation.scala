@@ -50,7 +50,7 @@ object RiskAnalysisValidation {
 
     val validationRules: ValidationResult[List[ValidationEntry]] =
       versions
-        .maxByOption(_._1)
+        .maxByOption(_._1.toDouble)
         .fold[ValidationResult[List[ValidationEntry]]](NoTemplateVersionFound(tenantkind).invalidNec)(v =>
           if (v._1 == form.version) configsToRules(v._2).validNec
           else UnexpectedTemplateVersion(form.version).invalidNec

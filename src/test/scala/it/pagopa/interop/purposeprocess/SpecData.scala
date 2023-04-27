@@ -98,7 +98,7 @@ object SpecData {
   )
 
   val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validOnlySchemaRiskAnalysis1_0, true).toOption.get
+    RiskAnalysisValidation.validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE).toOption.get
 
   val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -139,7 +139,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis2_0)(tenant.kind.get, false).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
