@@ -9,10 +9,9 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeSeedConverter {
 
-  def apiToDependency(
-    seed: PurposeSeed,
-    schemaOnlyValidation: Boolean
-  )(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+  def apiToDependency(seed: PurposeSeed, schemaOnlyValidation: Boolean)(
+    kind: TenantKind
+  ): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
     for {
       riskAnalysisFormSeed <- seed.riskAnalysisForm
         .traverse(

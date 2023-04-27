@@ -24,14 +24,15 @@ object RiskAnalysisValidation {
     * @param kind The Tenant Kind
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(kind: TenantKind): ValidationResult[RiskAnalysisFormSeed] = {
+  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
+    kind: TenantKind
+  ): ValidationResult[RiskAnalysisFormSeed] = {
     RiskAnalysisService.riskAnalysisForms
       .get(kind)
       .fold[ValidationResult[RiskAnalysisFormSeed]](MissingTenantKindConfiguration(kind).invalidNec)(
         validateLatestVersion(_, kind, schemaOnlyValidation)(form)
       )
   }
-
 
   /** Validate a Process risk analysis form and returns the same in the Management format
     * @param versions Versions for this Tenant Kind
@@ -40,8 +41,11 @@ object RiskAnalysisValidation {
     * @param schemaOnlyValidation flag indicating if should validate only schema
     * @return Validated risk analysis
     */
-  private def validateLatestVersion(versions: Map[String, RiskAnalysisFormConfig], tenantkind: TenantKind, schemaOnlyValidation: Boolean)(
-    form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+  private def validateLatestVersion(
+    versions: Map[String, RiskAnalysisFormConfig],
+    tenantkind: TenantKind,
+    schemaOnlyValidation: Boolean
+  )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
     val validationRules: ValidationResult[List[ValidationEntry]] =

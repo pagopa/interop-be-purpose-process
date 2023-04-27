@@ -486,7 +486,9 @@ final case class PurposeApiServiceImpl(
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
         tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        apiPurposeSeed <- PurposeSeedConverter.apiToDependency(dependencySeed, schemaOnlyValidation = true)(tenantKind).toFuture
+        apiPurposeSeed <- PurposeSeedConverter
+          .apiToDependency(dependencySeed, schemaOnlyValidation = true)(tenantKind)
+          .toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
         dependencyVersionSeed = PurposeVersionSeed(dailyCalls)

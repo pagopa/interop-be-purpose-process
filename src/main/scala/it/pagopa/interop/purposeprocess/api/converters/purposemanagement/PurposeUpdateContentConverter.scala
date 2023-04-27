@@ -8,10 +8,8 @@ import it.pagopa.interop.purposeprocess.model.PurposeUpdateContent
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeUpdateContentConverter {
-  def apiToDependency(
-    content: PurposeUpdateContent,
-    schemaOnlyValidation: Boolean
-  )(kind: TenantKind
+  def apiToDependency(content: PurposeUpdateContent, schemaOnlyValidation: Boolean)(
+    kind: TenantKind
   ): Either[Throwable, DependencyPurposeUpdateContent] = {
     for {
       riskAnalysisForm <- content.riskAnalysisForm
