@@ -161,12 +161,12 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "fail if version does not exists" in {
-      val riskAnalysis = SpecData.validRiskAnalysis2_0
+      val riskAnalysis = SpecData.validRiskAnalysis2_0.copy(version = "9999.0")
 
       val result: ValidationResult[RiskAnalysisFormSeed] =
-        RiskAnalysisValidation.validate(riskAnalysis, false)(TenantKind.PRIVATE)
+        RiskAnalysisValidation.validate(riskAnalysis, false)(TenantKind.PA)
 
-      verifyValidationFailure(result, _.contains(UnexpectedTemplateVersion("2.0")) shouldBe true)
+      verifyValidationFailure(result, _.contains(UnexpectedTemplateVersion("9999.0")) shouldBe true)
 
     }
 
