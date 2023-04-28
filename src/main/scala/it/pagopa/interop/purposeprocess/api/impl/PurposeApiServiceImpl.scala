@@ -166,6 +166,27 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
+    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean = {
+      val states = purpose.versions.map(_.state)
+      states.nonEmpty &&
+      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+    }
+
+    def analyzeRiskAnalysisForm(
+      purpose: PurposeManagementDependency.Purpose,
+      producerId: UUID,
+      organizationId: UUID,
+      tenantKind: TenantManagementDependency.TenantKind
+    ): Purpose = {
+      if (organizationId == purpose.consumerId || organizationId == producerId)
+        if (isDraft(purpose)) purpose.dependencyToApi(isRiskAnalysisValid = true)
+        else purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
+      else
+        purpose
+          .copy(riskAnalysisForm = None)
+          .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+    }
+
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       uuid           <- id.toFutureUUID
@@ -173,13 +194,12 @@ final case class PurposeApiServiceImpl(
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      authorizedPurpose =
-        if (organizationId == purpose.consumerId || organizationId == eService.producerId)
-          purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
-        else
-          purpose
-            .copy(riskAnalysisForm = None)
-            .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+      authorizedPurpose = analyzeRiskAnalysisForm(
+        purpose,
+        producerId = eService.producerId,
+        organizationId = organizationId,
+        tenantKind
+      )
     } yield authorizedPurpose
 
     onComplete(result) { getPurposeResponse[Purpose](operationLabel)(getPurpose200) }
