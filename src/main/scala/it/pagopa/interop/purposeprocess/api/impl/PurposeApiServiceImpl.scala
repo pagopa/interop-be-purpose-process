@@ -166,21 +166,18 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
-    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean = {
-      val states = purpose.versions.map(_.state)
-      states.nonEmpty &&
-      states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
-    }
+    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean =
+      purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
 
-    def analyzeRiskAnalysisForm(
+    def authorizeRiskAnalysisForm(
       purpose: PurposeManagementDependency.Purpose,
       producerId: UUID,
       organizationId: UUID,
       tenantKind: TenantManagementDependency.TenantKind
     ): Purpose = {
       if (organizationId == purpose.consumerId || organizationId == producerId)
-        if (isDraft(purpose)) purpose.dependencyToApi(isRiskAnalysisValid = true)
-        else purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
+        if (isDraft(purpose)) purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
+        else purpose.dependencyToApi(isRiskAnalysisValid = true)
       else
         purpose
           .copy(riskAnalysisForm = None)
@@ -194,7 +191,7 @@ final case class PurposeApiServiceImpl(
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      authorizedPurpose = analyzeRiskAnalysisForm(
+      authorizedPurpose = authorizeRiskAnalysisForm(
         purpose,
         producerId = eService.producerId,
         organizationId = organizationId,
