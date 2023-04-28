@@ -43,9 +43,8 @@ final case class PurposeApiServiceImpl(
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
-  dateTimeSupplier: OffsetDateTimeSupplier,
-  riskAnalysisService: RiskAnalysisService
-)(implicit ec: ExecutionContext)
+  dateTimeSupplier: OffsetDateTimeSupplier
+)(implicit ec: ExecutionContext, riskAnalysisService: RiskAnalysisService)
     extends PurposeApiService {
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -102,7 +101,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService).toFuture
+      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -153,7 +152,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent
-        .apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService)
+        .apiToDependency(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
@@ -305,7 +304,7 @@ final case class PurposeApiServiceImpl(
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
       _              <- riskAnalysisForm
-        .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind)(riskAnalysisService))
+        .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
         .leftMap(RiskAnalysisValidationFailed(_))
         .toEither
         .toFuture
@@ -498,7 +497,7 @@ final case class PurposeApiServiceImpl(
         dependencySeed = createPurposeSeed(purpose)
         tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
         apiPurposeSeed <- dependencySeed
-          .apiToDependency(schemaOnlyValidation = true)(tenantKind)(riskAnalysisService)
+          .apiToDependency(schemaOnlyValidation = true)(tenantKind)
           .toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
@@ -577,7 +576,7 @@ final case class PurposeApiServiceImpl(
       .map(RiskAnalysisConverter.dependencyToApi(_))
       .map(
         RiskAnalysisValidation
-          .validate(_, schemaOnlyValidation = false)(kind)(riskAnalysisService)
+          .validate(_, schemaOnlyValidation = false)(kind)
           .isValid
       )
       .getOrElse(false)

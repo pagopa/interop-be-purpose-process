@@ -13,12 +13,12 @@ object PurposeSeedConverter {
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
     def apiToDependency(schemaOnlyValidation: Boolean)(
       kind: TenantKind
-    )(riskAnalysisService: RiskAnalysisService): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+    )(implicit riskAnalysisService: RiskAnalysisService): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
       for {
         riskAnalysisFormSeed <- seed.riskAnalysisForm
           .traverse(
             RiskAnalysisValidation
-              .validate(_, schemaOnlyValidation)(kind)(riskAnalysisService)
+              .validate(_, schemaOnlyValidation)(kind)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
           )

@@ -20,6 +20,8 @@ import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.RiskAnalysisFormConfig
+
 import org.scalamock.scalatest.MockFactory
 
 import spray.json._
@@ -60,9 +62,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockfileManager,
     mockPdfCreator,
     mockUUIDSupplier,
-    mockDateTimeSupplier,
-    mockRiskAnalysisService
-  )(ExecutionContext.global)
+    mockDateTimeSupplier
+  )(ExecutionContext.global, mockRiskAnalysisService)
+
+  def mockRiskAnalysisServiceForms()(returns: Map[TenantKind, Map[String, RiskAnalysisFormConfig]]) = (
+    () =>
+      mockRiskAnalysisService
+        .riskAnalysisForms()
+  )
+    .expects()
+    .returning(returns)
+    .once()
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))

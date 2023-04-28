@@ -26,7 +26,7 @@ object RiskAnalysisValidation {
     */
   def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
     kind: TenantKind
-  )(riskAnalysisService: RiskAnalysisService): ValidationResult[RiskAnalysisFormSeed] = {
+  )(implicit riskAnalysisService: RiskAnalysisService): ValidationResult[RiskAnalysisFormSeed] = {
     riskAnalysisService
       .riskAnalysisForms()
       .get(kind)

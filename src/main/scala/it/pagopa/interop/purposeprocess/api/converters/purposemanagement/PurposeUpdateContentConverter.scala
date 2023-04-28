@@ -10,14 +10,14 @@ import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 
 object PurposeUpdateContentConverter {
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def apiToDependency(
-      schemaOnlyValidation: Boolean
-    )(kind: TenantKind)(riskAnalysisService: RiskAnalysisService): Either[Throwable, DependencyPurposeUpdateContent] = {
+    def apiToDependency(schemaOnlyValidation: Boolean)(
+      kind: TenantKind
+    )(implicit riskAnalysisService: RiskAnalysisService): Either[Throwable, DependencyPurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
           .traverse(
             RiskAnalysisValidation
-              .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)(riskAnalysisService)
+              .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
           )
