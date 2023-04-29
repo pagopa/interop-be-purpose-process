@@ -16,34 +16,13 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
-import it.pagopa.interop.purposeprocess.service.{RiskAnalysisService, RiskAnalysisServiceImpl}
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.RiskAnalysisFormConfig
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind.{GSP, PA, PRIVATE}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
-object SpecData {
-  final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
+object SpecData extends SpecHelper {
 
-  private val riskAnalysisService: RiskAnalysisService = new RiskAnalysisServiceImpl()
-  private val riskAnalysisTemplatePath: String         = "riskAnalysisTemplate/forms"
-  final val riskAnalysisTemplateMap: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
-    PA      -> Map(
-      "1.0" -> riskAnalysisService
-        .loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/PA/1.0.json"),
-      "2.0" -> riskAnalysisService
-        .loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/PA/2.0.json")
-    ),
-    PRIVATE -> Map(
-      "1.0" -> riskAnalysisService
-        .loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/PRIVATE/1.0.json")
-    ),
-    GSP     -> Map(
-      "1.0" -> riskAnalysisService
-        .loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/PRIVATE/1.0.json")
-    )
-  )
+  final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
 
   val eService: CatalogManagement.EService = CatalogManagement.EService(
     id = UUID.randomUUID(),
@@ -121,7 +100,7 @@ object SpecData {
 
   val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
     RiskAnalysisValidation
-      .validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE)(new RiskAnalysisServiceImpl())
+      .validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE)
       .toOption
       .get
 
@@ -165,7 +144,7 @@ object SpecData {
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
     RiskAnalysisValidation
-      .validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE)(new RiskAnalysisServiceImpl())
+      .validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE)
       .toOption
       .get
 

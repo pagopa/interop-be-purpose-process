@@ -705,8 +705,6 @@ components:
             $ref: '#/components/schemas/DependencyResponse'
         visualType:
           type: string
-        defaultValue:
-          type: string
         options:
           type: array
           items:
@@ -718,7 +716,6 @@ components:
         - required
         - dependencies
         - visualType
-        - defaultValue
     LabeledValueResponse:
       type: object
       properties:

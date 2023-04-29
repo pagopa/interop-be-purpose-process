@@ -1505,10 +1505,49 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getTenant(_: UUID)(_: Seq[(String, String)]))
         .expects(producerId, context)
         .once()
-        .returns(Future.successful(SpecData.tenant))
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PA.some)))
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+      }
+    }
+
+    "succeed when Tenant kind is PRIVATE" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some)))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
+
+    "succeed when Tenant kind is GSP" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.GSP.some)))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
   }

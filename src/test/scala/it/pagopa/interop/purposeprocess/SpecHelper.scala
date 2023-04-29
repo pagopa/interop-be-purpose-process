@@ -17,10 +17,16 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
+import it.pagopa.interop.purposeprocess.model.{
+  Problem,
+  Purpose,
+  PurposeVersion,
+  PurposeVersionDocument,
+  Purposes,
+  RiskAnalysisFormConfigResponse
+}
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.RiskAnalysisFormConfig
 
 import org.scalamock.scalatest.MockFactory
 
@@ -47,10 +53,10 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
-  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
-  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
-  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
-  val mockRiskAnalysisService: RiskAnalysisService = mock[RiskAnalysisService]
+  val mockPdfCreator: PDFCreator                            = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier                        = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier          = mock[OffsetDateTimeSupplier]
+  implicit val mockRiskAnalysisService: RiskAnalysisService = new RiskAnalysisServiceImpl()
 
   val service: PurposeApiService = PurposeApiServiceImpl(
     mockAgreementManagementService,
@@ -64,15 +70,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockUUIDSupplier,
     mockDateTimeSupplier
   )(ExecutionContext.global, mockRiskAnalysisService)
-
-  def mockRiskAnalysisServiceForms()(returns: Map[TenantKind, Map[String, RiskAnalysisFormConfig]]) = (
-    () =>
-      mockRiskAnalysisService
-        .riskAnalysisForms()
-  )
-    .expects()
-    .returning(returns)
-    .once()
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))
@@ -373,6 +370,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     sprayJsonUnmarshaller[PurposeVersionDocument]
   implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]                             =
     sprayJsonUnmarshaller[Purposes]
+  implicit def fromRiskAnalysisFormConfigResponse: FromEntityUnmarshaller[RiskAnalysisFormConfigResponse]     =
+    sprayJsonUnmarshaller[RiskAnalysisFormConfigResponse]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem]                               =
     sprayJsonUnmarshaller[Problem]
 
