@@ -20,7 +20,7 @@ import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, Tena
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
-object SpecData extends SpecHelper {
+object SpecData {
 
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
 

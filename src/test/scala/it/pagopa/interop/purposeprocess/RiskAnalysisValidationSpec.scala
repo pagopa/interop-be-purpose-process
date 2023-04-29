@@ -17,7 +17,7 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
-class RiskAnalysisValidationSpec extends AnyWordSpecLike with SpecHelper {
+class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   implicit val eqError: Eq[RiskAnalysisValidationError] = Eq.fromUniversalEquals
 
   "Risk Analysis Validation" should {
