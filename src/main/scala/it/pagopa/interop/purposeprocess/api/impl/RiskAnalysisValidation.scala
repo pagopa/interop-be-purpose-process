@@ -11,7 +11,7 @@ import it.pagopa.interop.purposeprocess.error._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisRules.{DependencyEntry, ValidationEntry}
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.purposeprocess.service.impl.RiskAnalysisServiceImpl
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import spray.json._
 
@@ -26,8 +26,8 @@ object RiskAnalysisValidation {
     */
   def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
     kind: TenantKind
-  )(implicit riskAnalysisService: RiskAnalysisService): ValidationResult[RiskAnalysisFormSeed] = {
-    riskAnalysisService
+  ): ValidationResult[RiskAnalysisFormSeed] = {
+    RiskAnalysisServiceImpl
       .riskAnalysisForms()
       .get(kind)
       .fold[ValidationResult[RiskAnalysisFormSeed]](MissingTenantKindConfiguration(kind).invalidNec)(

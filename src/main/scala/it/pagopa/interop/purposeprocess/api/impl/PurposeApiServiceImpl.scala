@@ -27,6 +27,7 @@ import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
+import it.pagopa.interop.purposeprocess.service.impl.RiskAnalysisServiceImpl
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -44,7 +45,7 @@ final case class PurposeApiServiceImpl(
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext, riskAnalysisService: RiskAnalysisService)
+)(implicit ec: ExecutionContext)
     extends PurposeApiService {
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -540,7 +541,7 @@ final case class PurposeApiServiceImpl(
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
       tenant                           <- tenantManagementService.getTenant(organizationId)
       kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      kindConfig                       <- riskAnalysisService
+      kindConfig                       <- RiskAnalysisServiceImpl
         .riskAnalysisForms()
         .get(kind)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))

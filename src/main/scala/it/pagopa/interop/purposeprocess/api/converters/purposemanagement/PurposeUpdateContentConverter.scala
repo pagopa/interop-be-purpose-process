@@ -6,13 +6,12 @@ import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.purposeprocess.model.PurposeUpdateContent
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 
 object PurposeUpdateContentConverter {
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def apiToDependency(schemaOnlyValidation: Boolean)(
-      kind: TenantKind
-    )(implicit riskAnalysisService: RiskAnalysisService): Either[Throwable, DependencyPurposeUpdateContent] = {
+    def apiToDependency(
+      schemaOnlyValidation: Boolean
+    )(kind: TenantKind): Either[Throwable, DependencyPurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
           .traverse(

@@ -263,5 +263,4 @@ object SpecData extends SpecHelper {
       kind = AuthorizationManagement.ClientKind.CONSUMER,
       createdAt = timestamp
     )
-
 }

@@ -40,9 +40,8 @@ trait Dependencies {
   implicit val loggerTI: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog]("OAuth2JWTValidatorAsContexts")
 
-  val uuidSupplier: UUIDSupplier                        = UUIDSupplier
-  val dateTimeSupplier: OffsetDateTimeSupplier          = OffsetDateTimeSupplier
-  implicit val riskAnalysisService: RiskAnalysisService = new RiskAnalysisServiceImpl()
+  val uuidSupplier: UUIDSupplier               = UUIDSupplier
+  val dateTimeSupplier: OffsetDateTimeSupplier = OffsetDateTimeSupplier
 
   val pdfCreator: PDFCreatorImpl.type = PDFCreatorImpl
 

@@ -77,7 +77,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
-
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purposeId, context)
@@ -514,7 +513,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE)(mockRiskAnalysisService).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -561,7 +560,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE)(mockRiskAnalysisService).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 

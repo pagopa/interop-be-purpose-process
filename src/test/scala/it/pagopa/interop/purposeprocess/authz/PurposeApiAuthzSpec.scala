@@ -38,7 +38,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
   private val threadPool: ExecutorService                                = Executors.newSingleThreadExecutor()
   private val blockingEc: ExecutionContextExecutor = ExecutionContext.fromExecutorService(threadPool)
   val fakeFileManager: FileManager                 = FileManager.get(FileManager.File)(blockingEc)
-  val fakeRiskAnalysisService                      = new RiskAnalysisServiceImpl()
 
   override def afterAll(): Unit = { threadPool.shutdown() }
 
@@ -66,7 +65,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       dateTimeSupplier = new OffsetDateTimeSupplier {
         override def get: OffsetDateTime = OffsetDateTime.now()
       }
-    )(blockingEc, fakeRiskAnalysisService)
+    )(blockingEc)
 
   "Purpose api operation authorization spec" should {
     "accept authorized roles for createPurpose" in {

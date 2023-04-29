@@ -53,10 +53,9 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
   val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
-  val mockPdfCreator: PDFCreator                            = mock[PDFCreator]
-  val mockUUIDSupplier: UUIDSupplier                        = mock[UUIDSupplier]
-  val mockDateTimeSupplier: OffsetDateTimeSupplier          = mock[OffsetDateTimeSupplier]
-  implicit val mockRiskAnalysisService: RiskAnalysisService = new RiskAnalysisServiceImpl()
+  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
 
   val service: PurposeApiService = PurposeApiServiceImpl(
     mockAgreementManagementService,
@@ -69,7 +68,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockPdfCreator,
     mockUUIDSupplier,
     mockDateTimeSupplier
-  )(ExecutionContext.global, mockRiskAnalysisService)
+  )(ExecutionContext.global)
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))
