@@ -16,11 +16,10 @@ import it.pagopa.interop.purposeprocess.model._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisServiceImpl
 
-class RiskAnalysisValidationSpec extends AnyWordSpecLike {
+class RiskAnalysisValidationSpec extends AnyWordSpecLike with SpecHelper {
   implicit val eqError: Eq[RiskAnalysisValidationError] = Eq.fromUniversalEquals
-  implicit val riskAnalysisService                      = new RiskAnalysisServiceImpl()
+
   "Risk Analysis Validation" should {
     "succeed on correct form 1.0" in {
       val riskAnalysis = SpecData.validRiskAnalysis1_0
