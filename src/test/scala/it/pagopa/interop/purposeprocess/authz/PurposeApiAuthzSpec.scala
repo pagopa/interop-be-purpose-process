@@ -65,7 +65,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       dateTimeSupplier = new OffsetDateTimeSupplier {
         override def get: OffsetDateTime = OffsetDateTime.now()
       }
-    )(blockingEc)
+    )
 
   "Purpose api operation authorization spec" should {
     "accept authorized roles for createPurpose" in {
