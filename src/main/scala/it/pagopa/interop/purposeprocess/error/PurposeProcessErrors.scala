@@ -63,12 +63,6 @@ object PurposeProcessErrors {
   final case class RiskAnalysisConfigForTenantKindNotFound(tenantId: UUID)
       extends ComponentError("0019", s"Risk Analysis Configuration for Tenant ${tenantId.toString} not found")
 
-  final case class RiskAnalysisConfigVersionNotFound(tenantKind: TenantKind, version: String)
-      extends ComponentError(
-        "0020",
-        s"Risk Analysis Configuration for tenant kind ${tenantKind.toString} and ${version} not found"
-      )
-
   final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
-      extends ComponentError("0018", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
+      extends ComponentError("0020", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
 }
