@@ -72,17 +72,7 @@ object RiskAnalysisConverter {
 
   implicit class FormConfigQuestionWrapper(private val question: FormConfigQuestion) extends AnyVal {
     def toApi: FormConfigQuestionResponse = question match {
-      case FreeInputQuestion(id, label, infoLabel, dataType, required, dependencies, externalType)       =>
-        FormConfigQuestionResponse(
-          id = id,
-          label = label.toApi,
-          infoLabel = infoLabel.map(_.toApi),
-          dataType = dataType.toApi,
-          required = required,
-          dependencies = dependencies.map(_.toApi),
-          visualType = externalType
-        )
-      case SingleQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, options) =>
+      case FreeInputQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, defaultValue)      =>
         FormConfigQuestionResponse(
           id = id,
           label = label.toApi,
@@ -91,9 +81,31 @@ object RiskAnalysisConverter {
           required = required,
           dependencies = dependencies.map(_.toApi),
           visualType = externalType,
+          defaultValue = defaultValue
+        )
+      case SingleQuestion(
+            id,
+            label,
+            infoLabel,
+            dataType,
+            required,
+            dependencies,
+            externalType,
+            defaultValue,
+            options
+          ) =>
+        FormConfigQuestionResponse(
+          id = id,
+          label = label.toApi,
+          infoLabel = infoLabel.map(_.toApi),
+          dataType = dataType.toApi,
+          required = required,
+          dependencies = dependencies.map(_.toApi),
+          visualType = externalType,
+          defaultValue = defaultValue,
           options = Some(options.map(_.toApi))
         )
-      case MultiQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, options)  =>
+      case MultiQuestion(id, label, infoLabel, dataType, required, dependencies, externalType, defaultValue, options) =>
         FormConfigQuestionResponse(
           id = id,
           label = label.toApi,
@@ -102,6 +114,7 @@ object RiskAnalysisConverter {
           required = required,
           dependencies = dependencies.map(_.toApi),
           visualType = externalType,
+          defaultValue = defaultValue,
           options = Some(options.map(_.toApi))
         )
     }

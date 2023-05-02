@@ -13,7 +13,7 @@
         "it": "Indicare per quale finalità si intende accedere ai dati messi a disposizione con la fruizione del presente E-Service",
         "en": "State what is your purpose in accessing the data provided with this E-Service"
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": []
     },
@@ -35,7 +35,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": []
     },
@@ -57,7 +57,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -84,7 +84,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -119,7 +119,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -197,7 +197,7 @@
         "it": "Inserire riferimento normativo per adempimento di un obbligo legale (richiesto)",
         "en": "State the normative reference towards the fulfillment of a legal obligation (required)"
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -214,7 +214,7 @@
         "it": "Inserire riferimento normativo per esecuzione di un compito di interesse pubblico o connesso all'esercizio di pubblici poteri di cui sei investito (richiesto)",
         "en": "State the normative reference for the execution of a public interest task, or connected to the exercise of public powers bestowed upon you (required)"
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -241,7 +241,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -268,7 +268,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -299,7 +299,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -330,7 +330,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -373,7 +373,7 @@
           "value": "QUANTITY_5001_OVER"
         }
       ],
-      "defaultValue": "QUANTITY_0_TO_100",
+      "defaultValue": ["QUANTITY_0_TO_100"],
       "required": true,
       "dependencies": [
         {
@@ -416,7 +416,7 @@
           "value": "PSEUDOANONYMOUS"
         }
       ],
-      "defaultValue": "CLEARTEXT",
+      "defaultValue": ["CLEARTEXT"],
       "required": true,
       "dependencies": [
         {
@@ -447,7 +447,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -478,7 +478,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -511,7 +511,7 @@
           "value": "NEW_PERSONAL_DATA"
         }
       ],
-      "defaultValue": "MERE_CORRECTNESS",
+      "defaultValue": ["MERE_CORRECTNESS"],
       "required": true,
       "dependencies": [
         {
@@ -565,7 +565,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -600,7 +600,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
