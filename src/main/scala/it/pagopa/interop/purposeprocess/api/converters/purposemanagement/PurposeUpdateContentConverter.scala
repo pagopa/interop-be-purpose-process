@@ -9,12 +9,17 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeUpdateContentConverter {
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def apiToDependency(kind: TenantKind): Either[Throwable, DependencyPurposeUpdateContent] = {
+    def apiToDependency(
+      schemaOnlyValidation: Boolean
+    )(kind: TenantKind): Either[Throwable, DependencyPurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
-          .traverse(RiskAnalysisValidation.validate(_, kind))
-          .leftMap(RiskAnalysisValidationFailed(_))
-          .toEither
+          .traverse(
+            RiskAnalysisValidation
+              .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)
+              .leftMap(RiskAnalysisValidationFailed(_))
+              .toEither
+          )
       } yield DependencyPurposeUpdateContent(
         title = content.title,
         description = content.description,
@@ -22,5 +27,4 @@ object PurposeUpdateContentConverter {
       )
     }
   }
-
 }

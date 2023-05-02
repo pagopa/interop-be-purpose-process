@@ -10,12 +10,14 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 object PurposeSeedConverter {
 
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
-    def apiToDependency(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+    def apiToDependency(
+      schemaOnlyValidation: Boolean
+    )(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
       for {
         riskAnalysisFormSeed <- seed.riskAnalysisForm
           .traverse(
             RiskAnalysisValidation
-              .validate(_, kind)
+              .validate(_, schemaOnlyValidation)(kind)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
           )

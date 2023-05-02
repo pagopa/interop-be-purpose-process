@@ -20,7 +20,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def riskAnalysisFormFormat: RootJsonFormat[RiskAnalysisForm]             = jsonFormat2(RiskAnalysisForm)
   implicit def purposeVersionDocumentFormat: RootJsonFormat[PurposeVersionDocument] =
     jsonFormat4(PurposeVersionDocument)
-  implicit def purposeFormat: RootJsonFormat[Purpose]                               = jsonFormat11(Purpose)
+  implicit def purposeFormat: RootJsonFormat[Purpose]                               = jsonFormat12(Purpose)
   implicit def purposeVersionFormat: RootJsonFormat[PurposeVersion]                 = jsonFormat9(PurposeVersion)
   implicit def purposesFormat: RootJsonFormat[Purposes]                             = jsonFormat2(Purposes)
   implicit def purposeSeedFormat: RootJsonFormat[PurposeSeed]                       = jsonFormat5(PurposeSeed)
@@ -38,8 +38,10 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
     jsonFormat2(DependencyResponse)
   implicit def localizedTextResponseFormat: RootJsonFormat[LocalizedTextResponse]                   =
     jsonFormat2(LocalizedTextResponse)
+  implicit def labeledValueResponseFormat: RootJsonFormat[LabeledValueResponse]                     =
+    jsonFormat2(LabeledValueResponse)
   implicit def formConfigQuestionResponseFormat: RootJsonFormat[FormConfigQuestionResponse]         =
-    jsonFormat6(FormConfigQuestionResponse)
+    jsonFormat9(FormConfigQuestionResponse)
   implicit def riskAnalysisFormConfigResponseFormat: RootJsonFormat[RiskAnalysisFormConfigResponse] =
     jsonFormat2(RiskAnalysisFormConfigResponse)
 

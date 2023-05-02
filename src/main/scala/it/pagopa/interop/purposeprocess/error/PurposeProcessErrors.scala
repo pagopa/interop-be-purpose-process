@@ -48,18 +48,21 @@ object PurposeProcessErrors {
   final case class PurposeCannotBeCloned(purposeId: String)
       extends ComponentError("0014", s"Purpose $purposeId cannot be cloned")
 
+  final case class PurposeNotInDraftState(purposeId: UUID)
+      extends ComponentError("0015", s"Purpose $purposeId is not in a DRAFT state")
+
+  final case class PurposeVersionNotInDraftState(purposeId: UUID, versionId: UUID)
+      extends ComponentError("0016", s"Version $versionId of Purpose $purposeId is not in a DRAFT state")
+
   final case class TenantNotFound(tenantId: UUID)
-      extends ComponentError("0015", s"Tenant ${tenantId.toString} not founsd")
+      extends ComponentError("0017", s"Tenant ${tenantId.toString} not founsd")
 
-  final case class RiskAnalysisConfigForTenantKindNotFound(tenantKind: TenantKind)
-      extends ComponentError("0016", s"Risk Analysis Configuration for Tenant Kind ${tenantKind.toString} not found")
+  final case class TenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0018", s"Tenant kind for tenant ${tenantId.toString} not found")
 
-  final case class RiskAnalysisConfigVersionNotFound(tenantKind: TenantKind, version: String)
-      extends ComponentError(
-        "0017",
-        s"Risk Analysis Configuration for tenant kind ${tenantKind.toString} and ${version} not found"
-      )
+  final case class RiskAnalysisConfigForTenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0019", s"Risk Analysis Configuration for Tenant ${tenantId.toString} not found")
 
   final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
-      extends ComponentError("0018", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
+      extends ComponentError("0020", s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString}")
 }

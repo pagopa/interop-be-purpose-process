@@ -9,13 +9,11 @@ object ApplicationConfiguration {
   val serverPort: Int          = config.getInt("purpose-process.port")
   val jwtAudience: Set[String] = config.getString("purpose-process.jwt.audience").split(",").toSet.filter(_.nonEmpty)
 
-  val attributeRegistryManagementURL: String =
-    config.getString("purpose-process.services.attribute-registry-management")
-  val agreementManagementURL: String         = config.getString("purpose-process.services.agreement-management")
-  val authorizationManagementURL: String     = config.getString("purpose-process.services.authorization-management")
-  val catalogManagementURL: String           = config.getString("purpose-process.services.catalog-management")
-  val purposeManagementURL: String           = config.getString("purpose-process.services.purpose-management")
-  val tenantManagementURL: String            = config.getString("purpose-process.services.tenant-management")
+  val agreementManagementURL: String     = config.getString("purpose-process.services.agreement-management")
+  val authorizationManagementURL: String = config.getString("purpose-process.services.authorization-management")
+  val catalogManagementURL: String       = config.getString("purpose-process.services.catalog-management")
+  val purposeManagementURL: String       = config.getString("purpose-process.services.purpose-management")
+  val tenantManagementURL: String        = config.getString("purpose-process.services.tenant-management")
 
   val storageKind: String      = config.getString("purpose-process.storage.kind")
   val storageContainer: String = config.getString("purpose-process.storage.container")

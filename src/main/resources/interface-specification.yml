@@ -81,6 +81,11 @@ paths:
             default: []
           explode: false
         - in: query
+          name: excludeDraft
+          schema:
+            type: boolean
+            default: false
+        - in: query
           name: offset
           required: true
           schema:
@@ -731,12 +736,34 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DependencyResponse'
+        visualType:
+          type: string
+        defaultValue:
+          type: array
+          items:
+            type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabeledValueResponse'
       required:
         - id
         - label
         - dataType
         - required
         - dependencies
+        - visualType
+        - defaultValue
+    LabeledValueResponse:
+      type: object
+      properties:
+        label:
+          $ref: '#/components/schemas/LocalizedTextResponse'
+        value:
+          type: string
+      required:
+        - label
+        - value  
     LocalizedTextResponse:
       type: object
       properties:
@@ -888,6 +915,8 @@ components:
         updatedAt:
           type: string
           format: date-time
+        isRiskAnalysisValid:
+          type: boolean
       required:
         - id
         - eserviceId
@@ -896,6 +925,7 @@ components:
         - title
         - description
         - createdAt
+        - isRiskAnalysisValid
       description: business representation of a purpose
     Purposes:
       type: object

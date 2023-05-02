@@ -16,12 +16,12 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.RiskAnalysisFormConfig
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 object SpecData {
+
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
 
   val eService: CatalogManagement.EService = CatalogManagement.EService(
@@ -62,33 +62,6 @@ object SpecData {
     name = "test_name"
   )
 
-  val tenantWithoutKind: Tenant = Tenant(
-    id = UUID.randomUUID(),
-    kind = None,
-    selfcareId = UUID.randomUUID.toString.some,
-    externalId = ExternalId("foo", "bar"),
-    features = Nil,
-    attributes = Nil,
-    createdAt = OffsetDateTimeSupplier.get(),
-    updatedAt = None,
-    mails = Nil,
-    name = "test_name"
-  )
-
-  val riskAnalysisServiceNoVersion: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] =
-    Map(TenantKind.PA -> Map.empty, TenantKind.PRIVATE -> Map.empty, TenantKind.GSP -> Map.empty)
-
-  val riskAnalysisServiceComplete: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
-    TenantKind.PA      -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.PRIVATE -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.GSP     -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil))
-  )
-
-  val riskAnalysisServiceNoPA: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
-    TenantKind.PRIVATE -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil)),
-    TenantKind.GSP     -> Map("1.0" -> RiskAnalysisFormConfig(version = "1.0", Nil))
-  )
-
   val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "1.0",
     answers = Map(
@@ -114,6 +87,34 @@ object SpecData {
       "checkedExistenceMinimalDataInteropCatalogue"     -> Nil
     )
   )
+
+  val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = Map(
+      "purpose"                    -> List("MyPurpose"),
+      "usesPersonalData"           -> Nil,
+      "usesThirdPartyPersonalData" -> Nil,
+      "usesConfidentialData"       -> Nil
+    )
+  )
+
+  val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
+    RiskAnalysisValidation
+      .validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE)
+      .toOption
+      .get
+
+  val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+    PurposeManagement.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = validOnlySchemaManagementRiskAnalysisSeed.version,
+      singleAnswers = validOnlySchemaManagementRiskAnalysisSeed.singleAnswers.map(a =>
+        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = validOnlySchemaManagementRiskAnalysisSeed.multiAnswers.map(a =>
+        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
 
   val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "2.0",
@@ -142,7 +143,10 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0, tenant.kind.get).toOption.get
+    RiskAnalysisValidation
+      .validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE)
+      .toOption
+      .get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -180,6 +184,18 @@ object SpecData {
     riskAnalysisForm = Some(validManagementRiskAnalysis),
     createdAt = timestamp,
     updatedAt = None
+  )
+
+  val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+    id = UUID.randomUUID(),
+    state = PurposeManagement.PurposeVersionState.ACTIVE,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None,
+    suspendedAt = None
   )
 
   val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
@@ -244,7 +260,7 @@ object SpecData {
       description = None,
       purposes = Seq.empty,
       relationships = Set.empty,
-      kind = AuthorizationManagement.ClientKind.CONSUMER
+      kind = AuthorizationManagement.ClientKind.CONSUMER,
+      createdAt = timestamp
     )
-
 }

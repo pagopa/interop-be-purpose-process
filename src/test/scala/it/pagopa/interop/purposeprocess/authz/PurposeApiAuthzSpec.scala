@@ -24,11 +24,9 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with AuthzScalatestRouteTest {
 
-  val fakeCatalogManagementService: CatalogManagementService                     = new FakeCatalogManagementService()
-  val fakePurposeManagementService: PurposeManagementService                     = new FakePurposeManagementService()
-  val fakeAttributeRegistryManagementService: AttributeRegistryManagementService =
-    new FakeAttributeRegistryManagementService()
-  val fakeAgreementManagementService: AgreementManagementService                 = new FakeAgreementManagementService()
+  val fakeCatalogManagementService: CatalogManagementService             = new FakeCatalogManagementService()
+  val fakePurposeManagementService: PurposeManagementService             = new FakePurposeManagementService()
+  val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
   val dummyReadModel: ReadModelService                                   = new MongoDbReadModelService(
@@ -50,7 +48,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeCatalogManagementService,
       fakePurposeManagementService,
       fakeTenantManagementService,
-      fakeAttributeRegistryManagementService,
       dummyReadModel,
       fakeFileManager,
       pdfCreator = new PDFCreator {
@@ -59,18 +56,14 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
           riskAnalysisForm: RiskAnalysisForm,
           dailyCalls: Int,
           eServiceInfo: EServiceInfo,
-          language: Language,
-          kind: TenantKind
-        ): Future[File] = Future.successful(File.createTempFile("full", "fake"))
+          language: Language
+        )(kind: TenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {
         override def get: UUID = UUID.randomUUID()
       },
       dateTimeSupplier = new OffsetDateTimeSupplier {
         override def get: OffsetDateTime = OffsetDateTime.now()
-      },
-      riskAnalysisServiceSupplier = new RiskAnalysisServiceSupplier {
-        override def get(): RiskAnalysisService = new RiskAnalysisServiceImpl
       }
     )
 
@@ -151,7 +144,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("getPurposes")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.getPurposes(None, "fake", "fake", "fake", "fake", 0, 0) }
+        { implicit c: Seq[(String, String)] => service.getPurposes(None, "fake", "fake", "fake", "fake", false, 0, 0) }
       )
     }
 

@@ -17,11 +17,18 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
+import it.pagopa.interop.purposeprocess.model.{
+  Problem,
+  Purpose,
+  PurposeVersion,
+  PurposeVersionDocument,
+  Purposes,
+  RiskAnalysisFormConfigResponse
+}
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
+
 import org.scalamock.scalatest.MockFactory
-import it.pagopa.interop.attributeregistrymanagement.client.{model => AttributeRegistryDependency}
 
 import spray.json._
 
@@ -38,21 +45,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     .parseResourcesAnySyntax("application-test")
     .resolve()
 
-  val mockReadModel: ReadModelService                                            = mock[ReadModelService]
-  val mockfileManager: FileManager                                               = mock[FileManager]
-  val mockAttributeRegistryManagementService: AttributeRegistryManagementService =
-    mock[AttributeRegistryManagementService]
-  val mockAgreementManagementService: AgreementManagementService                 = mock[AgreementManagementService]
-  val mockAuthorizationManagementService: AuthorizationManagementService         = mock[AuthorizationManagementService]
-  val mockPurposeManagementService: PurposeManagementService                     = mock[PurposeManagementService]
-  val mockCatalogManagementService: CatalogManagementService                     = mock[CatalogManagementService]
-  val mockTenantManagementService: TenantManagementService                       = mock[TenantManagementService]
+  val mockReadModel: ReadModelService                                    = mock[ReadModelService]
+  val mockfileManager: FileManager                                       = mock[FileManager]
+  val mockAgreementManagementService: AgreementManagementService         = mock[AgreementManagementService]
+  val mockAuthorizationManagementService: AuthorizationManagementService = mock[AuthorizationManagementService]
+  val mockPurposeManagementService: PurposeManagementService             = mock[PurposeManagementService]
+  val mockCatalogManagementService: CatalogManagementService             = mock[CatalogManagementService]
+  val mockTenantManagementService: TenantManagementService               = mock[TenantManagementService]
 
-  val mockPdfCreator: PDFCreator                                   = mock[PDFCreator]
-  val mockUUIDSupplier: UUIDSupplier                               = mock[UUIDSupplier]
-  val mockDateTimeSupplier: OffsetDateTimeSupplier                 = mock[OffsetDateTimeSupplier]
-  val mockRiskAnalysisServiceSupplier: RiskAnalysisServiceSupplier = mock[RiskAnalysisServiceSupplier]
-  val mockRiskAnalysisService: RiskAnalysisService                 = mock[RiskAnalysisService]
+  val mockPdfCreator: PDFCreator                   = mock[PDFCreator]
+  val mockUUIDSupplier: UUIDSupplier               = mock[UUIDSupplier]
+  val mockDateTimeSupplier: OffsetDateTimeSupplier = mock[OffsetDateTimeSupplier]
 
   val service: PurposeApiService = PurposeApiServiceImpl(
     mockAgreementManagementService,
@@ -60,37 +63,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     mockCatalogManagementService,
     mockPurposeManagementService,
     mockTenantManagementService,
-    mockAttributeRegistryManagementService,
     mockReadModel,
     mockfileManager,
     mockPdfCreator,
     mockUUIDSupplier,
-    mockDateTimeSupplier,
-    mockRiskAnalysisServiceSupplier
+    mockDateTimeSupplier
   )(ExecutionContext.global)
-  def mockGetAttributeByExternalId(attributeId: UUID, result: AttributeRegistryDependency.Attribute)(implicit
-    contexts: Seq[(String, String)]
-  ) =
-    (mockAttributeRegistryManagementService
-      .getAttributeById(_: UUID)(_: Seq[(String, String)]))
-      .expects(attributeId, contexts)
-      .once()
-      .returns(Future.successful(result))
-
-  def mockRiskAnalysisServiceNoPA = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoPA)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().once().returns(mockRiskAnalysisService)
-  }
-
-  def mockRiskAnalysisServiceCompleteVersion1 = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceComplete)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
-  }
-
-  def mockRiskAnalysisServiceEmptyVersion = {
-    (() => mockRiskAnalysisService.riskAnalysisForms()).expects().once().returns(SpecData.riskAnalysisServiceNoVersion)
-    (() => mockRiskAnalysisServiceSupplier.get()).expects().returning(mockRiskAnalysisService).once()
-  }
 
   def mockFileManagerStore(storageFilePath: String) = (
     mockfileManager.store(_: String, _: String)(_: String, _: (FileInfo, File))
@@ -144,6 +122,17 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.unit)
 
+  def mockPurposeUpdate(
+    purposeId: UUID,
+    purposeUpdateContent: PurposeManagement.PurposeUpdateContent,
+    result: PurposeManagement.Purpose
+  )(implicit contexts: Seq[(String, String)]) =
+    (mockPurposeManagementService
+      .updatePurpose(_: UUID, _: PurposeManagement.PurposeUpdateContent)(_: Seq[(String, String)]))
+      .expects(purposeId, purposeUpdateContent, contexts)
+      .once()
+      .returns(Future.successful(result))
+
   def mockPurposeVersionCreate(
     purposeId: UUID,
     seed: PurposeManagement.PurposeVersionSeed,
@@ -188,19 +177,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result))
 
-  def mockTenantRetrieve(tenantId: UUID) =
+  def mockTenantRetrieve(tenantId: UUID, result: Tenant) =
     (mockTenantManagementService
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(tenantId, *)
       .once()
-      .returns(Future.successful(SpecData.tenant.copy(id = tenantId)))
-
-  def mockTenantRetrieveWithoutTenantKind(tenantId: UUID) =
-    (mockTenantManagementService
-      .getTenant(_: UUID)(_: Seq[(String, String)]))
-      .expects(tenantId, *)
-      .once()
-      .returns(Future.successful(SpecData.tenantWithoutKind.copy(id = tenantId)))
+      .returns(Future.successful(result))
 
   def mockRiskAnalysisPdfCreation() = {
     val documentId = UUID.randomUUID()
@@ -209,12 +191,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
     (mockPdfCreator
-      .createDocument(
-        _: String,
-        _: PurposeManagement.RiskAnalysisForm,
-        _: Int,
-        _: EServiceInfo,
-        _: Language,
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language)(
         _: TenantKind
       ))
       .expects(*, *, *, *, *, *)
@@ -392,6 +369,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     sprayJsonUnmarshaller[PurposeVersionDocument]
   implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]                             =
     sprayJsonUnmarshaller[Purposes]
+  implicit def fromRiskAnalysisFormConfigResponse: FromEntityUnmarshaller[RiskAnalysisFormConfigResponse]     =
+    sprayJsonUnmarshaller[RiskAnalysisFormConfigResponse]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem]                               =
     sprayJsonUnmarshaller[Problem]
 
