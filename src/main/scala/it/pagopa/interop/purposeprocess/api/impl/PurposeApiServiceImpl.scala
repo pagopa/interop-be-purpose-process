@@ -568,17 +568,14 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId         <- getOrganizationIdFutureUUID(contexts)
       tenant                 <- tenantManagementService.getTenant(organizationId)
-      tenantKind             <- tenant.kind.fold(
-        purposeVersionActivation.getTenantKindLoadingCertifiedAttributes(tenant.attributes, tenant.externalId)
-      )(Future.successful(_))
-      kindConfig             <- riskAnalysisServiceSupplier
-        .get()
+      kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      kindConfig             <- RiskAnalysisServiceImpl
         .riskAnalysisForms()
-        .get(tenantKind)
-        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenantKind))
+        .get(kind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       riskAnalysisFormConfig <- kindConfig
         .get(riskAnalysisVersion)
-        .toFuture(RiskAnalysisConfigVersionNotFound(tenantKind, riskAnalysisVersion))
+        .toFuture(RiskAnalysisConfigVersionNotFound(riskAnalysisVersion, kind))
     } yield riskAnalysisFormConfig.toApi
 
     onComplete(result) {

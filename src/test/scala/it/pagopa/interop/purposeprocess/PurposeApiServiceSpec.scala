@@ -1563,16 +1563,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getTenant(_: UUID)(_: Seq[(String, String)]))
         .expects(producerId, context)
         .once()
-        .returns(Future.successful(SpecData.tenant))
-
-      mockRiskAnalysisServiceCompleteVersion1
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PA.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
         status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
 
-    "fail when Tenant kind is not managed" in {
+    "succeed when Tenant kind is PRIVATE" in {
 
       val producerId: UUID = UUID.randomUUID()
 
@@ -1583,19 +1582,15 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getTenant(_: UUID)(_: Seq[(String, String)]))
         .expects(producerId, context)
         .once()
-        .returns(Future.successful(SpecData.tenant))
-
-      mockRiskAnalysisServiceNoPA
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
-        status shouldEqual StatusCodes.NotFound
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0016"
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
 
-    "fail when version is not managed" in {
+    "succeed when Tenant kind is GSP" in {
 
       val producerId: UUID = UUID.randomUUID()
 
@@ -1606,15 +1601,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getTenant(_: UUID)(_: Seq[(String, String)]))
         .expects(producerId, context)
         .once()
-        .returns(Future.successful(SpecData.tenant))
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.GSP.some)))
 
-      mockRiskAnalysisServiceEmptyVersion
-
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("fake") ~> check {
-        status shouldEqual StatusCodes.NotFound
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0017"
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
   }
