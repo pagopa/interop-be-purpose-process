@@ -12,9 +12,8 @@ import it.pagopa.interop.commons.utils.withHeaders
 import java.util.UUID
 import scala.concurrent.{Future, ExecutionContext}
 
-final case class TenantManagementServiceImpl(invoker: TenantManagementInvoker, api: TenantApi)(implicit
-  ec: ExecutionContext
-) extends TenantManagementService {
+final class TenantManagementServiceImpl(invoker: TenantManagementInvoker, api: TenantApi)(implicit ec: ExecutionContext)
+    extends TenantManagementService {
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
