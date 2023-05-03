@@ -168,5 +168,5 @@ trait Dependencies {
   def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
   ): TenantManagementService =
-    TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)(blockingEc)
+    new TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)(blockingEc)
 }
