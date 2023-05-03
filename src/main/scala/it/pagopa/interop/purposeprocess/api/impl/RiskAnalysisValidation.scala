@@ -21,6 +21,7 @@ object RiskAnalysisValidation {
 
   /** Validate a Process risk analysis form and returns the same in the Management format
     * @param form Risk Analysis Form
+    * @param schemaOnlyValidation flag indicating if should validate only schema
     * @param kind The Tenant Kind
     * @return Validated risk analysis
     */

@@ -62,61 +62,7 @@ object SpecData {
     name = "test_name"
   )
 
-  val validRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
-    version = "1.0",
-    answers = Map(
-      "purpose"                                         -> List("MyPurpose"),
-      "usesPersonalData"                                -> List("YES"),
-      "usesThirdPartyPersonalData"                      -> Nil,
-      "usesConfidentialData"                            -> Nil,
-      "securedDataAccess"                               -> Nil,
-      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
-      "legalObligationReference"                        -> List("somethingLegal"),
-      "publicInterestReference"                         -> List("somethingPublic"),
-      "knowsAccessedDataCategories"                     -> List("YES"),
-      "accessDataArt9Gdpr"                              -> List("NO"),
-      "accessUnderageData"                              -> List("NO"),
-      "knowsDataQuantity"                               -> List("NO"),
-      "dataQuantity"                                    -> Nil,
-      "deliveryMethod"                                  -> List("ANONYMOUS"),
-      "doneDpia"                                        -> List("NO"),
-      "definedDataRetentionPeriod"                      -> List("NO"),
-      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
-      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("YES"),
-      "checkedAllDataNeeded"                            -> Nil,
-      "checkedExistenceMinimalDataInteropCatalogue"     -> Nil
-    )
-  )
-
-  val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
-    version = "1.0",
-    answers = Map(
-      "purpose"                    -> List("MyPurpose"),
-      "usesPersonalData"           -> Nil,
-      "usesThirdPartyPersonalData" -> Nil,
-      "usesConfidentialData"       -> Nil
-    )
-  )
-
-  val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation
-      .validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE)
-      .toOption
-      .get
-
-  val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
-    PurposeManagement.RiskAnalysisForm(
-      id = UUID.randomUUID(),
-      version = validOnlySchemaManagementRiskAnalysisSeed.version,
-      singleAnswers = validOnlySchemaManagementRiskAnalysisSeed.singleAnswers.map(a =>
-        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
-      ),
-      multiAnswers = validOnlySchemaManagementRiskAnalysisSeed.multiAnswers.map(a =>
-        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
-      )
-    )
-
-  val validRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
+  val validRiskAnalysis2_0_Pa: RiskAnalysisForm = RiskAnalysisForm(
     version = "2.0",
     answers = Map(
       "purpose"                                         -> List("INSTITUTIONAL"),
@@ -142,35 +88,101 @@ object SpecData {
     )
   )
 
-  val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
+  val validRiskAnalysis2_0_Private: RiskAnalysisForm = RiskAnalysisForm(
+    version = "2.0",
+    answers = Map(
+      "purpose"                                         -> List("INSTITUTIONAL"),
+      "institutionalPurpose"                            -> List("MyPurpose"),
+      "usesPersonalData"                                -> List("YES"),
+      "personalDataTypes"                               -> List("OTHER"),
+      "otherPersonalDataTypes"                          -> List("MyDataTypes"),
+      "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
+      "legalObligationReference"                        -> List("somethingLegal"),
+      "legalBasisPublicInterest"                        -> List("RULE_OF_LAW"),
+      "ruleOfLawText"                                   -> List("TheLaw"),
+      "knowsDataQuantity"                               -> List("NO"),
+      "dataQuantity"                                    -> Nil,
+      "dataDownload"                                    -> List("YES"),
+      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "policyProvided"                                  -> List("NO"),
+      "confirmPricipleIntegrityAndDiscretion"           -> List("true"),
+      "reasonPolicyNotProvided"                         -> List("Because"),
+      "doneDpia"                                        -> List("NO"),
+      "dataRetentionPeriod"                             -> List("true"),
+      "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
+      "checkedExistenceMereCorrectnessInteropCatalogue" -> List("true"),
+      "declarationConfirmGDPR"                          -> List("true")
+    )
+  )
+
+  val validOnlySchemaRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "2.0",
+    answers = Map(
+      "purpose"                    -> List("INSTITUTIONAL"),
+      "usesPersonalData"           -> Nil,
+      "usesThirdPartyPersonalData" -> Nil,
+      "usesConfidentialData"       -> Nil
+    )
+  )
+
+  def validOnlySchemaManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed =
     RiskAnalysisValidation
-      .validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE)
+      .validate(validOnlySchemaRiskAnalysis2_0, true)(tenantKind)
       .toOption
       .get
 
-  val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
+  def validOnlySchemaManagementRiskAnalysis(tenantKind: TenantKind): PurposeManagement.RiskAnalysisForm = {
+    val seed = validOnlySchemaManagementRiskAnalysisSeed(tenantKind)
     PurposeManagement.RiskAnalysisForm(
       id = UUID.randomUUID(),
-      version = validManagementRiskAnalysisSeed.version,
-      singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
+      version = seed.version,
+      singleAnswers = seed.singleAnswers.map(a =>
         PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
-      multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
+      multiAnswers = seed.multiAnswers.map(a =>
         PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
       )
     )
+  }
 
-  val validPersistentRiskAnalysis: PersistentRiskAnalysisForm =
+  def validManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed = {
+    val riskAnalysis = if (tenantKind == TenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis2_0_Private
+    RiskAnalysisValidation
+      .validate(riskAnalysis, false)(tenantKind)
+      .toOption
+      .get
+
+  }
+
+  def validManagementRiskAnalysis(tenantKind: TenantKind): PurposeManagement.RiskAnalysisForm = {
+    val seed = validManagementRiskAnalysisSeed(tenantKind)
+
+    PurposeManagement.RiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = seed.version,
+      singleAnswers = seed.singleAnswers.map(a =>
+        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+      ),
+      multiAnswers = seed.multiAnswers.map(a =>
+        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+      )
+    )
+  }
+
+  def validPersistentRiskAnalysis(tenantKind: TenantKind): PersistentRiskAnalysisForm = {
+    val seed = validManagementRiskAnalysisSeed(tenantKind)
+
     PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
-      version = validManagementRiskAnalysisSeed.version,
-      singleAnswers = validManagementRiskAnalysisSeed.singleAnswers.map(a =>
+      version = seed.version,
+      singleAnswers = seed.singleAnswers.map(a =>
         PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
-      multiAnswers = validManagementRiskAnalysisSeed.multiAnswers.map(a =>
+      multiAnswers = seed.multiAnswers.map(a =>
         PersistentRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
       )
     )
+  }
 
   val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
     id = UUID.randomUUID(),
@@ -181,7 +193,7 @@ object SpecData {
     suspendedByProducer = None,
     title = "A title",
     description = "A description",
-    riskAnalysisForm = Some(validManagementRiskAnalysis),
+    riskAnalysisForm = Some(validManagementRiskAnalysis(TenantKind.PRIVATE)),
     createdAt = timestamp,
     updatedAt = None
   )
@@ -219,7 +231,7 @@ object SpecData {
     suspendedByProducer = None,
     title = "A title",
     description = "A description",
-    riskAnalysisForm = Some(validPersistentRiskAnalysis),
+    riskAnalysisForm = Some(validPersistentRiskAnalysis(TenantKind.PA)),
     createdAt = timestamp,
     updatedAt = None
   )

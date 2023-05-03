@@ -57,7 +57,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -71,7 +71,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title - clone",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -144,7 +144,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -158,7 +158,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title - clone",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -232,7 +232,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -246,12 +246,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title - clone",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
 
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PA.some))
 
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
@@ -406,7 +406,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -455,7 +455,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = "title",
         description = "description",
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -503,7 +503,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = seed.title,
         description = seed.description,
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -537,7 +537,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private)
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -549,7 +549,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         suspendedByProducer = None,
         title = seed.title,
         description = seed.description,
-        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis),
+        riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
         updatedAt = None
       )
@@ -582,7 +582,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private)
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -1527,7 +1527,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
 
@@ -1546,7 +1546,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
   }
