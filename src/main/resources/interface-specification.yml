@@ -660,7 +660,7 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'        
-  '/purposes/riskAnalysis/{riskAnalysisVersion}':
+  /purposes/riskAnalysis/version/{riskAnalysisVersion}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
