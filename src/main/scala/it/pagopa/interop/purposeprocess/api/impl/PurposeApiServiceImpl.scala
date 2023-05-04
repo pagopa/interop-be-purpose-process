@@ -27,7 +27,7 @@ import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
-import it.pagopa.interop.purposeprocess.service.impl.RiskAnalysisServiceImpl
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -541,12 +541,12 @@ final case class PurposeApiServiceImpl(
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
       tenant                           <- tenantManagementService.getTenant(organizationId)
       kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      kindConfig                       <- RiskAnalysisServiceImpl
+      kindConfig                       <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       (latest, riskAnalysisFormConfig) <- kindConfig
-        .maxByOption(_._1)
+        .maxByOption(_._1.toDouble)
         .toFuture(RiskAnalysisConfigLatestVersionNotFound(kind))
     } yield riskAnalysisFormConfig.toApi
 

@@ -13,7 +13,7 @@ import it.pagopa.interop.purposemanagement.client.model.{
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.purposeprocess.service.impl.RiskAnalysisServiceImpl
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 import java.io.File
@@ -44,7 +44,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     Future.fromTry {
       for {
         file       <- createTempFile
-        kindConfig <- RiskAnalysisServiceImpl
+        kindConfig <- RiskAnalysisService
           .riskAnalysisForms()
           .get(kind)
           .toTry(TenantKindTemplateConfigNotFound(kind))
