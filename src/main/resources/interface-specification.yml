@@ -802,6 +802,7 @@ components:
       properties:
         title:
           type: string
+          pattern: "^[^*]+" #Passing a value starting with * is not allowed to avoid regex error 'Badly formed regex'
           minLength: 5
           maxLength: 60
         description:
@@ -911,6 +912,7 @@ components:
           $ref: '#/components/schemas/RiskAnalysisForm'
         title:
           type: string
+          pattern: "^[^*]+" #Passing a value starting with * is not allowed to avoid regex error 'Badly formed regex'
           minLength: 5
           maxLength: 60
         description:
