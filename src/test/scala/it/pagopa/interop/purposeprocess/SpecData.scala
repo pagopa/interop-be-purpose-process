@@ -88,8 +88,8 @@ object SpecData {
     )
   )
 
-  val validRiskAnalysis2_0_Private: RiskAnalysisForm = RiskAnalysisForm(
-    version = "2.0",
+  val validRiskAnalysis1_0_Private: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
     answers = Map(
       "purpose"                                         -> List("INSTITUTIONAL"),
       "institutionalPurpose"                            -> List("MyPurpose"),
@@ -125,11 +125,24 @@ object SpecData {
     )
   )
 
-  def validOnlySchemaManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed =
+  val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
+    version = "1.0",
+    answers = Map(
+      "purpose"                    -> List("INSTITUTIONAL"),
+      "usesPersonalData"           -> Nil,
+      "usesThirdPartyPersonalData" -> Nil,
+      "usesConfidentialData"       -> Nil
+    )
+  )
+
+  def validOnlySchemaManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed = {
+    val validOnlySchemaRiskAnalysis =
+      if (tenantKind == TenantKind.PA) validOnlySchemaRiskAnalysis2_0 else validOnlySchemaRiskAnalysis1_0
     RiskAnalysisValidation
-      .validate(validOnlySchemaRiskAnalysis2_0, true)(tenantKind)
+      .validate(validOnlySchemaRiskAnalysis, true)(tenantKind)
       .toOption
       .get
+  }
 
   def validOnlySchemaManagementRiskAnalysis(tenantKind: TenantKind): PurposeManagement.RiskAnalysisForm = {
     val seed = validOnlySchemaManagementRiskAnalysisSeed(tenantKind)
@@ -146,7 +159,7 @@ object SpecData {
   }
 
   def validManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed = {
-    val riskAnalysis = if (tenantKind == TenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis2_0_Private
+    val riskAnalysis = if (tenantKind == TenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis1_0_Private
     RiskAnalysisValidation
       .validate(riskAnalysis, false)(tenantKind)
       .toOption

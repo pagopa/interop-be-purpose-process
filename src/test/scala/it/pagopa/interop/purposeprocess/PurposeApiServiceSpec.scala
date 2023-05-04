@@ -537,7 +537,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private)
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -582,7 +582,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private)
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -1527,7 +1527,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
 
@@ -1546,7 +1546,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
   }
