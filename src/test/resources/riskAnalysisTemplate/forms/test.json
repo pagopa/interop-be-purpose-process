@@ -13,7 +13,7 @@
         "it": "Indicare per quale finalità si intende accedere ai dati messi a disposizione con la fruizione del presente E-Service",
         "en": "State what is your purpose in accessing the data provided with this E-Service"
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": []
     },
@@ -35,7 +35,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": []
     },
@@ -134,7 +134,7 @@
           "value": "QUANTITY_5001_OVER"
         }
       ],
-      "defaultValue": "QUANTITY_0_TO_100",
+      "defaultValue": ["QUANTITY_0_TO_100"],
       "required": true,
       "dependencies": [
         {

@@ -27,6 +27,8 @@ import it.pagopa.interop.purposeprocess.api.impl.{
   PurposeApiServiceImpl
 }
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
+import it.pagopa.interop.tenantmanagement.client.api.{TenantApi => TenantManagementApi}
+import it.pagopa.interop.tenantmanagement.client.invoker.{ApiInvoker => TenantManagementInvoker}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.impl._
@@ -86,7 +88,7 @@ trait Dependencies {
         authorizationManagement(blockingEc),
         catalogManagement(blockingEc),
         purposeManagement(blockingEc),
-        new TenantManagementServiceImpl(ApplicationConfiguration.tenantManagementURL, blockingEc),
+        tenantManagement(blockingEc),
         readModelService,
         fileManager,
         pdfCreator,
@@ -154,4 +156,17 @@ trait Dependencies {
   ): PurposeManagementService =
     PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)(blockingEc)
 
+  private def tenantManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): TenantManagementInvoker =
+    TenantManagementInvoker(blockingEc)(actorSystem.classicSystem)
+
+  private final val tenantManagementApi: TenantManagementApi = TenantManagementApi(
+    ApplicationConfiguration.tenantManagementURL
+  )
+
+  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
+    actorSystem: ActorSystem[_]
+  ): TenantManagementService =
+    new TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)(blockingEc)
 }

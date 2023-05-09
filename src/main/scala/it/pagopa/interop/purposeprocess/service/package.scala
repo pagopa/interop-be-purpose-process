@@ -18,7 +18,6 @@ package object service {
 
   type CatalogManagementInvoker = catalogmanagement.client.invoker.ApiInvoker
   type CatalogManagementApi     = catalogmanagement.client.api.EServiceApi
-
   object AgreementManagementInvoker {
     def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
       agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all, blockingEc)

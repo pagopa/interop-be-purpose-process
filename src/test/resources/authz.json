@@ -110,6 +110,20 @@
         "admin"
       ],
       "route": "getRiskAnalysisDocument"
+    },
+    {
+      "verb": "GET",
+      "roles": [
+        "admin"
+      ],
+      "route": "retrieveLatestRiskAnalysisConfiguration"
+    },
+    {
+      "verb": "GET",
+      "roles": [
+        "admin"
+      ],
+      "route": "retrieveRiskAnalysisConfigurationByVersion"
     }
   ]
 }

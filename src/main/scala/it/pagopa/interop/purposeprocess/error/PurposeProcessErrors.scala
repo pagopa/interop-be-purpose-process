@@ -2,6 +2,7 @@ package it.pagopa.interop.purposeprocess.error
 
 import cats.data.NonEmptyChain
 import it.pagopa.interop.commons.utils.errors.ComponentError
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 import java.util.UUID
 
@@ -52,4 +53,25 @@ object PurposeProcessErrors {
 
   final case class PurposeVersionNotInDraftState(purposeId: UUID, versionId: UUID)
       extends ComponentError("0016", s"Version $versionId of Purpose $purposeId is not in a DRAFT state")
+
+  final case class TenantNotFound(tenantId: UUID)
+      extends ComponentError("0017", s"Tenant ${tenantId.toString} not found")
+
+  final case class TenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0018", s"Tenant kind for tenant ${tenantId.toString} not found")
+
+  final case class RiskAnalysisConfigForTenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0019", s"Risk Analysis Configuration for Tenant ${tenantId.toString} not found")
+
+  final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
+      extends ComponentError(
+        "0020",
+        s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString} not found"
+      )
+
+  final case class RiskAnalysisConfigVersionNotFound(version: String, tenantKind: TenantKind)
+      extends ComponentError(
+        "0021",
+        s"Risk Analysis Configuration version $version for tenant kind ${tenantKind.toString} not found"
+      )
 }

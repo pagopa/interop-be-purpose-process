@@ -12,6 +12,23 @@ object ResponseHandlers extends AkkaResponses {
 
   implicit val serviceCode: ServiceCode = ServiceCode("012")
 
+  def retrieveLatestRiskAnalysisConfigurationResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)  => success(s)
+      case Failure(ex) => internalServerError(ex, logMessage)
+    }
+
+  def retrieveRiskAnalysisConfigurationByVersionResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                                     => success(s)
+      case Failure(ex: RiskAnalysisConfigVersionNotFound) => notFound(ex, logMessage)
+      case Failure(ex)                                    => internalServerError(ex, logMessage)
+    }
+
   def getRiskAnalysisDocumentResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
