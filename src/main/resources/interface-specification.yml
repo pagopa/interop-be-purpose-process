@@ -632,6 +632,34 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /purposes/riskAnalysis/latest:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    get:
+      tags:
+        - purpose
+      operationId: retrieveLatestRiskAnalysisConfiguration
+      description: Retrieve latest risk analysis configuration
+      responses:
+        '200':
+          description: Risk analysis requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAnalysisFormConfigResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'        
 components:
   parameters:
     CorrelationIdHeader:
@@ -646,6 +674,90 @@ components:
       schema:
         type: string
   schemas:
+    RiskAnalysisFormConfigResponse:
+      type: object
+      properties:
+        version: 
+          type: string
+        questions: 
+          type: array
+          items:
+            $ref: '#/components/schemas/FormConfigQuestionResponse'
+      required:
+        - version
+        - questions 
+    FormConfigQuestionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        label: 
+          $ref: '#/components/schemas/LocalizedTextResponse'
+        infoLabel: 
+          $ref: '#/components/schemas/LocalizedTextResponse'
+        dataType: 
+          $ref: '#/components/schemas/DataTypeResponse'
+        required:
+          type: boolean
+        dependencies: 
+          type: array
+          items:
+            $ref: '#/components/schemas/DependencyResponse'
+        visualType:
+          type: string
+        defaultValue:
+          type: array
+          items:
+            type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabeledValueResponse'
+      required:
+        - id
+        - label
+        - dataType
+        - required
+        - dependencies
+        - visualType
+        - defaultValue
+    LabeledValueResponse:
+      type: object
+      properties:
+        label:
+          $ref: '#/components/schemas/LocalizedTextResponse'
+        value:
+          type: string
+      required:
+        - label
+        - value  
+    LocalizedTextResponse:
+      type: object
+      properties:
+        it:
+          type: string
+        en:
+          type: string
+      required:
+        - it
+        - en
+    DataTypeResponse:
+      type: string
+      description: Data Type Question
+      enum:
+        - SINGLE
+        - MULTI
+        - FREETEXT
+    DependencyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        value:
+          type: string
+      required:
+        - id
+        - value
     Agreement:
       type: object
       properties:

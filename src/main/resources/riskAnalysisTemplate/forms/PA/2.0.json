@@ -29,7 +29,7 @@
           "value": "OTHER"
         }
       ],
-      "defaultValue": "INSTITUTIONAL",
+      "defaultValue": ["INSTITUTIONAL"],
       "required": true,
       "dependencies": []
     },
@@ -44,7 +44,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -64,7 +64,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -144,7 +144,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -217,7 +217,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -257,7 +257,7 @@
           "value": "PUBLIC_INTEREST_TASK"
         }
       ],
-      "defaultValue": "RULE_OF_LAW",
+      "defaultValue": ["RULE_OF_LAW"],
       "required": true,
       "dependencies": [
         {
@@ -289,7 +289,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -317,7 +317,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -345,7 +345,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -372,7 +372,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": []
     },
@@ -410,7 +410,7 @@
           "value": "QUANTITY_5001_OVER"
         }
       ],
-      "defaultValue": "QUANTITY_0_TO_100",
+      "defaultValue": ["QUANTITY_0_TO_100"],
       "required": true,
       "dependencies": [
         {
@@ -461,7 +461,7 @@
           "value": "ANONYMOUS"
         }
       ],
-      "defaultValue": "CLEARTEXT",
+      "defaultValue": ["CLEARTEXT"],
       "required": true,
       "dependencies": []
     },
@@ -483,7 +483,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "YES",
+      "defaultValue": ["YES"],
       "required": true,
       "dependencies": []
     },
@@ -502,7 +502,7 @@
       "validation": {
         "maxLength": 250
       },
-      "defaultValue": "",
+      "defaultValue": [],
       "required": true,
       "dependencies": [
         {
@@ -525,7 +525,7 @@
           "value": "true"
         }
       ],
-      "defaultValue": false,
+      "defaultValue": ["false"],
       "required": true,
       "dependencies": []
     },
@@ -551,7 +551,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": []
     },
@@ -577,7 +577,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -604,7 +604,7 @@
           "value": "true"
         }
       ],
-      "defaultValue": false,
+      "defaultValue": ["false"],
       "required": true,
       "dependencies": []
     },
@@ -632,7 +632,7 @@
           "value": "NEW_PERSONAL_DATA"
         }
       ],
-      "defaultValue": "MERE_CORRECTNESS",
+      "defaultValue": ["MERE_CORRECTNESS"],
       "required": true,
       "dependencies": []
     },
@@ -650,7 +650,7 @@
           "value": "true"
         }
       ],
-      "defaultValue": false,
+      "defaultValue": ["false"],
       "required": true,
       "dependencies": [
         {
@@ -677,7 +677,7 @@
           "value": "true"
         }
       ],
-      "defaultValue": false,
+      "defaultValue": ["false"],
       "required": true,
       "dependencies": [
         {
@@ -704,7 +704,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": []
     },
@@ -726,7 +726,7 @@
           "value": "NO"
         }
       ],
-      "defaultValue": "NO",
+      "defaultValue": ["NO"],
       "required": true,
       "dependencies": [
         {
@@ -749,7 +749,7 @@
           "value": "true"
         }
       ],
-      "defaultValue": false,
+      "defaultValue": ["false"],
       "required": true,
       "dependencies": []
     }

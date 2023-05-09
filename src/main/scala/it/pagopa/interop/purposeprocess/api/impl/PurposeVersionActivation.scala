@@ -236,6 +236,7 @@ final case class PurposeVersionActivation(
     * @param documentId Document unique ID
     * @param purpose Purpose of the Version
     * @param version Version to activate
+    * @param kind Tenant kind for validation
     * @return The path of the new document
     */
   def createRiskAnalysisDocument(

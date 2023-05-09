@@ -27,7 +27,8 @@ object RiskAnalysisValidation {
   def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
     kind: TenantKind
   ): ValidationResult[RiskAnalysisFormSeed] = {
-    RiskAnalysisService.riskAnalysisForms
+    RiskAnalysisService
+      .riskAnalysisForms()
       .get(kind)
       .fold[ValidationResult[RiskAnalysisFormSeed]](MissingTenantKindConfiguration(kind).invalidNec)(
         validateLatestVersion(_, kind, schemaOnlyValidation)(form)

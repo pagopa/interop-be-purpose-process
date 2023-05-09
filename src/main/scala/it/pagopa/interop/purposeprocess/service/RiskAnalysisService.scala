@@ -7,12 +7,16 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind.{GSP, PA, PRIV
 import scala.io.Source
 import spray.json._
 
-object RiskAnalysisService {
+trait RiskAnalysisService {
+  def riskAnalysisForms(): Map[TenantKind, Map[String, RiskAnalysisFormConfig]]
+  def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig
+}
 
-  val riskAnalysisTemplatePath: String = "riskAnalysisTemplate/forms"
+object RiskAnalysisService extends RiskAnalysisService {
 
-  // The Map key must correspond to the version field of the risk analysis form
-  val riskAnalysisForms: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
+  private val riskAnalysisTemplatePath: String = "riskAnalysisTemplate/forms"
+
+  private val riskAnalysisFormsMap: Map[TenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
     PA      -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/1.0.json"),
       "2.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PA.toString}/2.0.json")
@@ -24,6 +28,9 @@ object RiskAnalysisService {
       "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${TenantKind.PRIVATE.toString}/1.0.json")
     )
   )
+
+  def riskAnalysisForms(): Map[TenantKind, Map[String, RiskAnalysisFormConfig]] =
+    riskAnalysisFormsMap
 
   def loadRiskAnalysisFormConfig(resourcePath: String): RiskAnalysisFormConfig =
     Source

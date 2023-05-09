@@ -18,12 +18,16 @@ import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupp
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.RiskAnalysisConverter._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeUpdateContentConverter._
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
+import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -98,7 +102,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- PurposeSeedConverter.apiToDependency(seed, schemaOnlyValidation = true)(tenantKind).toFuture
+      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -148,8 +152,8 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- PurposeUpdateContentConverter
-        .apiToDependency(purposeUpdateContent, schemaOnlyValidation = true)(tenantKind)
+      depPayload     <- purposeUpdateContent
+        .apiToDependency(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
@@ -510,8 +514,8 @@ final case class PurposeApiServiceImpl(
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
         tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        apiPurposeSeed <- PurposeSeedConverter
-          .apiToDependency(dependencySeed, schemaOnlyValidation = true)(tenantKind)
+        apiPurposeSeed <- dependencySeed
+          .apiToDependency(schemaOnlyValidation = true)(tenantKind)
           .toFuture
         newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
         dailyCalls            = getDailyCalls(purpose.versions)
@@ -524,6 +528,34 @@ final case class PurposeApiServiceImpl(
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
+
+  override def retrieveLatestRiskAnalysisConfiguration()(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Retrieve latest risk analysis configuration"
+    logger.info(operationLabel)
+
+    val result: Future[RiskAnalysisFormConfigResponse] = for {
+      organizationId                   <- getOrganizationIdFutureUUID(contexts)
+      tenant                           <- tenantManagementService.getTenant(organizationId)
+      kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      kindConfig                       <- RiskAnalysisService
+        .riskAnalysisForms()
+        .get(kind)
+        .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
+      (latest, riskAnalysisFormConfig) <- kindConfig
+        .maxByOption(_._1.toDouble)
+        .toFuture(RiskAnalysisConfigLatestVersionNotFound(kind))
+    } yield riskAnalysisFormConfig.toApi
+
+    onComplete(result) {
+      retrieveLatestRiskAnalysisConfigurationResponse[RiskAnalysisFormConfigResponse](operationLabel)(
+        retrieveLatestRiskAnalysisConfiguration200
+      )
+    }
+  }
 
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)

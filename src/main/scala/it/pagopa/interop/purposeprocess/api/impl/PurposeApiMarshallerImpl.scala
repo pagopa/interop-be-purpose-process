@@ -36,4 +36,7 @@ object PurposeApiMarshallerImpl extends PurposeApiMarshaller with SprayJsonSuppo
 
   override implicit def toEntityMarshallerPurposeVersionDocument: ToEntityMarshaller[PurposeVersionDocument] =
     sprayJsonMarshaller[PurposeVersionDocument]
+
+  override implicit def toEntityMarshallerRiskAnalysisFormConfigResponse
+    : ToEntityMarshaller[RiskAnalysisFormConfigResponse] = sprayJsonMarshaller[RiskAnalysisFormConfigResponse]
 }

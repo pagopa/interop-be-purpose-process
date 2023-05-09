@@ -11,6 +11,7 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDep
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
+import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
 import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
@@ -76,7 +77,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
-
       (mockPurposeManagementService
         .getPurpose(_: UUID)(_: Seq[(String, String)]))
         .expects(purposeId, context)
@@ -513,7 +513,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed, false)(TenantKind.PRIVATE).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -560,7 +560,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
-        .expects(PurposeSeedConverter.apiToDependency(seed, false)(TenantKind.PRIVATE).toOption.get, context)
+        .expects(seed.apiToDependency(false)(TenantKind.PRIVATE).toOption.get, context)
         .once()
         .returns(Future.successful(managementResponse))
 
@@ -1490,7 +1490,65 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         problem.errors.head.code shouldBe "012-0002"
       }
     }
+  }
 
+  "Purpose Risk Analysis Configuration latest version retrieve" should {
+    "succeed when Tenant kind is PA" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PA.some)))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+      }
+    }
+
+    "succeed when Tenant kind is PRIVATE" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.PRIVATE.some)))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
+
+    "succeed when Tenant kind is GSP" in {
+
+      val producerId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(producerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = TenantKind.GSP.some)))
+
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
   }
 
   "Purpose Risk Analysis Document" should {

@@ -9,22 +9,24 @@ import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 
 object PurposeSeedConverter {
 
-  def apiToDependency(seed: PurposeSeed, schemaOnlyValidation: Boolean)(
-    kind: TenantKind
-  ): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
-    for {
-      riskAnalysisFormSeed <- seed.riskAnalysisForm
-        .traverse(
-          RiskAnalysisValidation
-            .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)
-            .leftMap(RiskAnalysisValidationFailed(_))
-            .toEither
-        )
-    } yield DependencyPurposeSeed(
-      eserviceId = seed.eserviceId,
-      consumerId = seed.consumerId,
-      title = seed.title,
-      description = seed.description,
-      riskAnalysisForm = riskAnalysisFormSeed
-    )
+  implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
+    def apiToDependency(
+      schemaOnlyValidation: Boolean
+    )(kind: TenantKind): Either[RiskAnalysisValidationFailed, DependencyPurposeSeed] =
+      for {
+        riskAnalysisFormSeed <- seed.riskAnalysisForm
+          .traverse(
+            RiskAnalysisValidation
+              .validate(_, schemaOnlyValidation)(kind)
+              .leftMap(RiskAnalysisValidationFailed(_))
+              .toEither
+          )
+      } yield DependencyPurposeSeed(
+        eserviceId = seed.eserviceId,
+        consumerId = seed.consumerId,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = riskAnalysisFormSeed
+      )
+  }
 }

@@ -17,9 +17,17 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
+import it.pagopa.interop.purposeprocess.model.{
+  Problem,
+  Purpose,
+  PurposeVersion,
+  PurposeVersionDocument,
+  Purposes,
+  RiskAnalysisFormConfigResponse
+}
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
+
 import org.scalamock.scalatest.MockFactory
 
 import spray.json._
@@ -361,6 +369,8 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
     sprayJsonUnmarshaller[PurposeVersionDocument]
   implicit def fromResponseUnmarshallerPurposes: FromEntityUnmarshaller[Purposes]                             =
     sprayJsonUnmarshaller[Purposes]
+  implicit def fromRiskAnalysisFormConfigResponse: FromEntityUnmarshaller[RiskAnalysisFormConfigResponse]     =
+    sprayJsonUnmarshaller[RiskAnalysisFormConfigResponse]
   implicit def fromResponseUnmarshallerProblem: FromEntityUnmarshaller[Problem]                               =
     sprayJsonUnmarshaller[Problem]
 
