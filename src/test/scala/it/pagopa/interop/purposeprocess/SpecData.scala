@@ -15,7 +15,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
 }
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant}
+import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -49,7 +49,8 @@ object SpecData {
   )
 
   val tenant: Tenant = Tenant(
-    UUID.randomUUID(),
+    id = UUID.randomUUID(),
+    kind = TenantKind.PA.some,
     selfcareId = UUID.randomUUID.toString.some,
     externalId = ExternalId("foo", "bar"),
     features = Nil,
@@ -97,7 +98,7 @@ object SpecData {
   )
 
   val validOnlySchemaManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validOnlySchemaRiskAnalysis1_0, true).toOption.get
+    RiskAnalysisValidation.validate(validOnlySchemaRiskAnalysis1_0, true)(TenantKind.PRIVATE).toOption.get
 
   val validOnlySchemaManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(
@@ -138,7 +139,7 @@ object SpecData {
   )
 
   val validManagementRiskAnalysisSeed: PurposeManagement.RiskAnalysisFormSeed =
-    RiskAnalysisValidation.validate(validRiskAnalysis1_0, false).toOption.get
+    RiskAnalysisValidation.validate(validRiskAnalysis1_0, false)(TenantKind.PRIVATE).toOption.get
 
   val validManagementRiskAnalysis: PurposeManagement.RiskAnalysisForm =
     PurposeManagement.RiskAnalysisForm(

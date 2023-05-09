@@ -15,6 +15,7 @@ import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
+import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -31,7 +32,6 @@ final case class PurposeVersionActivation(
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext) {
-
   private[this] val riskAnalysisTemplate = Source
     .fromResource("riskAnalysisTemplate/index.html")
     .getLines()
@@ -90,6 +90,7 @@ final case class PurposeVersionActivation(
       case (DRAFT, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(
+            organizationId,
             purpose,
             version,
             StateChangeDetails(ChangedBy.CONSUMER, dateTimeSupplier.get()),
@@ -102,6 +103,7 @@ final case class PurposeVersionActivation(
       case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
       case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
         firstVersionActivation(
+          organizationId,
           purpose,
           version,
           StateChangeDetails(ChangedBy.PRODUCER, dateTimeSupplier.get()),
@@ -173,23 +175,24 @@ final case class PurposeVersionActivation(
       maxDailyCallsTotal       = currentDescriptor.dailyCallsTotal
 
     } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
-
   }
 
-  def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
-    tenant <- tenantManagementService.getTenant(tenantId)
+  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+    tenant <- getTenant(tenantId)
   } yield tenant.name
 
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
     *
     * @param contexts Request contexts
+    * @param requesterId The requester
     * @param purpose Purpose of the Version
     * @param version Version to activate
     * @param stateChangeDetails Details on the organization that is performing the action
     * @return The updated Version
     */
   def firstVersionActivation(
+    requesterId: UUID,
     purpose: Purpose,
     version: PurposeVersion,
     stateChangeDetails: StateChangeDetails,
@@ -205,7 +208,9 @@ final case class PurposeVersionActivation(
         producerName = producerDescription,
         consumerName = consumerDescription
       )
-      path <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)
+      tenant     <- getTenant(requesterId)
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(
@@ -238,7 +243,7 @@ final case class PurposeVersionActivation(
     purpose: Purpose,
     version: PurposeVersion,
     eServiceInfo: EServiceInfo
-  ): Future[String] = {
+  )(kind: TenantManagementDependency.TenantKind): Future[String] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
@@ -247,7 +252,7 @@ final case class PurposeVersionActivation(
         version.dailyCalls,
         eServiceInfo,
         LanguageIt // TODO Language should be a request parameter
-      )
+      )(kind)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
       path <- fileManager.store(ApplicationConfiguration.storageContainer, ApplicationConfiguration.storagePath)(
         documentId.toString,
@@ -255,4 +260,10 @@ final case class PurposeVersionActivation(
       )
     } yield path
   }
+
+  private def getTenant(
+    tenantId: UUID
+  )(implicit contexts: Seq[(String, String)]): Future[TenantManagementDependency.Tenant] = for {
+    tenant <- tenantManagementService.getTenant(tenantId)
+  } yield tenant
 }

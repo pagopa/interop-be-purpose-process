@@ -12,6 +12,7 @@ import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisRules.{DependencyEntry, ValidationEntry}
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import spray.json._
 
 object RiskAnalysisValidation {
@@ -20,21 +21,43 @@ object RiskAnalysisValidation {
 
   /** Validate a Process risk analysis form and returns the same in the Management format
     * @param form Risk Analysis Form
+    * @param kind The Tenant Kind
+    * @return Validated risk analysis
+    */
+  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
+    kind: TenantKind
+  ): ValidationResult[RiskAnalysisFormSeed] = {
+    RiskAnalysisService.riskAnalysisForms
+      .get(kind)
+      .fold[ValidationResult[RiskAnalysisFormSeed]](MissingTenantKindConfiguration(kind).invalidNec)(
+        validateLatestVersion(_, kind, schemaOnlyValidation)(form)
+      )
+  }
+
+  /** Validate a Process risk analysis form and returns the same in the Management format
+    * @param versions Versions for this Tenant Kind
+    * @param tenantkind Tenant Kind
+    * @param form Risk Analysis Form
     * @param schemaOnlyValidation flag indicating if should validate only schema
     * @return Validated risk analysis
     */
-  def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean): ValidationResult[RiskAnalysisFormSeed] =
-    getRules(form.version).andThen(validateFormWithRules(_, form = sanitize(form), schemaOnlyValidation))
+  private def validateLatestVersion(
+    versions: Map[String, RiskAnalysisFormConfig],
+    tenantkind: TenantKind,
+    schemaOnlyValidation: Boolean
+  )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
+    val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))
 
-  private def sanitize(form: RiskAnalysisForm): RiskAnalysisForm =
-    form.copy(answers = form.answers.filter(_._2.nonEmpty))
+    val validationRules: ValidationResult[List[ValidationEntry]] =
+      versions
+        .maxByOption(_._1.toDouble)
+        .fold[ValidationResult[List[ValidationEntry]]](NoTemplateVersionFound(tenantkind).invalidNec)(v =>
+          if (v._1 == form.version) configsToRules(v._2).validNec
+          else UnexpectedTemplateVersion(form.version).invalidNec
+        )
 
-  private def getRules(version: String): ValidationResult[List[ValidationEntry]] =
-    RiskAnalysisService.riskAnalysisForms
-      .get(version)
-      .fold[ValidationResult[List[ValidationEntry]]](UnexpectedTemplateVersion(version).invalidNec)(
-        configsToRules(_).validNec
-      )
+    validationRules.andThen(validateFormWithRules(_, sanitizedForm, schemaOnlyValidation))
+  }
 
   private def validateFormWithRules(
     validationRules: List[ValidationEntry],
@@ -113,6 +136,7 @@ object RiskAnalysisValidation {
   }
 
   /** Convert a form answer to a Management answer
+    * @param rule Validation Entry
     * @param fieldName form field name
     * @param value form field value
     * @return Either for the validation of the SingleAnswer (Left) or MultiAnswer (Right)

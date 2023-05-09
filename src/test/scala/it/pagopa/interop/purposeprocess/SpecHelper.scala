@@ -19,7 +19,9 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFou
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
 import it.pagopa.interop.purposeprocess.model.{Problem, Purpose, PurposeVersion, PurposeVersionDocument, Purposes}
 import it.pagopa.interop.purposeprocess.service._
+import it.pagopa.interop.tenantmanagement.client.model.{Tenant, TenantKind}
 import org.scalamock.scalatest.MockFactory
+
 import spray.json._
 
 import java.io.{ByteArrayOutputStream, File}
@@ -167,12 +169,12 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .once()
       .returns(Future.successful(result))
 
-  def mockTenantRetrieve(tenantId: UUID) =
+  def mockTenantRetrieve(tenantId: UUID, result: Tenant) =
     (mockTenantManagementService
       .getTenant(_: UUID)(_: Seq[(String, String)]))
       .expects(tenantId, *)
       .once()
-      .returns(Future.successful(SpecData.tenant.copy(id = tenantId)))
+      .returns(Future.successful(result))
 
   def mockRiskAnalysisPdfCreation() = {
     val documentId = UUID.randomUUID()
@@ -181,13 +183,16 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
     (mockPdfCreator
-      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language))
-      .expects(*, *, *, *, *)
+      .createDocument(_: String, _: PurposeManagement.RiskAnalysisForm, _: Int, _: EServiceInfo, _: Language)(
+        _: TenantKind
+      ))
+      .expects(*, *, *, *, *, *)
       .returning(Future.successful(tempFile))
       .once()
   }
 
   def mockVersionFirstActivation(
+    requesterId: UUID,
     purposeId: UUID,
     versionId: UUID,
     producerId: UUID,
@@ -200,6 +205,7 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     mockOrganizationRetrieve(producerId)
     mockOrganizationRetrieve(consumerId)
+    mockOrganizationRetrieve(requesterId)
 
     (mockPurposeManagementService
       .activatePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload)(

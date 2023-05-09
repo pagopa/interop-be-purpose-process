@@ -52,4 +52,10 @@ object PurposeProcessErrors {
 
   final case class PurposeVersionNotInDraftState(purposeId: UUID, versionId: UUID)
       extends ComponentError("0016", s"Version $versionId of Purpose $purposeId is not in a DRAFT state")
+
+  final case class TenantNotFound(tenantId: UUID)
+      extends ComponentError("0017", s"Tenant ${tenantId.toString} not found")
+
+  final case class TenantKindNotFound(tenantId: UUID)
+      extends ComponentError("0018", s"Tenant kind for tenant ${tenantId.toString} not found")
 }

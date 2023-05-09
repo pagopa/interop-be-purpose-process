@@ -9,6 +9,7 @@ import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
+import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.util.FakeDependencies._
 import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
@@ -56,7 +57,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
           dailyCalls: Int,
           eServiceInfo: EServiceInfo,
           language: Language
-        ): Future[File] = Future.successful(File.createTempFile("full", "fake"))
+        )(kind: TenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {
         override def get: UUID = UUID.randomUUID()
