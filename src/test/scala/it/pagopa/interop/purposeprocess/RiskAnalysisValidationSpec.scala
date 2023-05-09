@@ -76,7 +76,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "succeed on correct form 1.0 on tenant kind PRIVATE" in {
-      val riskAnalysis = SpecData.validRiskAnalysis1_0_Private
+      val riskAnalysis = SpecData.validRiskAnalysis2_0_Private
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -114,7 +114,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "succeed on correct form 1.0 only schema on tenant kind PRIVATE" in {
-      val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis1_0
+      val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis2_0
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -130,7 +130,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "succeed on correct form 1.0 on tenant kind GSP" in {
-      val riskAnalysis = SpecData.validRiskAnalysis1_0_Private
+      val riskAnalysis = SpecData.validRiskAnalysis2_0_Private
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -168,7 +168,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "succeed on correct form 1.0 only schema on tenant kind GSP" in {
-      val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis1_0
+      val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis2_0
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
@@ -262,7 +262,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "succeed only schema (complete validation should fail because provided answer depends on an existing field with an unexpected value)" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose"                  -> List("INSTITUTIONAL"),
           "institutionalPurpose"     -> List("institutionalPurpose"),
@@ -343,7 +343,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail on unexpected field name in only schema validation" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose1"                   -> List("purpose"),
           "usesPersonalData"           -> List("NO"),
@@ -362,7 +362,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail on unexpected field value in only schema validation" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose"                    -> List("purpose"),
           "usesPersonalData"           -> List("pippo"),
