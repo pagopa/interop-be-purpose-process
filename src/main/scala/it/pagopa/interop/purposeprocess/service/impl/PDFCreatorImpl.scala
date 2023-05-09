@@ -41,6 +41,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     eServiceInfo: EServiceInfo,
     language: Language
   )(kind: TenantKind): Future[File] =
+  )(kind: TenantKind): Future[File] =
     Future.fromTry {
       for {
         file       <- createTempFile
