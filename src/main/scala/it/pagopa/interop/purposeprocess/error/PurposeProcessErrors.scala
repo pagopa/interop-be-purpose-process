@@ -74,4 +74,8 @@ object PurposeProcessErrors {
         "0021",
         s"Risk Analysis Configuration version $version for tenant kind ${tenantKind.toString} not found"
       )
+
+  final case class DuplicatedPurposeName(name: String)
+      extends ComponentError("0022", s"Purpose with name: $name already in use")
+
 }

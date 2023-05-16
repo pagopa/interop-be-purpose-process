@@ -49,6 +49,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: RiskAnalysisValidationFailed) => badRequest(ex, logMessage)
       case Failure(ex: AgreementNotFound)            => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer) => forbidden(ex, logMessage)
+      case Failure(ex: DuplicatedPurposeName)        => conflict(ex, logMessage)
       case Failure(ex)                               => internalServerError(ex, logMessage)
     }
 

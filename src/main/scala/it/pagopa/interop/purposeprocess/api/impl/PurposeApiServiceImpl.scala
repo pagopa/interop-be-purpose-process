@@ -108,9 +108,25 @@ final case class PurposeApiServiceImpl(
         seed.consumerId,
         OPERATIVE_AGREEMENT_STATES
       )
-      _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      purpose <- purposeManagementService.createPurpose(clientSeed)
+      agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
+      maybePurpose <- ReadModelQueries
+        .listPurposes(
+          organizationId,
+          seed.title.some,
+          List(agreement.eserviceId.toString),
+          List(agreement.consumerId.toString),
+          List(agreement.producerId.toString),
+          List.empty,
+          false,
+          0,
+          1,
+          exactMatchOnTitle = true
+        )(readModel)
+        .map(_.results.headOption)
+      _            <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
+      purpose      <- purposeManagementService.createPurpose(clientSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+
     } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
@@ -132,7 +148,6 @@ final case class PurposeApiServiceImpl(
       depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
       version <- purposeManagementService.createPurposeVersion(purposeUUID, depSeed)
     } yield PurposeVersionConverter.dependencyToApi(version)
-
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion201) }
   }
 
