@@ -6,6 +6,7 @@ import cats.implicits._
 import it.pagopa.interop.commons.utils.errors.{Problem => CommonProblem}
 import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagementDependency}
+import it.pagopa.interop.purposemanagement.client
 import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
@@ -23,6 +24,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import spray.json.JsonReader
+import it.pagopa.interop.purposemanagement.client.model.{PurposeSeed => DependencyPurposeSeed}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
@@ -727,10 +729,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
-      val requesterId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: PurposeSeed = PurposeSeed(
         eserviceId = eServiceId,
@@ -742,6 +743,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val purpose = SpecData.persistentPurpose.copy(consumerId = consumerId, eserviceId = eServiceId)
       val purposes: Seq[PersistentPurpose] = Seq(purpose)
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(consumerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = TenantKind.PA.some)))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
 
       // Data retrieve
       (mockReadModel
@@ -759,6 +768,65 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Conflict
         responseAs[Problem].status shouldBe 409
+      }
+    }
+
+    "succeed if there is no purpose with the same title" in {
+
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      val dependencySeed: DependencyPurposeSeed = DependencyPurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = None
+      )
+
+      val purpose: client.model.Purpose    = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
+      val purposes: Seq[PersistentPurpose] = List.empty
+
+      (mockTenantManagementService
+        .getTenant(_: UUID)(_: Seq[(String, String)]))
+        .expects(consumerId, context)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = TenantKind.PA.some)))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementManagementDependency.AgreementState.ACTIVE))
+
+      // Data retrieve
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("purposes", *, 0, 1, *, *)
+        .once()
+        .returns(Future.successful(purposes))
+      // Total count
+      (mockReadModel
+        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
+        .expects("purposes", *, 0, Int.MaxValue, *, *)
+        .once()
+        .returns(Future.successful(Seq(TotalCountResult(0))))
+
+      (mockPurposeManagementService
+        .createPurpose(_: DependencyPurposeSeed)(_: Seq[(String, String)]))
+        .expects(dependencySeed, context)
+        .once()
+        .returns(Future.successful(purpose))
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.Created
       }
     }
 

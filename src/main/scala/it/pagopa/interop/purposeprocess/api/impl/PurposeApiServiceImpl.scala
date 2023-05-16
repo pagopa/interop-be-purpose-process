@@ -111,7 +111,7 @@ final case class PurposeApiServiceImpl(
       agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
       maybePurpose <- ReadModelQueries
         .listPurposes(
-          organizationId,
+          seed.consumerId,
           seed.title.some,
           List(agreement.eserviceId.toString),
           List(agreement.consumerId.toString),
@@ -122,7 +122,9 @@ final case class PurposeApiServiceImpl(
           1,
           exactMatchOnTitle = true
         )(readModel)
-        .map(_.results.headOption)
+        .map(_.results.headOption.map(_.title))
+
+      // _ <- if (maybePurpose.contains(seed.title)) Future.failed(DuplicatedPurposeName(seed.title)) else Future.unit
       _            <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
       purpose      <- purposeManagementService.createPurpose(clientSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)

@@ -29,9 +29,7 @@ object ReadModelQueries {
     limit: Int,
     exactMatchOnTitle: Boolean = false
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val simpleFilters: Bson =
-      if (exactMatchOnTitle) listPurposesFilters(name, eServicesIds, consumersIds, states, true)
-      else listPurposesFilters(name, eServicesIds, consumersIds, states)
+    val simpleFilters: Bson = listPurposesFilters(name, eServicesIds, consumersIds, states, exactMatchOnTitle)
     val query: Seq[Bson]    = Seq(
       `match`(simpleFilters),
       lookup("eservices", "data.eserviceId", "data.id", "eservices"),
@@ -90,7 +88,7 @@ object ReadModelQueries {
     eServicesIds: List[String],
     consumersIds: List[String],
     states: List[PurposeVersionState],
-    exactMatchOnTitle: Boolean = false
+    exactMatchOnTitle: Boolean
   ): Bson = {
     // Takes purposes that contain only version with state Archived
     // (purposes that contain version with state == Archived but not versions with state != Archived)
@@ -116,8 +114,8 @@ object ReadModelQueries {
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val nameFilter         =
-      if (exactMatchOnTitle) name.map(Filters.eq("data.title", _)) else name.map(Filters.regex("data.title", _, "i"))
-
+      if (exactMatchOnTitle) name.map(n => Filters.regex("data.name", s"^$n$$", "i"))
+      else name.map(Filters.regex("data.name", _, "i"))
     mapToVarArgs(
       eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList // :+ permissionFilter
     )(Filters.and).getOrElse(Filters.empty())
