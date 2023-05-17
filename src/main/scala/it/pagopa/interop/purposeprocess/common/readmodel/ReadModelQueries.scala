@@ -113,11 +113,11 @@ object ReadModelQueries {
     val statesFilter       = mapToVarArgs(statesPartialFilter ++ archivedStatePartialFilter)(Filters.or)
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
-    val nameFilter         =
+    val titleFilter        =
       if (exactMatchOnTitle) name.map(n => Filters.regex("data.title", s"^$n$$", "i"))
       else name.map(Filters.regex("data.title", _, "i"))
     mapToVarArgs(
-      eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ nameFilter.toList // :+ permissionFilter
+      eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ titleFilter.toList // :+ permissionFilter
     )(Filters.and).getOrElse(Filters.empty())
   }
 

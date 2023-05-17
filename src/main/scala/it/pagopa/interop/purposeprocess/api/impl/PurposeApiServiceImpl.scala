@@ -124,9 +124,8 @@ final case class PurposeApiServiceImpl(
         )(readModel)
         .map(_.results.headOption)
 
-      // _ <- if (maybePurpose.contains(seed.title)) Future.failed(DuplicatedPurposeName(seed.title)) else Future.unit
-      _            <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
-      purpose      <- purposeManagementService.createPurpose(clientSeed)
+      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
+      purpose <- purposeManagementService.createPurpose(clientSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
 
     } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
