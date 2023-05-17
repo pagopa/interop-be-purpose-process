@@ -116,13 +116,13 @@ final case class PurposeApiServiceImpl(
           List(agreement.eserviceId.toString),
           List(agreement.consumerId.toString),
           List(agreement.producerId.toString),
-          List.empty,
-          false,
-          0,
-          1,
+          states = List.empty,
+          excludeDraft = false,
+          offset = 0,
+          limit = 1,
           exactMatchOnTitle = true
         )(readModel)
-        .map(_.results.headOption.map(_.title))
+        .map(_.results.headOption)
 
       // _ <- if (maybePurpose.contains(seed.title)) Future.failed(DuplicatedPurposeName(seed.title)) else Future.unit
       _            <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
