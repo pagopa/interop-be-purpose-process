@@ -1068,7 +1068,6 @@ components:
           maxLength: 250
         isFreeOfCharge:
           type: boolean
-          default: true
         freeOfChargeReason:
           type: string
       required:
