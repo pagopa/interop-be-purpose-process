@@ -59,7 +59,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       val purposeCloned = PurposeManagementDependency.Purpose(
@@ -73,7 +74,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -146,7 +148,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       val purposeCloned = PurposeManagementDependency.Purpose(
@@ -160,7 +163,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -234,7 +238,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       val purposeCloned = PurposeManagementDependency.Purpose(
@@ -248,7 +253,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PA.some))
@@ -312,7 +318,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = None,
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       val purposeCloned = PurposeManagementDependency.Purpose(
@@ -326,7 +333,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = None,
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       val purposeSeed = PurposeManagementDependency.PurposeSeed(
@@ -334,7 +342,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = purposeToClone.consumerId,
         riskAnalysisForm = None,
         title = s"${purposeToClone.title} - clone",
-        description = purposeToClone.description
+        description = purposeToClone.description,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -408,7 +417,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -457,7 +467,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -491,7 +502,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = None
+        riskAnalysisForm = None,
+        isFreeOfCharge = false
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -505,7 +517,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = seed.description,
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PA)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -537,7 +550,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        isFreeOfCharge = false
       )
 
       val managementResponse = PurposeManagementDependency.Purpose(
@@ -551,7 +565,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         description = seed.description,
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -582,7 +597,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private)
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -599,6 +615,30 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
         problem.errors.head.code shouldBe "012-0005"
+      }
+    }
+
+    "fail when is free of charge but without free of charge reason agreement " in {
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: PurposeSeed = PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        isFreeOfCharge = true
+      )
+
+      Get() ~> service.createPurpose(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0022"
       }
     }
 
@@ -621,7 +661,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(incorrectRiskAnalysis)
+        riskAnalysisForm = Some(incorrectRiskAnalysis),
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -647,7 +688,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = None
+        riskAnalysisForm = None,
+        isFreeOfCharge = false
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
@@ -681,7 +723,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = None
+        riskAnalysisForm = None,
+        isFreeOfCharge = false
       )
 
       Get() ~> service.createPurpose(seed) ~> check {

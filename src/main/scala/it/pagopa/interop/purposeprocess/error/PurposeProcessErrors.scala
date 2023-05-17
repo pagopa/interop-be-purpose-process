@@ -74,4 +74,6 @@ object PurposeProcessErrors {
         "0021",
         s"Risk Analysis Configuration version $version for tenant kind ${tenantKind.toString} not found"
       )
+
+  object MissingFreeOfChargeReason extends ComponentError("0022", s"Missing Free Of Charge Reason")
 }

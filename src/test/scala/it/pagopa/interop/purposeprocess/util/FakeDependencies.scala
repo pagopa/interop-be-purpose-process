@@ -34,7 +34,8 @@ object FakeDependencies {
         description = "???",
         riskAnalysisForm = None,
         createdAt = OffsetDateTime.now(),
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
     )
 
@@ -63,7 +64,8 @@ object FakeDependencies {
         description = "???",
         riskAnalysisForm = None,
         createdAt = OffsetDateTime.now(),
-        updatedAt = None
+        updatedAt = None,
+        isFreeOfCharge = false
       )
     )
 
@@ -80,7 +82,8 @@ object FakeDependencies {
           description = "???",
           riskAnalysisForm = None,
           createdAt = OffsetDateTime.now(),
-          updatedAt = None
+          updatedAt = None,
+          isFreeOfCharge = false
         )
       )
 
