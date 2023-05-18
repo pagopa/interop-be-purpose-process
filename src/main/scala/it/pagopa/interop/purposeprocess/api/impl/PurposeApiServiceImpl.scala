@@ -100,11 +100,13 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      _      <- if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason) else Future.unit
-      tenant <- tenantManagementService.getTenant(organizationId)
-      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
-      agreements <- agreementManagementService.getAgreements(
+      _              <-
+        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+        else Future.unit
+      tenant         <- tenantManagementService.getTenant(organizationId)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
+      agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
         OPERATIVE_AGREEMENT_STATES
