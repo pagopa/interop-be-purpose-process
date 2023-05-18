@@ -100,7 +100,7 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      _      <- Future.failed(MissingFreeOfChargeReason) whenA (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty)
+      _      <- if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason) else Future.unit
       tenant <- tenantManagementService.getTenant(organizationId)
       tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       clientSeed <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
