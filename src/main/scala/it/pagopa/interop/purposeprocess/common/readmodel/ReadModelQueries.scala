@@ -19,7 +19,7 @@ object ReadModelQueries {
 
   def listPurposes(
     requesterId: UUID,
-    name: Option[String],
+    title: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
     producersIds: List[String],
@@ -29,7 +29,7 @@ object ReadModelQueries {
     limit: Int,
     exactMatchOnTitle: Boolean = false
   )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
-    val simpleFilters: Bson = listPurposesFilters(name, eServicesIds, consumersIds, states, exactMatchOnTitle)
+    val simpleFilters: Bson = listPurposesFilters(title, eServicesIds, consumersIds, states, exactMatchOnTitle)
     val query: Seq[Bson]    = Seq(
       `match`(simpleFilters),
       lookup("eservices", "data.eserviceId", "data.id", "eservices"),
@@ -84,7 +84,7 @@ object ReadModelQueries {
   }
 
   private def listPurposesFilters(
-    name: Option[String],
+    title: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
     states: List[PurposeVersionState],
@@ -114,8 +114,8 @@ object ReadModelQueries {
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val titleFilter        =
-      if (exactMatchOnTitle) name.map(n => Filters.regex("data.title", s"^$n$$", "i"))
-      else name.map(Filters.regex("data.title", _, "i"))
+      if (exactMatchOnTitle) title.map(n => Filters.regex("data.title", s"^$n$$", "i"))
+      else title.map(Filters.regex("data.title", _, "i"))
     mapToVarArgs(
       eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ titleFilter.toList // :+ permissionFilter
     )(Filters.and).getOrElse(Filters.empty())
