@@ -19,7 +19,9 @@ object PurposeConverter {
       riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt,
-      isRiskAnalysisValid = isRiskAnalysisValid
+      isRiskAnalysisValid = isRiskAnalysisValid,
+      isFreeOfCharge = purpose.isFreeOfCharge,
+      freeOfChargeReason = purpose.freeOfChargeReason
     )
   }
 
@@ -37,8 +39,9 @@ object PurposeConverter {
       createdAt = purpose.createdAt,
       updatedAt = purpose.updatedAt,
       isRiskAnalysisValid =
-        false // Ugly fake value here, but I see the point in removing a not required activity that may impact performances in listing.
-
+        false, // Ugly fake value here, but I see the point in removing a not required activity that may impact performances in listing.
+      isFreeOfCharge = purpose.isFreeOfCharge,
+      freeOfChargeReason = purpose.freeOfChargeReason
     )
   }
 }

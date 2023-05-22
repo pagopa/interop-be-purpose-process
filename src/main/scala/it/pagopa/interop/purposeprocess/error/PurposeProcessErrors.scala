@@ -78,4 +78,5 @@ object PurposeProcessErrors {
   final case class DuplicatedPurposeName(name: String)
       extends ComponentError("0022", s"Purpose with name: $name already in use")
 
+  object MissingFreeOfChargeReason extends ComponentError("0023", s"Missing Free Of Charge Reason")
 }
