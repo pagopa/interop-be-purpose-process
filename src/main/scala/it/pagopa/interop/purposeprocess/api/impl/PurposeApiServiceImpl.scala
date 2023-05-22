@@ -100,6 +100,9 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      _              <-
+        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+        else Future.unit
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
@@ -108,9 +111,26 @@ final case class PurposeApiServiceImpl(
         seed.consumerId,
         OPERATIVE_AGREEMENT_STATES
       )
-      _       <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
+      agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
+      maybePurpose <- ReadModelQueries
+        .listPurposes(
+          seed.consumerId,
+          seed.title.some,
+          List(agreement.eserviceId.toString),
+          List(agreement.consumerId.toString),
+          List(agreement.producerId.toString),
+          states = List.empty,
+          excludeDraft = false,
+          offset = 0,
+          limit = 1,
+          exactMatchOnTitle = true
+        )(readModel)
+        .map(_.results.headOption)
+
+      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
       purpose <- purposeManagementService.createPurpose(clientSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+
     } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
@@ -132,7 +152,6 @@ final case class PurposeApiServiceImpl(
       depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
       version <- purposeManagementService.createPurposeVersion(purposeUUID, depSeed)
     } yield PurposeVersionConverter.dependencyToApi(version)
-
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion201) }
   }
 
@@ -488,7 +507,9 @@ final case class PurposeApiServiceImpl(
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
           title = s"${purpose.title} - clone",
-          description = purpose.description
+          description = purpose.description,
+          isFreeOfCharge = purpose.isFreeOfCharge,
+          freeOfChargeReason = purpose.freeOfChargeReason
         )
 
       def getDailyCalls(versions: Seq[PurposeManagementDependency.PurposeVersion]): Int = {

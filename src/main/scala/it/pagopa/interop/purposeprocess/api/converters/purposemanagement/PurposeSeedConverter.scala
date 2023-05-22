@@ -26,7 +26,9 @@ object PurposeSeedConverter {
         consumerId = seed.consumerId,
         title = seed.title,
         description = seed.description,
-        riskAnalysisForm = riskAnalysisFormSeed
+        riskAnalysisForm = riskAnalysisFormSeed,
+        isFreeOfCharge = seed.isFreeOfCharge,
+        freeOfChargeReason = seed.freeOfChargeReason
       )
   }
 }
