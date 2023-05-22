@@ -923,6 +923,10 @@ components:
           format: date-time
         isRiskAnalysisValid:
           type: boolean
+        isFreeOfCharge:
+          type: boolean
+        freeOfChargeReason:
+          type: string  
       required:
         - id
         - eserviceId
@@ -932,6 +936,7 @@ components:
         - description
         - createdAt
         - isRiskAnalysisValid
+        - isFreeOfCharge
       description: business representation of a purpose
     Purposes:
       type: object
@@ -1067,11 +1072,16 @@ components:
           type: string
           minLength: 10
           maxLength: 250
+        isFreeOfCharge:
+          type: boolean
+        freeOfChargeReason:
+          type: string
       required:
         - eserviceId
         - consumerId
         - title
         - description
+        - isFreeOfCharge
     PurposeVersionSeed:
       type: object
       description: contains the expected payload for purpose version creation.

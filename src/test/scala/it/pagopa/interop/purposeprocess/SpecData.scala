@@ -208,7 +208,8 @@ object SpecData {
     description = "A description",
     riskAnalysisForm = Some(validManagementRiskAnalysis(TenantKind.PRIVATE)),
     createdAt = timestamp,
-    updatedAt = None
+    updatedAt = None,
+    isFreeOfCharge = false
   )
 
   val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
@@ -246,7 +247,9 @@ object SpecData {
     description = "A description",
     riskAnalysisForm = Some(validPersistentRiskAnalysis(TenantKind.PA)),
     createdAt = timestamp,
-    updatedAt = None
+    updatedAt = None,
+    isFreeOfCharge = false,
+    freeOfChargeReason = None
   )
 
   def draftUpdate(dailyCalls: Int): DraftPurposeVersionUpdateContent = DraftPurposeVersionUpdateContent(dailyCalls)

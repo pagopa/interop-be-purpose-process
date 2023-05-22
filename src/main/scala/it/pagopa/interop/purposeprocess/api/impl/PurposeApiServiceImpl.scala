@@ -100,6 +100,9 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      _              <-
+        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+        else Future.unit
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
@@ -507,7 +510,9 @@ final case class PurposeApiServiceImpl(
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
           title = s"${purpose.title} - clone",
-          description = purpose.description
+          description = purpose.description,
+          isFreeOfCharge = purpose.isFreeOfCharge,
+          freeOfChargeReason = purpose.freeOfChargeReason
         )
 
       def getDailyCalls(versions: Seq[PurposeManagementDependency.PurposeVersion]): Int = {
