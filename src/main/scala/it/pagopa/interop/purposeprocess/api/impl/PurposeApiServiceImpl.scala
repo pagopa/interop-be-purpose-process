@@ -336,13 +336,16 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
-      _              <- riskAnalysisForm
-        .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
-        .leftMap(RiskAnalysisValidationFailed(_))
-        .toEither
-        .toFuture
       version        <- getVersion(purpose, versionUUID)
+      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
+      _              <-
+        if (version.state == PurposeManagementDependency.PurposeVersionState.SUSPENDED) Future.unit
+        else
+          riskAnalysisForm
+            .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
+            .leftMap(RiskAnalysisValidationFailed(_))
+            .toEither
+            .toFuture
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
