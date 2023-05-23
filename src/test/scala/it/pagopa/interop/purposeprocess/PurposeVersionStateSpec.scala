@@ -326,6 +326,65 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       }
     }
 
+    "succeed from Suspended if risk analysis form is not valid" in {
+      val validRiskAnalysisForm = SpecData.validManagementRiskAnalysis(TenantKind.PRIVATE)
+
+      val eServiceId   = UUID.randomUUID()
+      val consumerId   = UUID.randomUUID()
+      val purposeId    = UUID.randomUUID()
+      val versionId    = UUID.randomUUID()
+      val descriptorId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val version = SpecData.purposeVersion.copy(
+        id = versionId,
+        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        dailyCalls = 1000
+      )
+      val purpose = SpecData.purpose.copy(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq(version),
+        suspendedByConsumer = Some(true),
+        riskAnalysisForm = validRiskAnalysisForm.copy(version = "9999").some
+      )
+
+      val version2_1 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
+        state = PurposeManagement.PurposeVersionState.ACTIVE,
+        dailyCalls = 2000
+      )
+      val version2_2 = SpecData.purposeVersion.copy(
+        id = UUID.randomUUID(),
+        state = PurposeManagement.PurposeVersionState.SUSPENDED,
+        dailyCalls = 10000000
+      )
+      val purpose2   =
+        SpecData.purpose.copy(eserviceId = eServiceId, consumerId = consumerId, versions = Seq(version2_1, version2_2))
+      val purposes   = SpecData.purposes.copy(purposes = Seq(purpose, purpose2))
+
+      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
+      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
+
+      val updatedVersion = version.copy(state = PurposeManagement.PurposeVersionState.ACTIVE)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = TenantKind.PRIVATE.some))
+
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+      mockEServiceRetrieve(eServiceId, eService)
+      mockVersionLoadValidation(purpose, purposes, descriptorId)
+      mockVersionActivate(purposeId, versionId, updatedVersion)
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.ACTIVE)
+
+      Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[PurposeVersion] shouldEqual PurposeVersionConverter.dependencyToApi(updatedVersion)
+      }
+    }
+
     "fail if risk analysis form is not valid on Version activation" in {
       val eServiceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
