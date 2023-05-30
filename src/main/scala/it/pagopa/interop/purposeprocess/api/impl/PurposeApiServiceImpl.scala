@@ -66,7 +66,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersionDocument: ToEntityMarshaller[PurposeVersionDocument],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieving Risk Analysis document $documentId for Purpose $purposeId and Version $versionId"
     logger.info(operationLabel)
 
@@ -185,7 +185,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
@@ -238,7 +238,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
     val operationLabel =
       s"Retrieving Purposes for name $name, EServices $eServicesIds, Consumers $consumersIds, Producers $producersIds"
 
@@ -556,7 +556,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieve latest risk analysis configuration"
     logger.info(operationLabel)
 
@@ -584,7 +584,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, SUPPORT_ROLE) {
     val operationLabel = s"Retrieve version $riskAnalysisVersion of risk analysis configuration"
     logger.info(operationLabel)
 

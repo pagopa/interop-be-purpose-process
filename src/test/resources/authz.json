@@ -13,7 +13,8 @@
         "admin",
         "api",
         "security",
-        "m2m"
+        "m2m",
+        "support"
       ],
       "route": "getPurpose"
     },
@@ -72,7 +73,8 @@
         "admin",
         "api",
         "security",
-        "m2m"
+        "m2m",
+        "support"
       ],
       "route": "getPurposes"
     },
@@ -107,21 +109,24 @@
     {
       "verb": "GET",
       "roles": [
-        "admin"
+        "admin",
+        "support"
       ],
       "route": "getRiskAnalysisDocument"
     },
     {
       "verb": "GET",
       "roles": [
-        "admin"
+        "admin",
+        "support"
       ],
       "route": "retrieveLatestRiskAnalysisConfiguration"
     },
     {
       "verb": "GET",
       "roles": [
-        "admin"
+        "admin",
+        "support"
       ],
       "route": "retrieveRiskAnalysisConfigurationByVersion"
     }
