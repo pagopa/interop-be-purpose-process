@@ -119,7 +119,7 @@ paths:
       operationId: createPurpose
       description: Creates the Purpose
       responses:
-        '201':
+        '200':
           description: Purpose created
           content:
             application/json:
@@ -251,7 +251,7 @@ paths:
       operationId: createPurposeVersion
       description: Creates a draft Purpose Version
       responses:
-        '201':
+        '200':
           description: Purpose created
           content:
             application/json:
