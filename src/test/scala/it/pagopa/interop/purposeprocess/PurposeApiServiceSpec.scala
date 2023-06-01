@@ -549,7 +549,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(managementResponse))
 
       Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
@@ -613,7 +613,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(managementResponse))
 
       Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         responseAs[Purpose].id shouldEqual managementResponse.id
       }
     }
@@ -872,7 +872,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.successful(purpose))
 
       Get() ~> service.createPurpose(seed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
       }
     }
 
@@ -1418,7 +1418,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val expected: PurposeVersion = PurposeVersionConverter.dependencyToApi(managementResponse)
 
       Get() ~> service.createPurposeVersion(purposeId.toString, seed) ~> check {
-        status shouldEqual StatusCodes.Created
+        status shouldEqual StatusCodes.OK
         responseAs[PurposeVersion] shouldEqual expected
       }
     }

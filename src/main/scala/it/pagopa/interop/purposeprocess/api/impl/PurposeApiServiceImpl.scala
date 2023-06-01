@@ -133,7 +133,7 @@ final case class PurposeApiServiceImpl(
 
     } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
-    onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose201) }
+    onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose200) }
   }
 
   override def createPurposeVersion(purposeId: String, seed: PurposeVersionSeed)(implicit
@@ -152,7 +152,7 @@ final case class PurposeApiServiceImpl(
       depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
       version <- purposeManagementService.createPurposeVersion(purposeUUID, depSeed)
     } yield PurposeVersionConverter.dependencyToApi(version)
-    onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion201) }
+    onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
   override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
