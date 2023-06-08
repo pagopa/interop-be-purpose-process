@@ -748,6 +748,15 @@ components:
           type: array
           items:
             type: string
+        hideOption:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/HideOptionResponse'
+        validation:
+          type: object
+          $ref: '#/components/schemas/ValidationOptionResponse'                
         options:
           type: array
           items:
@@ -760,6 +769,22 @@ components:
         - dependencies
         - visualType
         - defaultValue
+    ValidationOptionResponse:
+        type: object
+        properties:
+          maxLength:
+            type: integer
+            format: int32
+    HideOptionResponse:
+        type: object
+        properties:
+          id:
+            type: string
+          value:
+            type: string
+        required:
+          - id
+          - value    
     LabeledValueResponse:
       type: object
       properties:

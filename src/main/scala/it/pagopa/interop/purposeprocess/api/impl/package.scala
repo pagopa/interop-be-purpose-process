@@ -40,8 +40,12 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
     jsonFormat2(LocalizedTextResponse)
   implicit def labeledValueResponseFormat: RootJsonFormat[LabeledValueResponse]                     =
     jsonFormat2(LabeledValueResponse)
+  implicit def hideOptionResponseFormat: RootJsonFormat[HideOptionResponse]                         =
+    jsonFormat2(HideOptionResponse)
+  implicit def validationOptionResponseFormat: RootJsonFormat[ValidationOptionResponse]             =
+    jsonFormat1(ValidationOptionResponse)
   implicit def formConfigQuestionResponseFormat: RootJsonFormat[FormConfigQuestionResponse]         =
-    jsonFormat9(FormConfigQuestionResponse)
+    jsonFormat11(FormConfigQuestionResponse)
   implicit def riskAnalysisFormConfigResponseFormat: RootJsonFormat[RiskAnalysisFormConfigResponse] =
     jsonFormat2(RiskAnalysisFormConfigResponse)
 

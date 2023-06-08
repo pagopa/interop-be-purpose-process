@@ -13,6 +13,8 @@ sealed trait FormConfigQuestion {
   def dependencies: List[Dependency]
   def `type`: String
   def defaultValue: List[String]
+  def hideOption: Option[Map[String, List[HideOptionConfig]]]
+  def validation: Option[ValidationOption]
 }
 
 object FormConfigQuestion extends DefaultJsonProtocol with SprayJsonSupport {
@@ -43,11 +45,13 @@ final case class FreeInputQuestion(
   required: Boolean,
   dependencies: List[Dependency],
   `type`: String,
-  defaultValue: List[String]
+  defaultValue: List[String],
+  hideOption: Option[Map[String, List[HideOptionConfig]]],
+  validation: Option[ValidationOption]
 ) extends FormConfigQuestion
 
 object FreeInputQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat8(FreeInputQuestion.apply)
+  implicit def format: RootJsonFormat[FreeInputQuestion] = jsonFormat10(FreeInputQuestion.apply)
 }
 
 final case class SingleQuestion(
@@ -59,11 +63,13 @@ final case class SingleQuestion(
   dependencies: List[Dependency],
   `type`: String,
   defaultValue: List[String],
+  hideOption: Option[Map[String, List[HideOptionConfig]]],
+  validation: Option[ValidationOption],
   options: List[LabeledValue]
 ) extends FormConfigQuestion
 
 object SingleQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat9(SingleQuestion.apply)
+  implicit def format: RootJsonFormat[SingleQuestion] = jsonFormat11(SingleQuestion.apply)
 }
 
 final case class MultiQuestion(
@@ -75,9 +81,11 @@ final case class MultiQuestion(
   dependencies: List[Dependency],
   `type`: String,
   defaultValue: List[String],
+  hideOption: Option[Map[String, List[HideOptionConfig]]],
+  validation: Option[ValidationOption],
   options: List[LabeledValue]
 ) extends FormConfigQuestion
 
 object MultiQuestion extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat9(MultiQuestion.apply)
+  implicit def format: RootJsonFormat[MultiQuestion] = jsonFormat11(MultiQuestion.apply)
 }
