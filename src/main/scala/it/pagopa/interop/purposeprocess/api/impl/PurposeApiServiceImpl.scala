@@ -166,6 +166,10 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
+      _              <-
+        if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
+          Future.failed(MissingFreeOfChargeReason)
+        else Future.unit
       purpose        <- purposeManagementService.getPurpose(purposeUUID)
       tenant         <- tenantManagementService.getTenant(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
