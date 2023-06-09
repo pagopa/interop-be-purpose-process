@@ -165,9 +165,9 @@ object RiskAnalysisConverter {
       ValidationOptionResponse(maxLength = validation.maxLength)
   }
 
-  implicit class MapHideOptionConfigWrapper(private val mapHideOptionConfig: Map[String, List[HideOptionConfig]])
+  implicit class MapHideOptionConfigWrapper(private val mapHideOptionConfig: Map[String, Seq[HideOptionConfig]])
       extends AnyVal {
-    def toApi: Map[String, List[HideOptionResponse]] = mapHideOptionConfig.map { case (k, v) => (k, v.map(_.toApi)) }
+    def toApi: Map[String, Seq[HideOptionResponse]] = mapHideOptionConfig.map { case (k, v) => (k, v.map(_.toApi)) }
   }
 
   implicit class HideOptionConfigWrapper(private val hideOptionConfig: HideOptionConfig) extends AnyVal {
