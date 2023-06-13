@@ -884,10 +884,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId            = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
-        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None
+        )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
         title = "A title",
         description = "A description",
+        isFreeOfCharge = false,
         riskAnalysisForm = None
       )
 
@@ -905,6 +911,27 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+    "fail when is free of charge but without free of charge reason agreement " in {
+      val purposeId            = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = true,
+          riskAnalysisForm = None
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0023"
+      }
+    }
     "fail if User is not a Consumer" in {
 
       val purposeId   = UUID.randomUUID()
@@ -912,7 +939,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val requesterId = UUID.randomUUID()
 
       val purposeUpdateContent =
-        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None
+        )
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
@@ -932,7 +964,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId            = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
-        PurposeUpdateContent(title = "A title", description = "A description", riskAnalysisForm = None)
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None
+        )
       val purpose              =
         SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
 
