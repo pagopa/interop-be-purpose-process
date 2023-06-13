@@ -23,6 +23,8 @@ object PurposeUpdateContentConverter {
       } yield DependencyPurposeUpdateContent(
         title = content.title,
         description = content.description,
+        isFreeOfCharge = content.isFreeOfCharge,
+        freeOfChargeReason = content.freeOfChargeReason,
         riskAnalysisForm = riskAnalysisForm
       )
     }

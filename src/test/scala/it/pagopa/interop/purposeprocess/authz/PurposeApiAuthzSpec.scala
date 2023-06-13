@@ -151,7 +151,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
 
     "accept authorized roles for updatePurpose" in {
       val endpoint    = AuthorizedRoutes.endpoints("updatePurpose")
-      val fakeContent = PurposeUpdateContent("test", "Fake", None)
+      val fakeContent = PurposeUpdateContent("test", "Fake", false, None, None)
       validateAuthorization(
         endpoint,
         { implicit c: Seq[(String, String)] => service.updatePurpose("fake", fakeContent) }
