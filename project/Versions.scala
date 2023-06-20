@@ -7,7 +7,7 @@ object Versions {
   lazy val jacksonVersion              = "2.11.4"
   lazy val jdbcPersistenceVersion      = "5.0.1"
   lazy val json4sVersion               = "4.0.6"
-  lazy val logbackVersion              = "1.4.4"
+  lazy val logbackVersion              = "1.4.8"
   lazy val mustacheVersion             = "0.9.10"
   lazy val openapi4jVersion            = "1.0.7"
   lazy val projectionVersion           = "1.2.1"
@@ -19,10 +19,10 @@ object Versions {
 }
 
 object PagopaVersions {
-  lazy val agreementManagementVersion         = "1.0.x-SNAPSHOT"
-  lazy val authorizationManagementVersion     = "1.0.x-SNAPSHOT"
-  lazy val purposeManagementVersion           = "1.0.x-SNAPSHOT"
-  lazy val catalogManagementVersion           = "1.0.x-SNAPSHOT"
-  lazy val tenantManagementVersion            = "1.0.x-SNAPSHOT"
-  lazy val commonsVersion                     = "1.0.x-SNAPSHOT"
+  lazy val agreementManagementVersion     = "1.0.x-SNAPSHOT"
+  lazy val authorizationManagementVersion = "1.0.x-SNAPSHOT"
+  lazy val purposeManagementVersion       = "1.0.x-SNAPSHOT"
+  lazy val catalogManagementVersion       = "1.0.x-SNAPSHOT"
+  lazy val tenantManagementVersion        = "1.0.x-SNAPSHOT"
+  lazy val commonsVersion                 = "1.0.x-SNAPSHOT"
 }
