@@ -1,37 +1,50 @@
 package it.pagopa.interop.purposeprocess.service.impl
+import it.pagopa.interop.purposeprocess.service.AgreementManagementService
+import it.pagopa.interop.agreementmanagement.model.agreement._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelAgreementQueries
 
-import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
-import it.pagopa.interop.agreementmanagement.client.invoker.BearerToken
-import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
-import it.pagopa.interop.commons.logging.{CanLogContextFields, ContextFieldsToLog}
-import it.pagopa.interop.commons.utils.withHeaders
-import it.pagopa.interop.purposeprocess.service.{
-  AgreementManagementApi,
-  AgreementManagementInvoker,
-  AgreementManagementService
-}
-
+import scala.concurrent.{Future, ExecutionContext}
 import java.util.UUID
-import scala.concurrent.Future
 
-final case class AgreementManagementServiceImpl(invoker: AgreementManagementInvoker, api: AgreementManagementApi)
-    extends AgreementManagementService {
+final object AgreementManagementServiceImpl extends AgreementManagementService {
 
-  implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
-    Logger.takingImplicit[ContextFieldsToLog](this.getClass)
+  override def getAgreements(eserviceId: UUID, consumerId: UUID, agreementStates: Seq[PersistentAgreementState])(
+    implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Seq[PersistentAgreement]] =
+    getAllAgreements(eserviceId, consumerId, agreementStates)
 
-  override def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[AgreementState])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Seq[Agreement]] =
-    withHeaders { (bearerToken, correlationId, ip) =>
-      val request = api.getAgreements(
-        xCorrelationId = correlationId,
-        xForwardedFor = ip,
-        consumerId = Some(consumerId.toString),
-        eserviceId = Some(eServiceId.toString),
-        states = states
-      )(BearerToken(bearerToken))
-      invoker.invoke(request, s"Retrieving Agreements for Consumer $consumerId, EService $eServiceId")
-    }
+  private def getAgreements(
+    eserviceId: UUID,
+    consumerId: UUID,
+    agreementStates: Seq[PersistentAgreementState],
+    offset: Int,
+    limit: Int
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentAgreement]] =
+    ReadModelAgreementQueries.getAgreements(eserviceId, consumerId, agreementStates, offset, limit)
 
+  private def getAllAgreements(
+    eserviceId: UUID,
+    consumerId: UUID,
+    agreementStates: Seq[PersistentAgreementState]
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentAgreement]] = {
+
+    def getAgreementsFrom(offset: Int): Future[Seq[PersistentAgreement]] =
+      getAgreements(
+        eserviceId = eserviceId,
+        consumerId = consumerId,
+        agreementStates = agreementStates,
+        offset = offset,
+        limit = 50
+      )
+
+    def go(start: Int)(as: Seq[PersistentAgreement]): Future[Seq[PersistentAgreement]] =
+      getAgreementsFrom(start).flatMap(esec =>
+        if (esec.size < 50) Future.successful(as ++ esec) else go(start + 50)(as ++ esec)
+      )
+
+    go(0)(Nil)
+  }
 }

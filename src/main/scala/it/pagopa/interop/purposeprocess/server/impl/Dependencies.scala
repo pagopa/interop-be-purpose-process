@@ -27,8 +27,6 @@ import it.pagopa.interop.purposeprocess.api.impl.{
   PurposeApiServiceImpl
 }
 import it.pagopa.interop.purposeprocess.api.{HealthApi, PurposeApi}
-import it.pagopa.interop.tenantmanagement.client.api.{TenantApi => TenantManagementApi}
-import it.pagopa.interop.tenantmanagement.client.invoker.{ApiInvoker => TenantManagementInvoker}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.impl._
@@ -76,7 +74,9 @@ trait Dependencies {
     loggingEnabled = false
   )
 
-  val readModelService: ReadModelService = new MongoDbReadModelService(ApplicationConfiguration.readModelConfig)
+  implicit val readModelService: ReadModelService                                        = new MongoDbReadModelService(
+    ApplicationConfiguration.readModelConfig
+  )
 
   def purposeApi(jwtReader: JWTReader, fileManager: FileManager, blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_],
@@ -84,12 +84,11 @@ trait Dependencies {
   ): PurposeApi =
     new PurposeApi(
       PurposeApiServiceImpl(
-        agreementManagement(blockingEc),
+        AgreementManagementServiceImpl,
         authorizationManagement(blockingEc),
-        catalogManagement(blockingEc),
+        CatalogManagementServiceImpl,
         purposeManagement(blockingEc),
-        tenantManagement(blockingEc),
-        readModelService,
+        TenantManagementServiceImpl,
         fileManager,
         pdfCreator,
         uuidSupplier,
@@ -98,20 +97,6 @@ trait Dependencies {
       PurposeApiMarshallerImpl,
       jwtReader.OAuth2JWTValidatorAsContexts
     )
-
-  private def agreementManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AgreementManagementInvoker =
-    AgreementManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  private final val agreementManagementApi: AgreementManagementApi                       = AgreementManagementApi(
-    ApplicationConfiguration.agreementManagementURL
-  )
-
-  def agreementManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): AgreementManagementService =
-    AgreementManagementServiceImpl(agreementManagementInvoker(blockingEc), agreementManagementApi)
 
   private def authorizationManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
@@ -131,18 +116,6 @@ trait Dependencies {
       authorizationManagementClientApi
     )
 
-  private def catalogManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): CatalogManagementInvoker =
-    CatalogManagementInvoker(blockingEc)(actorSystem.classicSystem)
-  private final val catalogManagementApi: CatalogManagementApi                           = CatalogManagementApi(
-    ApplicationConfiguration.catalogManagementURL
-  )
-
-  def catalogManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): CatalogManagementService = CatalogManagementServiceImpl(catalogManagementInvoker(blockingEc), catalogManagementApi)
-
   private def purposeManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
     actorSystem: ActorSystem[_]
   ): PurposeManagementInvoker =
@@ -155,18 +128,4 @@ trait Dependencies {
     actorSystem: ActorSystem[_]
   ): PurposeManagementService =
     PurposeManagementServiceImpl(purposeManagementInvoker(blockingEc), purposeManagementApi)(blockingEc)
-
-  private def tenantManagementInvoker(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): TenantManagementInvoker =
-    TenantManagementInvoker(blockingEc)(actorSystem.classicSystem)
-
-  private final val tenantManagementApi: TenantManagementApi = TenantManagementApi(
-    ApplicationConfiguration.tenantManagementURL
-  )
-
-  def tenantManagement(blockingEc: ExecutionContextExecutor)(implicit
-    actorSystem: ActorSystem[_]
-  ): TenantManagementService =
-    new TenantManagementServiceImpl(tenantManagementInvoker(blockingEc), tenantManagementApi)(blockingEc)
 }

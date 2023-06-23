@@ -1,8 +1,8 @@
 package it.pagopa.interop.purposeprocess.service
 
-import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 
 import java.io.File
 import scala.concurrent.Future
@@ -10,9 +10,9 @@ import scala.concurrent.Future
 trait PDFCreator {
   def createDocument(
     template: String,
-    riskAnalysisForm: RiskAnalysisForm,
+    riskAnalysisForm: PersistentRiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
     language: Language
-  )(kind: TenantKind): Future[File]
+  )(kind: PersistentTenantKind): Future[File]
 }

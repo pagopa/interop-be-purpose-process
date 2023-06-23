@@ -6,8 +6,6 @@ import it.pagopa.interop._
 import scala.concurrent.ExecutionContextExecutor
 
 package object service {
-  type AgreementManagementInvoker = agreementmanagement.client.invoker.ApiInvoker
-  type AgreementManagementApi     = agreementmanagement.client.api.AgreementApi
 
   type AuthorizationManagementInvoker    = authorizationmanagement.client.invoker.ApiInvoker
   type AuthorizationManagementPurposeApi = authorizationmanagement.client.api.PurposeApi
@@ -15,17 +13,6 @@ package object service {
 
   type PurposeManagementInvoker = purposemanagement.client.invoker.ApiInvoker
   type PurposeManagementApi     = purposemanagement.client.api.PurposeApi
-
-  type CatalogManagementInvoker = catalogmanagement.client.invoker.ApiInvoker
-  type CatalogManagementApi     = catalogmanagement.client.api.EServiceApi
-  object AgreementManagementInvoker {
-    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AgreementManagementInvoker =
-      agreementmanagement.client.invoker.ApiInvoker(agreementmanagement.client.api.EnumsSerializers.all, blockingEc)
-  }
-
-  object AgreementManagementApi {
-    def apply(baseUrl: String): AgreementManagementApi = agreementmanagement.client.api.AgreementApi(baseUrl)
-  }
 
   object AuthorizationManagementInvoker {
     def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): AuthorizationManagementInvoker =
@@ -51,14 +38,4 @@ package object service {
   object PurposeManagementApi {
     def apply(baseUrl: String): PurposeManagementApi = purposemanagement.client.api.PurposeApi(baseUrl)
   }
-
-  object CatalogManagementInvoker {
-    def apply(blockingEc: ExecutionContextExecutor)(implicit actorSystem: ActorSystem): CatalogManagementInvoker =
-      catalogmanagement.client.invoker.ApiInvoker(catalogmanagement.client.api.EnumsSerializers.all, blockingEc)
-  }
-
-  object CatalogManagementApi {
-    def apply(baseUrl: String): CatalogManagementApi = catalogmanagement.client.api.EServiceApi(baseUrl)
-  }
-
 }

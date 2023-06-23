@@ -1,16 +1,18 @@
 package it.pagopa.interop.purposeprocess.service
 
-import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
+import it.pagopa.interop.agreementmanagement.model.agreement._
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 trait AgreementManagementService {
-  def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[AgreementState])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Seq[Agreement]]
+  def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[PersistentAgreementState])(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Seq[PersistentAgreement]]
 }
 
 object AgreementManagementService {
-  val OPERATIVE_AGREEMENT_STATES: Seq[AgreementState] = Seq(AgreementState.ACTIVE)
+  val OPERATIVE_AGREEMENT_STATES: Seq[PersistentAgreementState] = Seq(Active)
 }

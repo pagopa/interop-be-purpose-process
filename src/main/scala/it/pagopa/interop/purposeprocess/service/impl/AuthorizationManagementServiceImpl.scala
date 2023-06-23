@@ -1,7 +1,10 @@
 package it.pagopa.interop.purposeprocess.service.impl
 
 import it.pagopa.interop.authorizationmanagement.client.invoker.BearerToken
-import it.pagopa.interop.authorizationmanagement.client.model.{Client, ClientComponentState, ClientPurposeDetailsUpdate}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.authorizationmanagement.client.model._
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelAuthorizationQueries
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.utils.withHeaders
 import it.pagopa.interop.purposeprocess.service._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
@@ -36,14 +39,6 @@ final case class AuthorizationManagementServiceImpl(
         .recoverWith { case _ => Future.unit }
     }
 
-  override def getClients(purposeId: Option[UUID])(implicit contexts: Seq[(String, String)]): Future[Seq[Client]] =
-    withHeaders { (bearerToken, correlationId, ip) =>
-      val request = clientApi.listClients(xCorrelationId = correlationId, xForwardedFor = ip, purposeId = purposeId)(
-        BearerToken(bearerToken)
-      )
-      invoker.invoke(request, s"Retrieving Clients by Purpose Id $purposeId")
-    }
-
   override def removePurposeFromClient(purposeId: UUID, clientId: UUID)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] = withHeaders { (bearerToken, correlationId, ip) =>
@@ -54,4 +49,29 @@ final case class AuthorizationManagementServiceImpl(
     invoker.invoke(request, s"Removing purpose $purposeId from client $clientId")
   }
 
+  override def getClients(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] =
+    getAllClients(purposeId)
+
+  private def getClients(purposeId: UUID, offset: Int, limit: Int)(implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Seq[PersistentClient]] =
+    ReadModelAuthorizationQueries.getClients(purposeId, offset, limit)
+
+  private def getAllClients(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] = {
+
+    def getClientsFrom(offset: Int): Future[Seq[PersistentClient]] =
+      getClients(purposeId, offset = offset, limit = 50)
+
+    def go(start: Int)(as: Seq[PersistentClient]): Future[Seq[PersistentClient]] =
+      getClientsFrom(start).flatMap(recs =>
+        if (recs.size < 50) Future.successful(as ++ recs) else go(start + 50)(as ++ recs)
+      )
+
+    go(0)(Nil)
+  }
 }

@@ -1,21 +1,11 @@
 package it.pagopa.interop.purposeprocess.service
 
-import it.pagopa.interop.purposemanagement.client.model.{
-  ActivatePurposeVersionPayload,
-  Purpose,
-  PurposeSeed,
-  PurposeUpdateContent,
-  PurposeVersion,
-  PurposeVersionSeed,
-  PurposeVersionState,
-  Purposes,
-  StateChangeDetails,
-  DraftPurposeVersionUpdateContent,
-  WaitingForApprovalPurposeVersionUpdateContent
-}
+import it.pagopa.interop.purposemanagement.client.model._
+import it.pagopa.interop.purposemanagement.model.purpose.{PersistentPurpose, PersistentPurposeVersionState}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 trait PurposeManagementService {
   def createPurpose(seed: PurposeSeed)(implicit contexts: Seq[(String, String)]): Future[Purpose]
@@ -25,10 +15,16 @@ trait PurposeManagementService {
   def updatePurpose(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)]
   ): Future[Purpose]
-  def getPurpose(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Purpose]
-  def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState])(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Purposes]
+
+  def getPurposeById(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose]
+
+  def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PersistentPurposeVersionState])(
+    implicit
+    ec: ExecutionContext,
+    readModel: ReadModelService
+  ): Future[Seq[PersistentPurpose]]
 
   def activatePurposeVersion(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload)(implicit
     contexts: Seq[(String, String)]

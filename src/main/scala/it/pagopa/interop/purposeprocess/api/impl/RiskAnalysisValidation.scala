@@ -12,7 +12,7 @@ import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisRules.{DependencyEntry, ValidationEntry}
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import spray.json._
 
 object RiskAnalysisValidation {
@@ -25,7 +25,7 @@ object RiskAnalysisValidation {
     * @return Validated risk analysis
     */
   def validate(form: RiskAnalysisForm, schemaOnlyValidation: Boolean)(
-    kind: TenantKind
+    kind: PersistentTenantKind
   ): ValidationResult[RiskAnalysisFormSeed] = {
     RiskAnalysisService
       .riskAnalysisForms()
@@ -44,7 +44,7 @@ object RiskAnalysisValidation {
     */
   private def validateLatestVersion(
     versions: Map[String, RiskAnalysisFormConfig],
-    tenantkind: TenantKind,
+    tenantkind: PersistentTenantKind,
     schemaOnlyValidation: Boolean
   )(form: RiskAnalysisForm): ValidationResult[RiskAnalysisFormSeed] = {
     val sanitizedForm = form.copy(answers = form.answers.filter(_._2.nonEmpty))

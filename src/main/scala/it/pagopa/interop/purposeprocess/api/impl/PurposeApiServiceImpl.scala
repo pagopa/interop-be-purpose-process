@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.Route
 import cats.implicits._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
-import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.jwt._
@@ -17,15 +16,18 @@ import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement._
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeSeedConverter._
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.RiskAnalysisConverter._
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeUpdateContentConverter._
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeConverter._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
-import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelQueries
+import it.pagopa.interop.purposeprocess.api.Adapters._
+import it.pagopa.interop.purposeprocess.common.readmodel._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentPurpose,
+  PersistentPurposeVersion,
+  Draft,
+  WaitingForApproval
+}
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service._
@@ -40,12 +42,11 @@ final case class PurposeApiServiceImpl(
   catalogManagementService: CatalogManagementService,
   purposeManagementService: PurposeManagementService,
   tenantManagementService: TenantManagementService,
-  readModel: ReadModelService,
   fileManager: FileManager,
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, readModel: ReadModelService)
     extends PurposeApiService {
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
@@ -75,14 +76,14 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       documentUUID   <- documentId.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       _              <- Ownership.getOrganizationRole(organizationId, eService.producerId, purpose.consumerId).toFuture
       version        <- getVersion(purpose, versionUUID)
       document       <- version.riskAnalysis
         .find(_.id == documentUUID)
         .toFuture(PurposeVersionDocumentNotFound(purposeId, versionId, documentId))
-    } yield PurposeVersionDocumentConverter.dependencyToApi(document)
+    } yield document.toApi
 
     onComplete(result) {
       getRiskAnalysisDocumentResponse[PurposeVersionDocument](operationLabel)(getRiskAnalysisDocument200)
@@ -103,16 +104,16 @@ final case class PurposeApiServiceImpl(
       _              <-
         if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
         else Future.unit
-      tenant         <- tenantManagementService.getTenant(organizationId)
+      tenant         <- tenantManagementService.getTenantById(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.apiToDependency(schemaOnlyValidation = true)(tenantKind).toFuture
+      clientSeed     <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
         OPERATIVE_AGREEMENT_STATES
       )
       agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      maybePurpose <- ReadModelQueries
+      maybePurpose <- ReadModelPurposeQueries
         .listPurposes(
           seed.consumerId,
           seed.title.some,
@@ -124,14 +125,14 @@ final case class PurposeApiServiceImpl(
           offset = 0,
           limit = 1,
           exactMatchOnTitle = true
-        )(readModel)
+        )
         .map(_.results.headOption)
 
       _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
       purpose <- purposeManagementService.createPurpose(clientSeed)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
 
-    } yield purpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+    } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeResponse[Purpose](operationLabel)(createPurpose200) }
   }
@@ -147,11 +148,10 @@ final case class PurposeApiServiceImpl(
     val result: Future[PurposeVersion] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      depSeed = PurposeVersionSeedConverter.apiToDependency(seed)
-      version <- purposeManagementService.createPurposeVersion(purposeUUID, depSeed)
-    } yield PurposeVersionConverter.dependencyToApi(version)
+      version        <- purposeManagementService.createPurposeVersion(purposeUUID, seed.toManagement)
+    } yield version.toApi
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
@@ -170,17 +170,17 @@ final case class PurposeApiServiceImpl(
         if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
           Future.failed(MissingFreeOfChargeReason)
         else Future.unit
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
-      tenant         <- tenantManagementService.getTenant(organizationId)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+      tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent
-        .apiToDependency(schemaOnlyValidation = true)(tenantKind)
+        .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
-    } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+    } yield updatedPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
@@ -193,30 +193,31 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Retrieving Purpose $id"
     logger.info(operationLabel)
 
-    def isDraft(purpose: PurposeManagementDependency.Purpose): Boolean =
-      purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+    def isDraft(purpose: PersistentPurpose): Boolean =
+      purpose.versions.map(_.state) == Seq(Draft)
 
     def authorizeRiskAnalysisForm(
-      purpose: PurposeManagementDependency.Purpose,
+      purpose: PersistentPurpose,
       producerId: UUID,
       organizationId: UUID,
-      tenantKind: TenantManagementDependency.TenantKind
+      tenantKind: PersistentTenantKind
     ): Purpose = {
       if (organizationId == purpose.consumerId || organizationId == producerId)
-        if (isDraft(purpose)) purpose.dependencyToApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind))
-        else purpose.dependencyToApi(isRiskAnalysisValid = true)
+        if (isDraft(purpose))
+          purpose.toApi(isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind))
+        else purpose.toApi(isRiskAnalysisValid = true)
       else
         purpose
           .copy(riskAnalysisForm = None)
-          .dependencyToApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
+          .toApi(isRiskAnalysisValid = false) // Hide risk analysis to other organizations
     }
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       uuid           <- id.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(uuid)
+      purpose        <- purposeManagementService.getPurposeById(uuid)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      tenant         <- tenantManagementService.getTenant(organizationId)
+      tenant         <- tenantManagementService.getTenantById(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       authorizedPurpose = authorizeRiskAnalysisForm(
         purpose,
@@ -248,19 +249,19 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[Purposes] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      statesEnum     <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
-      purposes       <- ReadModelQueries.listPurposes(
+      states         <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
+      purposes       <- ReadModelPurposeQueries.listPurposes(
         organizationId,
         name,
         parseArrayParameters(eServicesIds),
         parseArrayParameters(consumersIds),
         parseArrayParameters(producersIds),
-        statesEnum,
+        states.map(_.toPersistent),
         excludeDraft,
         offset,
         limit
-      )(readModel)
-      apiPurposes = purposes.results.map(_.persistentToApi)
+      )
+      apiPurposes = purposes.results.map(_.toApi(false))
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -273,20 +274,20 @@ final case class PurposeApiServiceImpl(
       val operationLabel = s"Deleting Purpose $id"
       logger.info(operationLabel)
 
-      def isDeletable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+      def isDeletable(purpose: PersistentPurpose): Boolean = {
         val states = purpose.versions.map(_.state)
         states.isEmpty ||
-        states == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT) ||
-        states == Seq(PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+        states == Seq(Draft) ||
+        states == Seq(WaitingForApproval)
       }
 
       val result: Future[Unit] = for {
         organizationId <- getOrganizationIdFutureUUID(contexts)
         purposeUUID    <- id.toFutureUUID
-        purpose        <- purposeManagementService.getPurpose(purposeUUID)
+        purpose        <- purposeManagementService.getPurposeById(purposeUUID)
         _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeDeleted(id))(isDeletable)
-        clients        <- authorizationManagementService.getClients(Some(purposeUUID))
+        clients        <- authorizationManagementService.getClients(purposeUUID)
         _              <- Future.traverse(clients)(client =>
           authorizationManagementService.removePurposeFromClient(purposeUUID, client.id)
         )
@@ -306,19 +307,19 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Deleting Version $versionId of Purpose $purposeId"
     logger.info(operationLabel)
 
-    def assertIsDeletable(version: PurposeManagementDependency.PurposeVersion): Future[Unit] =
+    def assertIsDeletable(version: PersistentPurposeVersion): Future[Unit] =
       Future
         .failed(PurposeVersionCannotBeDeleted(purposeId, versionId))
         .unlessA(
-          version.state == PurposeManagementDependency.PurposeVersionState.DRAFT ||
-            version.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL
+          version.state == Draft ||
+            version.state == WaitingForApproval
         )
 
     val result: Future[Unit] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       version        <- getVersion(purpose, versionUUID)
       _              <- assertIsDeletable(version)
@@ -340,17 +341,17 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
-      tenant         <- tenantManagementService.getTenant(organizationId)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+      tenant         <- tenantManagementService.getTenantById(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       version        <- getVersion(purpose, versionUUID)
-      riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi)
+      riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi)
       _              <-
         riskAnalysisForm
           .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
           .leftMap(RiskAnalysisValidationFailed(_))
           .toEither
-          .whenA(version.state == PurposeManagementDependency.PurposeVersionState.DRAFT)
+          .whenA(version.state == Draft)
           .toFuture
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
@@ -363,7 +364,7 @@ final case class PurposeApiServiceImpl(
         organizationId,
         ownership
       )
-    } yield PurposeVersionConverter.dependencyToApi(updatedVersion)
+    } yield updatedVersion.toApi
 
     onComplete(result) { activatePurposeVersionResponse[PurposeVersion](operationLabel)(activatePurposeVersion200) }
   }
@@ -380,20 +381,20 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership      <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
       _              <- getVersion(purpose, versionUUID)
       stateDetails = PurposeManagementDependency.StateChangeDetails(ownership.toChangedBy, dateTimeSupplier.get())
-      response <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
-      _        <- authorizationManagementService.updateStateOnClients(
+      purposeVersion <- purposeManagementService.suspendPurposeVersion(purposeUUID, versionUUID, stateDetails)
+      _              <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
         versionId = versionUUID,
         state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
       )
-    } yield PurposeVersionConverter.dependencyToApi(response)
+    } yield purposeVersion.toApi
 
     onComplete(result) { suspendPurposeVersionResponse[PurposeVersion](operationLabel)(suspendPurposeVersion200) }
   }
@@ -410,23 +411,23 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- getVersion(purpose, versionUUID)
       stateDetails = PurposeManagementDependency.StateChangeDetails(
         PurposeManagementDependency.ChangedBy.CONSUMER,
         dateTimeSupplier.get()
       )
-      _        <- Future.traverse(
-        purpose.versions.find(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL).toList
-      )(v => purposeManagementService.deletePurposeVersion(purpose.id, v.id))
-      response <- purposeManagementService.archivePurposeVersion(purposeUUID, versionUUID, stateDetails)
-      _        <- authorizationManagementService.updateStateOnClients(
+      _              <- Future.traverse(purpose.versions.find(_.state == WaitingForApproval).toList)(v =>
+        purposeManagementService.deletePurposeVersion(purpose.id, v.id)
+      )
+      purposeVersion <- purposeManagementService.archivePurposeVersion(purposeUUID, versionUUID, stateDetails)
+      _              <- authorizationManagementService.updateStateOnClients(
         purposeId = purposeUUID,
         versionId = versionUUID,
         state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
       )
-    } yield PurposeVersionConverter.dependencyToApi(response)
+    } yield purposeVersion.toApi
 
     onComplete(result) { archivePurposeVersionResponse[PurposeVersion](operationLabel)(archivePurposeVersion200) }
   }
@@ -447,18 +448,20 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       purposeVersion <- getVersion(purpose, versionUUID)
       _              <- assertPurposeVersionIsInDraftState(purpose.id, purposeVersion)
-      update = DraftPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
-      response <- purposeManagementService.updateDraftPurposeVersion(purposeUUID, versionUUID, update)
-    } yield PurposeVersionConverter.dependencyToApi(response)
+      purposeVersion <- purposeManagementService.updateDraftPurposeVersion(
+        purposeUUID,
+        versionUUID,
+        updateContent.toManagement
+      )
+    } yield purposeVersion.toApi
 
     onComplete(result) {
       updateDraftPurposeVersionResponse[PurposeVersion](operationLabel)(updateDraftPurposeVersion200)
     }
-
   }
 
   override def updateWaitingForApprovalPurposeVersion(
@@ -477,12 +480,15 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurpose(purposeUUID)
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAProducer(organizationId, purpose.eserviceId)
       _              <- getVersion(purpose, versionUUID)
-      update = WaitingForApprovalPurposeVersionUpdateContentConverter.apiToDependency(updateContent)
-      response <- purposeManagementService.updateWaitingForApprovalPurposeVersion(purposeUUID, versionUUID, update)
-    } yield PurposeVersionConverter.dependencyToApi(response)
+      purposeVersion <- purposeManagementService.updateWaitingForApprovalPurposeVersion(
+        purposeUUID,
+        versionUUID,
+        updateContent.toManagement
+      )
+    } yield purposeVersion.toApi
 
     onComplete(result) {
       updateWaitingForApprovalPurposeVersionResponse[PurposeVersion](operationLabel)(
@@ -500,30 +506,30 @@ final case class PurposeApiServiceImpl(
       val operationLabel = s"Cloning Purpose $purposeId"
       logger.info(operationLabel)
 
-      def isClonable(purpose: PurposeManagementDependency.Purpose): Boolean = {
+      def isClonable(purpose: PersistentPurpose): Boolean = {
         val states = purpose.versions.map(_.state)
 
         states.nonEmpty &&
-        states != Seq(PurposeManagementDependency.PurposeVersionState.DRAFT)
+        states != Seq(Draft)
       }
 
-      def createPurposeSeed(purpose: PurposeManagementDependency.Purpose): PurposeSeed =
+      def createPurposeSeed(purpose: PersistentPurpose): PurposeSeed =
         PurposeSeed(
           eserviceId = purpose.eserviceId,
           consumerId = purpose.consumerId,
-          riskAnalysisForm = purpose.riskAnalysisForm.map(RiskAnalysisConverter.dependencyToApi),
+          riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
           title = s"${purpose.title} - clone",
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
           freeOfChargeReason = purpose.freeOfChargeReason
         )
 
-      def getDailyCalls(versions: Seq[PurposeManagementDependency.PurposeVersion]): Int = {
+      def getDailyCalls(versions: Seq[PersistentPurposeVersion]): Int = {
 
         val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
 
         val latestNoWaiting: Option[Int] = versions
-          .filterNot(_.state == PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL)
+          .filterNot(_.state == WaitingForApproval)
           .sortBy(_.createdAt)(ordering)
           .map(_.dailyCalls)
           .headOption
@@ -535,23 +541,22 @@ final case class PurposeApiServiceImpl(
 
       val result: Future[Purpose] = for {
         organizationId <- getOrganizationIdFutureUUID(contexts)
-        tenant         <- tenantManagementService.getTenant(organizationId)
+        tenant         <- tenantManagementService.getTenantById(organizationId)
         purposeUUID    <- purposeId.toFutureUUID
-        purpose        <- purposeManagementService.getPurpose(purposeUUID)
+        purpose        <- purposeManagementService.getPurposeById(purposeUUID)
         _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
         dependencySeed = createPurposeSeed(purpose)
-        tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        apiPurposeSeed <- dependencySeed
-          .apiToDependency(schemaOnlyValidation = true)(tenantKind)
+        tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+        purposeSeed <- dependencySeed
+          .toManagement(schemaOnlyValidation = true)(tenantKind)
           .toFuture
-        newPurpose     <- purposeManagementService.createPurpose(apiPurposeSeed)
-        dailyCalls            = getDailyCalls(purpose.versions)
-        dependencyVersionSeed = PurposeVersionSeed(dailyCalls)
-        apiVersionSeed        = PurposeVersionSeedConverter.apiToDependency(dependencyVersionSeed)
+        newPurpose  <- purposeManagementService.createPurpose(purposeSeed)
+        dailyCalls     = getDailyCalls(purpose.versions)
+        apiVersionSeed = PurposeVersionSeed(dailyCalls).toManagement
         _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
-        updatedPurpose <- purposeManagementService.getPurpose(newPurpose.id)
-        isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm)(tenantKind)
-      } yield updatedPurpose.dependencyToApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+        updatedPurpose <- purposeManagementService.getPurposeById(newPurpose.id)
+        isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+      } yield updatedPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
@@ -566,7 +571,7 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId                   <- getOrganizationIdFutureUUID(contexts)
-      tenant                           <- tenantManagementService.getTenant(organizationId)
+      tenant                           <- tenantManagementService.getTenantById(organizationId)
       kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       kindConfig                       <- RiskAnalysisService
         .riskAnalysisForms()
@@ -594,7 +599,7 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId         <- getOrganizationIdFutureUUID(contexts)
-      tenant                 <- tenantManagementService.getTenant(organizationId)
+      tenant                 <- tenantManagementService.getTenantById(organizationId)
       kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
@@ -616,37 +621,32 @@ final case class PurposeApiServiceImpl(
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)
     else Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
-  private def assertOrganizationIsAProducer(organizationId: UUID, eServiceId: UUID)(implicit
-    contexts: Seq[(String, String)]
-  ): Future[Ownership] =
+  private def assertOrganizationIsAProducer(organizationId: UUID, eServiceId: UUID): Future[Ownership] =
     for {
       eService <- catalogManagementService.getEServiceById(eServiceId)
       _ <- Future.failed(OrganizationIsNotTheProducer(organizationId)).unlessA(organizationId == eService.producerId)
     } yield Ownership.PRODUCER
 
-  private def getVersion(purpose: PurposeManagementDependency.Purpose, versionId: UUID) =
+  private def getVersion(purpose: PersistentPurpose, versionId: UUID) =
     purpose.versions.find(_.id == versionId).toFuture(PurposeVersionNotFound(purpose.id, versionId))
 
-  private def assertPurposeIsInDraftState(purpose: PurposeManagementDependency.Purpose): Future[Unit] = {
-    if (purpose.versions.map(_.state) == Seq(PurposeManagementDependency.PurposeVersionState.DRAFT))
+  private def assertPurposeIsInDraftState(purpose: PersistentPurpose): Future[Unit] = {
+    if (purpose.versions.map(_.state) == Seq(Draft))
       Future.successful(())
     else Future.failed(PurposeNotInDraftState(purpose.id))
   }
 
   private def assertPurposeVersionIsInDraftState(
     purposeId: UUID,
-    purposeVersion: PurposeManagementDependency.PurposeVersion
+    purposeVersion: PersistentPurposeVersion
   ): Future[Unit] = {
-    if (purposeVersion.state == PurposeManagementDependency.PurposeVersionState.DRAFT)
+    if (purposeVersion.state == Draft)
       Future.successful(())
     else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
   }
 
-  private def isRiskAnalysisFormValid(
-    riskAnalysisForm: Option[PurposeManagementDependency.RiskAnalysisForm]
-  )(kind: TenantManagementDependency.TenantKind): Boolean =
+  private def isRiskAnalysisFormValid(riskAnalysisForm: Option[RiskAnalysisForm])(kind: PersistentTenantKind): Boolean =
     riskAnalysisForm
-      .map(RiskAnalysisConverter.dependencyToApi(_))
       .map(
         RiskAnalysisValidation
           .validate(_, schemaOnlyValidation = false)(kind)
