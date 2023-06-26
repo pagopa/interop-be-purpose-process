@@ -160,20 +160,6 @@ object SpecData {
       .get
   }
 
-  def validOnlySchemaManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {
-    val seed = validOnlySchemaManagementRiskAnalysisSeed(tenantKind)
-    PurposeManagement.RiskAnalysisForm(
-      id = UUID.randomUUID(),
-      version = seed.version,
-      singleAnswers = seed.singleAnswers.map(a =>
-        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
-      ),
-      multiAnswers = seed.multiAnswers.map(a =>
-        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
-      )
-    )
-  }
-
   def validOnlySchemaPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
     val seed = validOnlySchemaManagementRiskAnalysisSeed(tenantKind)
     PersistentRiskAnalysisForm(
