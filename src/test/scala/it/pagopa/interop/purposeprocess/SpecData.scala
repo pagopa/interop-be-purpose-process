@@ -30,7 +30,6 @@ object SpecData {
     name = "EService Name",
     description = "EService Description",
     technology = CatalogManagement.EServiceTechnology.REST,
-    attributes = CatalogManagement.Attributes(Seq.empty, Seq.empty, Seq.empty),
     descriptors = Seq.empty
   )
 
@@ -46,7 +45,8 @@ object SpecData {
     docs = Seq.empty,
     state = CatalogManagement.EServiceDescriptorState.PUBLISHED,
     agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC,
-    serverUrls = List.empty
+    serverUrls = List.empty,
+    attributes = CatalogManagement.Attributes(Seq.empty, Seq.empty, Seq.empty)
   )
 
   val tenant: Tenant = Tenant(
