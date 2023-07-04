@@ -38,7 +38,7 @@ object SpecData {
     name = "EService Name",
     description = "EService Description",
     technology = Rest,
-    attributes = CatalogAttributes(Seq.empty, Seq.empty, Seq.empty),
+    attributes = CatalogAttributes.empty.some,
     descriptors = Seq.empty,
     createdAt = OffsetDateTimeSupplier.get()
   )
@@ -60,7 +60,8 @@ object SpecData {
     publishedAt = Some(OffsetDateTimeSupplier.get()),
     suspendedAt = None,
     deprecatedAt = None,
-    archivedAt = None
+    archivedAt = None,
+    attributes = CatalogAttributes.empty
   )
 
   val tenant: PersistentTenant = PersistentTenant(

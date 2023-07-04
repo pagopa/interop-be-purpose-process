@@ -219,7 +219,7 @@ object FakeDependencies {
           name = "fake",
           description = "fake",
           technology = Rest,
-          attributes = CatalogAttributes(Seq.empty, Seq.empty, Seq.empty),
+          attributes = CatalogAttributes.empty.some,
           descriptors = Seq.empty,
           createdAt = OffsetDateTime.now()
         )
