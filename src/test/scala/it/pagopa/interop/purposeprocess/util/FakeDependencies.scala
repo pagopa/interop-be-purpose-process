@@ -1,18 +1,19 @@
 package it.pagopa.interop.purposeprocess.util
 
 import cats.syntax.all._
-import it.pagopa.interop.agreementmanagement.client.model.{Agreement, AgreementState}
-import it.pagopa.interop.authorizationmanagement.client.model._
-import it.pagopa.interop.catalogmanagement.client.model.{EService, EServiceTechnology}
-import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
-import it.pagopa.interop.purposemanagement.client.model
-import it.pagopa.interop.purposemanagement.client.model._
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthManagement}
+import it.pagopa.interop.purposemanagement.client.{model => Management}
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
+import it.pagopa.interop.purposemanagement.model.purpose.{PersistentPurpose, PersistentPurposeVersionState}
+import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreementState, PersistentAgreement}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.catalogmanagement.model.{CatalogAttributes, CatalogItem, Rest}
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentExternalId, PersistentTenantKind}
+import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 
 /**
  * Holds fake implementation of dependencies for tests not requiring neither mocks or stubs
@@ -21,9 +22,9 @@ object FakeDependencies {
 
   class FakePurposeManagementService extends PurposeManagementService {
     override def createPurpose(
-      seed: model.PurposeSeed
-    )(implicit contexts: Seq[(String, String)]): Future[model.Purpose] = Future.successful(
-      model.Purpose(
+      seed: Management.PurposeSeed
+    )(implicit contexts: Seq[(String, String)]): Future[Management.Purpose] = Future.successful(
+      Management.Purpose(
         id = UUID.randomUUID(),
         eserviceId = UUID.randomUUID(),
         consumerId = InvokerUUID.id,
@@ -39,21 +40,21 @@ object FakeDependencies {
       )
     )
 
-    override def createPurposeVersion(purposeId: UUID, seed: PurposeVersionSeed)(implicit
+    override def createPurposeVersion(purposeId: UUID, seed: Management.PurposeVersionSeed)(implicit
       contexts: Seq[(String, String)]
-    ): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+    ): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
     )
 
-    override def updatePurpose(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent)(implicit
+    override def updatePurpose(purposeId: UUID, purposeUpdateContent: Management.PurposeUpdateContent)(implicit
       contexts: Seq[(String, String)]
-    ): Future[model.Purpose] = Future.successful(
-      model.Purpose(
+    ): Future[Management.Purpose] = Future.successful(
+      Management.Purpose(
         id = UUID.randomUUID(),
         eserviceId = UUID.randomUUID(),
         consumerId = UUID.randomUUID(),
@@ -69,9 +70,11 @@ object FakeDependencies {
       )
     )
 
-    override def getPurpose(id: UUID)(implicit contexts: Seq[(String, String)]): Future[model.Purpose] =
+    override def getPurposeById(
+      purposeId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose] =
       Future.successful(
-        model.Purpose(
+        PersistentPurpose(
           id = UUID.randomUUID(),
           eserviceId = UUID.randomUUID(),
           consumerId = UUID.randomUUID(),
@@ -83,31 +86,39 @@ object FakeDependencies {
           riskAnalysisForm = None,
           createdAt = OffsetDateTime.now(),
           updatedAt = None,
-          isFreeOfCharge = false
+          isFreeOfCharge = false,
+          freeOfChargeReason = None
         )
       )
 
-    override def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState])(
-      implicit contexts: Seq[(String, String)]
-    ): Future[Purposes] = Future.successful(Purposes(Seq.empty))
+    override def getPurposes(
+      eserviceId: Option[UUID],
+      consumerId: Option[UUID],
+      states: Seq[PersistentPurposeVersionState]
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentPurpose]] =
+      Future.successful(Seq.empty)
 
-    override def activatePurposeVersion(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload)(
-      implicit contexts: Seq[(String, String)]
-    ): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+    override def activatePurposeVersion(
+      purposeId: UUID,
+      versionId: UUID,
+      payload: Management.ActivatePurposeVersionPayload
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
     )
 
-    override def suspendPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(
-      implicit contexts: Seq[(String, String)]
-    ): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+    override def suspendPurposeVersion(
+      purposeId: UUID,
+      versionId: UUID,
+      stateChangeDetails: Management.StateChangeDetails
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
@@ -116,22 +127,24 @@ object FakeDependencies {
     override def waitForApprovalPurposeVersion(
       purposeId: UUID,
       versionId: UUID,
-      stateChangeDetails: StateChangeDetails
-    )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+      stateChangeDetails: Management.StateChangeDetails
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
     )
 
-    override def archivePurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(
-      implicit contexts: Seq[(String, String)]
-    ): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+    override def archivePurposeVersion(
+      purposeId: UUID,
+      versionId: UUID,
+      stateChangeDetails: Management.StateChangeDetails
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
@@ -140,11 +153,11 @@ object FakeDependencies {
     override def updateDraftPurposeVersion(
       purposeId: UUID,
       versionId: UUID,
-      updateContent: DraftPurposeVersionUpdateContent
-    )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+      updateContent: Management.DraftPurposeVersionUpdateContent
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
@@ -153,11 +166,11 @@ object FakeDependencies {
     override def updateWaitingForApprovalPurposeVersion(
       purposeId: UUID,
       versionId: UUID,
-      updateContent: WaitingForApprovalPurposeVersionUpdateContent
-    )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = Future.successful(
-      PurposeVersion(
+      updateContent: Management.WaitingForApprovalPurposeVersionUpdateContent
+    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
+      Management.PurposeVersion(
         id = UUID.randomUUID(),
-        state = PurposeVersionState.DRAFT,
+        state = Management.PurposeVersionState.DRAFT,
         createdAt = OffsetDateTime.now(),
         dailyCalls = 1
       )
@@ -172,12 +185,14 @@ object FakeDependencies {
   }
 
   class FakeAuthorizationManagementService extends AuthorizationManagementService {
-    override def updateStateOnClients(purposeId: UUID, versionId: UUID, state: ClientComponentState)(implicit
-      contexts: Seq[(String, String)]
+    override def updateStateOnClients(purposeId: UUID, versionId: UUID, state: AuthManagement.ClientComponentState)(
+      implicit contexts: Seq[(String, String)]
     ): Future[Unit] =
       Future.successful(())
 
-    override def getClients(purposeId: Option[UUID])(implicit contexts: Seq[(String, String)]): Future[Seq[Client]] =
+    override def getClients(
+      purposeId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentClient]] =
       Future.successful(Seq.empty)
 
     override def removePurposeFromClient(purposeId: UUID, clientId: UUID)(implicit
@@ -186,38 +201,46 @@ object FakeDependencies {
   }
 
   class FakeAgreementManagementService extends AgreementManagementService {
-    override def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[AgreementState])(implicit
-      contexts: Seq[(String, String)]
-    ): Future[Seq[Agreement]] = Future.successful(Seq.empty)
+    override def getAgreements(eServiceId: UUID, consumerId: UUID, states: Seq[PersistentAgreementState])(implicit
+      ec: ExecutionContext,
+      readModel: ReadModelService
+    ): Future[Seq[PersistentAgreement]] = Future.successful(Seq.empty)
   }
 
   class FakeCatalogManagementService extends CatalogManagementService {
 
-    override def getEServiceById(eServiceId: UUID)(implicit contexts: Seq[(String, String)]): Future[EService] =
+    override def getEServiceById(
+      eServiceId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[CatalogItem] =
       Future.successful(
-        EService(
+        CatalogItem(
           id = UUID.randomUUID(),
           producerId = UUID.randomUUID(),
           name = "fake",
           description = "fake",
-          technology = EServiceTechnology.REST,
-          descriptors = Seq.empty
+          technology = Rest,
+          attributes = CatalogAttributes.empty.some,
+          descriptors = Seq.empty,
+          createdAt = OffsetDateTime.now()
         )
       )
 
   }
 
   class FakeTenantManagementService extends TenantManagementService {
-    override def getTenant(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[Tenant] =
+
+    override def getTenantById(
+      tenantId: UUID
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentTenant] =
       Future.successful(
-        Tenant(
+        PersistentTenant(
           id = UUID.randomUUID(),
-          kind = TenantKind.PA.some,
+          kind = PersistentTenantKind.PA.some,
           selfcareId = UUID.randomUUID().toString.some,
-          externalId = ExternalId("Foo", "Bar"),
+          externalId = PersistentExternalId("Foo", "Bar"),
           features = Nil,
           attributes = Nil,
-          createdAt = OffsetDateTimeSupplier.get(),
+          createdAt = OffsetDateTime.now(),
           updatedAt = None,
           mails = Nil,
           name = "test_name"

@@ -15,6 +15,11 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
   PurposeVersionConflict,
   PurposeVersionNotFound
 }
+import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelPurposeQueries
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurposeVersionState
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,21 +59,42 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     invoker.invoke(request, s"Updating Purpose $purposeId")
   }
 
-  override def getPurpose(id: UUID)(implicit contexts: Seq[(String, String)]): Future[Purpose] = withHeaders {
-    (bearerToken, correlationId, ip) =>
-      val request = api.getPurpose(xCorrelationId = correlationId, id, xForwardedFor = ip)(BearerToken(bearerToken))
-      invoker
-        .invoke(request, s"Retrieving purpose $id")
-        .recoverWith { case err: ApiError[_] if err.code == 404 => Future.failed(PurposeNotFound(id)) }
-  }
+  override def getPurposeById(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose] =
+    ReadModelPurposeQueries.getPurpose(purposeId).flatMap(_.toFuture(PurposeNotFound(purposeId)))
 
-  override def getPurposes(eserviceId: Option[UUID], consumerId: Option[UUID], states: Seq[PurposeVersionState])(
-    implicit contexts: Seq[(String, String)]
-  ): Future[Purposes] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.getPurposes(xCorrelationId = correlationId, xForwardedFor = ip, eserviceId, consumerId, states)(
-      BearerToken(bearerToken)
-    )
-    invoker.invoke(request, s"Retrieving purposes for EService $eserviceId, Consumer $consumerId and States $states")
+  override def getPurposes(
+    eserviceId: Option[UUID],
+    consumerId: Option[UUID],
+    states: Seq[PersistentPurposeVersionState]
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentPurpose]] =
+    getAllPurposes(eserviceId, consumerId, states)
+
+  private def getPurposes(
+    eserviceId: Option[UUID],
+    consumerId: Option[UUID],
+    states: Seq[PersistentPurposeVersionState],
+    offset: Int,
+    limit: Int
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentPurpose]] =
+    ReadModelPurposeQueries.getPurposes(eserviceId, consumerId, states, offset, limit)
+
+  private def getAllPurposes(
+    eserviceId: Option[UUID],
+    consumerId: Option[UUID],
+    states: Seq[PersistentPurposeVersionState]
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentPurpose]] = {
+
+    def getPurposeFrom(offset: Int): Future[Seq[PersistentPurpose]] =
+      getPurposes(eserviceId, consumerId, states, offset = offset, limit = 50)
+
+    def go(start: Int)(as: Seq[PersistentPurpose]): Future[Seq[PersistentPurpose]] =
+      getPurposeFrom(start).flatMap(recs =>
+        if (recs.size < 50) Future.successful(as ++ recs) else go(start + 50)(as ++ recs)
+      )
+
+    go(0)(Nil)
   }
 
   override def activatePurposeVersion(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload)(implicit

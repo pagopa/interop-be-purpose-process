@@ -1,22 +1,30 @@
 package it.pagopa.interop.purposeprocess
 
 import cats.syntax.all._
-import it.pagopa.interop.agreementmanagement.client.model.Stamps
-import it.pagopa.interop.agreementmanagement.client.{model => AgreementManagement}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
-import it.pagopa.interop.catalogmanagement.client.{model => CatalogManagement}
 import it.pagopa.interop.commons.utils.service.OffsetDateTimeSupplier
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
 import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurpose,
   PersistentRiskAnalysisForm,
   PersistentRiskAnalysisMultiAnswer,
-  PersistentRiskAnalysisSingleAnswer
+  PersistentRiskAnalysisSingleAnswer,
+  Draft,
+  PersistentPurposeVersion,
+  Active => PurposeActive
 }
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
-import it.pagopa.interop.tenantmanagement.client.model.{ExternalId, Tenant, TenantKind}
-
+import it.pagopa.interop.catalogmanagement.model.{
+  CatalogItem,
+  CatalogAttributes,
+  Rest,
+  CatalogDescriptor,
+  Published,
+  Automatic
+}
+import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Consumer}
+import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentStamps, PersistentAgreement}
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
@@ -24,16 +32,18 @@ object SpecData {
 
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
 
-  val eService: CatalogManagement.EService = CatalogManagement.EService(
+  val eService: CatalogItem = CatalogItem(
     id = UUID.randomUUID(),
     producerId = UUID.randomUUID(),
     name = "EService Name",
     description = "EService Description",
-    technology = CatalogManagement.EServiceTechnology.REST,
-    descriptors = Seq.empty
+    technology = Rest,
+    attributes = CatalogAttributes.empty.some,
+    descriptors = Seq.empty,
+    createdAt = OffsetDateTimeSupplier.get()
   )
 
-  val descriptor: CatalogManagement.EServiceDescriptor = CatalogManagement.EServiceDescriptor(
+  val descriptor: CatalogDescriptor = CatalogDescriptor(
     id = UUID.randomUUID(),
     version = "1",
     description = None,
@@ -43,17 +53,22 @@ object SpecData {
     dailyCallsTotal = 100000,
     interface = None,
     docs = Seq.empty,
-    state = CatalogManagement.EServiceDescriptorState.PUBLISHED,
-    agreementApprovalPolicy = CatalogManagement.AgreementApprovalPolicy.AUTOMATIC,
+    state = Published,
+    agreementApprovalPolicy = Some(Automatic),
     serverUrls = List.empty,
-    attributes = CatalogManagement.Attributes(Seq.empty, Seq.empty, Seq.empty)
+    createdAt = OffsetDateTimeSupplier.get(),
+    publishedAt = Some(OffsetDateTimeSupplier.get()),
+    suspendedAt = None,
+    deprecatedAt = None,
+    archivedAt = None,
+    attributes = CatalogAttributes.empty
   )
 
-  val tenant: Tenant = Tenant(
+  val tenant: PersistentTenant = PersistentTenant(
     id = UUID.randomUUID(),
-    kind = TenantKind.PA.some,
+    kind = PersistentTenantKind.PA.some,
     selfcareId = UUID.randomUUID.toString.some,
-    externalId = ExternalId("foo", "bar"),
+    externalId = PersistentExternalId("foo", "bar"),
     features = Nil,
     attributes = Nil,
     createdAt = OffsetDateTimeSupplier.get(),
@@ -135,31 +150,34 @@ object SpecData {
     )
   )
 
-  def validOnlySchemaManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed = {
+  def validOnlySchemaManagementRiskAnalysisSeed(
+    tenantKind: PersistentTenantKind
+  ): PurposeManagement.RiskAnalysisFormSeed = {
     val validOnlySchemaRiskAnalysis =
-      if (tenantKind == TenantKind.PA) validOnlySchemaRiskAnalysis2_0 else validOnlySchemaRiskAnalysis1_0
+      if (tenantKind == PersistentTenantKind.PA) validOnlySchemaRiskAnalysis2_0 else validOnlySchemaRiskAnalysis1_0
     RiskAnalysisValidation
       .validate(validOnlySchemaRiskAnalysis, true)(tenantKind)
       .toOption
       .get
   }
 
-  def validOnlySchemaManagementRiskAnalysis(tenantKind: TenantKind): PurposeManagement.RiskAnalysisForm = {
+  def validOnlySchemaPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
     val seed = validOnlySchemaManagementRiskAnalysisSeed(tenantKind)
-    PurposeManagement.RiskAnalysisForm(
+    PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
       version = seed.version,
       singleAnswers = seed.singleAnswers.map(a =>
-        PurposeManagement.RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
+        PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
       multiAnswers = seed.multiAnswers.map(a =>
-        PurposeManagement.RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
+        PersistentRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = a.key, values = a.values)
       )
     )
   }
 
-  def validManagementRiskAnalysisSeed(tenantKind: TenantKind): PurposeManagement.RiskAnalysisFormSeed = {
-    val riskAnalysis = if (tenantKind == TenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis1_0_Private
+  def validManagementRiskAnalysisSeed(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisFormSeed = {
+    val riskAnalysis =
+      if (tenantKind == PersistentTenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis1_0_Private
     RiskAnalysisValidation
       .validate(riskAnalysis, false)(tenantKind)
       .toOption
@@ -167,7 +185,7 @@ object SpecData {
 
   }
 
-  def validManagementRiskAnalysis(tenantKind: TenantKind): PurposeManagement.RiskAnalysisForm = {
+  def validManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {
     val seed = validManagementRiskAnalysisSeed(tenantKind)
 
     PurposeManagement.RiskAnalysisForm(
@@ -182,7 +200,7 @@ object SpecData {
     )
   }
 
-  def validPersistentRiskAnalysis(tenantKind: TenantKind): PersistentRiskAnalysisForm = {
+  def validPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
     val seed = validManagementRiskAnalysisSeed(tenantKind)
 
     PersistentRiskAnalysisForm(
@@ -197,7 +215,7 @@ object SpecData {
     )
   }
 
-  val purpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
+  val purpose: PersistentPurpose = PersistentPurpose(
     id = UUID.randomUUID(),
     eserviceId = UUID.randomUUID(),
     consumerId = UUID.randomUUID(),
@@ -206,15 +224,16 @@ object SpecData {
     suspendedByProducer = None,
     title = "A title",
     description = "A description",
-    riskAnalysisForm = Some(validManagementRiskAnalysis(TenantKind.PRIVATE)),
+    riskAnalysisForm = Some(validPersistentRiskAnalysis(PersistentTenantKind.PRIVATE)),
     createdAt = timestamp,
     updatedAt = None,
-    isFreeOfCharge = false
+    isFreeOfCharge = false,
+    freeOfChargeReason = None
   )
 
-  val purposeVersionNotInDraftState: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+  val purposeVersionNotInDraftState: PersistentPurposeVersion = PersistentPurposeVersion(
     id = UUID.randomUUID(),
-    state = PurposeManagement.PurposeVersionState.ACTIVE,
+    state = PurposeActive,
     createdAt = timestamp,
     updatedAt = None,
     firstActivationAt = None,
@@ -224,7 +243,35 @@ object SpecData {
     suspendedAt = None
   )
 
-  val purposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
+  val purposeVersion: PersistentPurposeVersion = PersistentPurposeVersion(
+    id = UUID.randomUUID(),
+    state = Draft,
+    createdAt = timestamp,
+    updatedAt = None,
+    firstActivationAt = None,
+    expectedApprovalDate = None,
+    dailyCalls = 1000,
+    riskAnalysis = None,
+    suspendedAt = None
+  )
+
+  val dependencyPurpose: PurposeManagement.Purpose = PurposeManagement.Purpose(
+    id = UUID.randomUUID(),
+    eserviceId = UUID.randomUUID(),
+    consumerId = UUID.randomUUID(),
+    versions = Seq.empty,
+    suspendedByConsumer = None,
+    suspendedByProducer = None,
+    title = "A title",
+    description = "A description",
+    riskAnalysisForm = Some(validManagementRiskAnalysis(PersistentTenantKind.PRIVATE)),
+    createdAt = timestamp,
+    updatedAt = None,
+    isFreeOfCharge = false,
+    freeOfChargeReason = None
+  )
+
+  val dependencyPurposeVersion: PurposeManagement.PurposeVersion = PurposeManagement.PurposeVersion(
     id = UUID.randomUUID(),
     state = PurposeManagement.PurposeVersionState.DRAFT,
     createdAt = timestamp,
@@ -245,7 +292,7 @@ object SpecData {
     suspendedByProducer = None,
     title = "A title",
     description = "A description",
-    riskAnalysisForm = Some(validPersistentRiskAnalysis(TenantKind.PA)),
+    riskAnalysisForm = Some(validPersistentRiskAnalysis(PersistentTenantKind.PA)),
     createdAt = timestamp,
     updatedAt = None,
     isFreeOfCharge = false,
@@ -257,16 +304,16 @@ object SpecData {
   def waitingForApprovalUpdate: WaitingForApprovalPurposeVersionUpdateContent =
     WaitingForApprovalPurposeVersionUpdateContent(timestamp)
 
-  val purposes: PurposeManagement.Purposes = PurposeManagement.Purposes(Seq(purpose))
+  val purposes: Seq[PersistentPurpose] = Seq(purpose)
 
-  val agreement: AgreementManagement.Agreement =
-    AgreementManagement.Agreement(
+  val agreement: PersistentAgreement =
+    PersistentAgreement(
       id = UUID.randomUUID(),
       eserviceId = UUID.randomUUID(),
       descriptorId = UUID.randomUUID(),
       producerId = UUID.randomUUID(),
       consumerId = UUID.randomUUID(),
-      state = AgreementManagement.AgreementState.ACTIVE,
+      state = Active,
       verifiedAttributes = List.empty,
       certifiedAttributes = List.empty,
       declaredAttributes = List.empty,
@@ -277,18 +324,21 @@ object SpecData {
       createdAt = timestamp,
       updatedAt = None,
       consumerNotes = None,
-      stamps = Stamps()
+      stamps = PersistentStamps(),
+      contract = None,
+      rejectionReason = None,
+      suspendedAt = None
     )
 
-  val client: AuthorizationManagement.Client =
-    AuthorizationManagement.Client(
+  val client: PersistentClient =
+    PersistentClient(
       id = UUID.randomUUID(),
       consumerId = UUID.randomUUID(),
       name = "Client",
       description = None,
       purposes = Seq.empty,
       relationships = Set.empty,
-      kind = AuthorizationManagement.ClientKind.CONSUMER,
+      kind = Consumer,
       createdAt = timestamp
     )
 }

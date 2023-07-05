@@ -2,7 +2,7 @@ package it.pagopa.interop.purposeprocess.error
 
 import cats.data.NonEmptyChain
 import it.pagopa.interop.commons.utils.errors.ComponentError
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 
 import java.util.UUID
 
@@ -63,13 +63,13 @@ object PurposeProcessErrors {
   final case class RiskAnalysisConfigForTenantKindNotFound(tenantId: UUID)
       extends ComponentError("0019", s"Risk Analysis Configuration for Tenant ${tenantId.toString} not found")
 
-  final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: TenantKind)
+  final case class RiskAnalysisConfigLatestVersionNotFound(tenantKind: PersistentTenantKind)
       extends ComponentError(
         "0020",
         s"Latest Risk Analysis Configuration for tenant kind ${tenantKind.toString} not found"
       )
 
-  final case class RiskAnalysisConfigVersionNotFound(version: String, tenantKind: TenantKind)
+  final case class RiskAnalysisConfigVersionNotFound(version: String, tenantKind: PersistentTenantKind)
       extends ComponentError(
         "0021",
         s"Risk Analysis Configuration version $version for tenant kind ${tenantKind.toString} not found"
@@ -79,4 +79,8 @@ object PurposeProcessErrors {
       extends ComponentError("0022", s"Purpose with name: $name already in use")
 
   object MissingFreeOfChargeReason extends ComponentError("0023", s"Missing Free Of Charge Reason")
+
+  final case class EServiceNotFound(eServiceId: UUID)
+      extends ComponentError("0024", s"EService ${eServiceId.toString} not found")
+
 }

@@ -25,19 +25,21 @@ object Dependencies {
 
   private[this] object pagopa {
     lazy val namespace                 = "it.pagopa"
-    lazy val agreementManagementClient =
-      namespace %% "interop-be-agreement-management-client" % agreementManagementVersion
+    lazy val agreementManagementModels =
+      namespace %% "interop-be-agreement-management-models" % agreementManagementVersion
     lazy val authorizationManagementClient =
       namespace %% "interop-be-authorization-management-client" % authorizationManagementVersion
+    lazy val authorizationManagementModels =
+      namespace %% "interop-be-authorization-management-models" % authorizationManagementVersion
     lazy val purposeManagementClient =
       namespace %% "interop-be-purpose-management-client" % purposeManagementVersion
     lazy val purposeManagementModels =
       namespace %% "interop-be-purpose-management-models" % purposeManagementVersion
 
-    lazy val tenantManagementClient =
-      namespace %% "interop-be-tenant-management-client" % tenantManagementVersion
-    lazy val catalogManagementClient =
-      namespace %% "interop-be-catalog-management-client" % catalogManagementVersion
+    lazy val tenantManagementModels =
+      namespace %% "interop-be-tenant-management-models" % tenantManagementVersion
+    lazy val catalogManagementModels =
+      namespace %% "interop-be-catalog-management-models" % catalogManagementVersion
 
     lazy val utils       = namespace %% "interop-commons-utils"        % commonsVersion
     lazy val fileManager = namespace %% "interop-commons-file-manager" % commonsVersion
@@ -101,12 +103,13 @@ object Dependencies {
       cats.core                                 % Compile,
       logback.classic                           % Compile,
       mustache.mustache                         % Compile,
-      pagopa.agreementManagementClient          % Compile,
+      pagopa.agreementManagementModels          % Compile,
       pagopa.authorizationManagementClient      % Compile,
+      pagopa.authorizationManagementModels      % Compile,
       pagopa.purposeManagementClient            % Compile,
       pagopa.purposeManagementModels            % Compile,
-      pagopa.catalogManagementClient            % Compile,
-      pagopa.tenantManagementClient             % Compile,
+      pagopa.catalogManagementModels            % Compile,
+      pagopa.tenantManagementModels             % Compile,
       pagopa.utils                              % Compile,
       pagopa.fileManager                        % Compile,
       pagopa.jwt                                % Compile,

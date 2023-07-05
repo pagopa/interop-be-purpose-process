@@ -2,14 +2,11 @@ package it.pagopa.interop.purposeprocess.api
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import it.pagopa.interop._
 import it.pagopa.interop.commons.utils.SprayCommonFormats.{offsetDateTimeFormat, uuidFormat}
 import it.pagopa.interop.purposeprocess.model._
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 package object impl extends SprayJsonSupport with DefaultJsonProtocol {
-
-  type ManagementPurpose = purposemanagement.client.model.Purpose
 
   implicit def clientFormat: RootJsonFormat[Client]                 = jsonFormat2(Client)
   implicit def organizationFormat: RootJsonFormat[Organization]     = jsonFormat2(Organization)

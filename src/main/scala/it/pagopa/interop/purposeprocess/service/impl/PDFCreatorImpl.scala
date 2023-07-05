@@ -5,16 +5,16 @@ import com.openhtmltopdf.util.XRLog
 import it.pagopa.interop.commons.files.model.PDFConfiguration
 import it.pagopa.interop.commons.files.service.PDFManager
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.purposemanagement.client.model.{
-  RiskAnalysisForm,
-  RiskAnalysisMultiAnswer,
-  RiskAnalysisSingleAnswer
-}
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentRiskAnalysisForm,
+  PersistentRiskAnalysisSingleAnswer,
+  PersistentRiskAnalysisMultiAnswer
+}
 
 import java.io.File
 import java.time.LocalDateTime
@@ -36,11 +36,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   override def createDocument(
     template: String,
-    riskAnalysisForm: RiskAnalysisForm,
+    riskAnalysisForm: PersistentRiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
     language: Language
-  )(kind: TenantKind): Future[File] =
+  )(kind: PersistentTenantKind): Future[File] =
     Future.fromTry {
       for {
         file       <- createTempFile
@@ -58,7 +58,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   def setupData(
     formConfig: RiskAnalysisFormConfig,
-    riskAnalysisForm: RiskAnalysisForm,
+    riskAnalysisForm: PersistentRiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
     language: Language
@@ -76,7 +76,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   def sortedAnswers(
     formConfig: RiskAnalysisFormConfig,
-    riskAnalysisForm: RiskAnalysisForm,
+    riskAnalysisForm: PersistentRiskAnalysisForm,
     language: Language
   ): Try[List[String]] =
     formConfig.questions
@@ -87,11 +87,11 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       .sequence
 
   private[this] def formatSingleAnswer(formConfig: FormConfigQuestion, language: Language)(
-    answer: RiskAnalysisSingleAnswer
+    answer: PersistentRiskAnalysisSingleAnswer
   ): Try[String] = formatAnswer(formConfig, language, answer, getSingleAnswerText(language))
 
   private[this] def formatMultiAnswer(formConfig: FormConfigQuestion, language: Language)(
-    answer: RiskAnalysisMultiAnswer
+    answer: PersistentRiskAnalysisMultiAnswer
   ): Try[String] = formatAnswer(formConfig, language, answer, getMultiAnswerText(language))
 
   private[this] def formatAnswer[T](
@@ -107,7 +107,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private[this] def getSingleAnswerText(
     language: Language
-  )(questionConfig: FormConfigQuestion, answer: RiskAnalysisSingleAnswer): Try[String] =
+  )(questionConfig: FormConfigQuestion, answer: PersistentRiskAnalysisSingleAnswer): Try[String] =
     questionConfig match {
       case _: FreeInputQuestion => answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
       case c: SingleQuestion    => getSingleAnswerTextFromConfig(c, answer, language)
@@ -116,7 +116,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private[this] def getMultiAnswerText(
     language: Language
-  )(questionConfig: FormConfigQuestion, answer: RiskAnalysisMultiAnswer): Try[String] =
+  )(questionConfig: FormConfigQuestion, answer: PersistentRiskAnalysisMultiAnswer): Try[String] =
     questionConfig match {
       case c: FreeInputQuestion => Failure(IncompatibleConfig(answer.key, c.id))
       case c: SingleQuestion    => Failure(IncompatibleConfig(answer.key, c.id))
@@ -125,7 +125,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private[this] def getSingleAnswerTextFromConfig(
     questionConfig: SingleQuestion,
-    answer: RiskAnalysisSingleAnswer,
+    answer: PersistentRiskAnalysisSingleAnswer,
     language: Language
   ): Try[String] = for {
     answerValue  <- answer.value.toTry(UnexpectedEmptyAnswer(answer.key))
@@ -136,7 +136,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
 
   private[this] def getMultiAnswerTextFromConfig(
     questionConfig: MultiQuestion,
-    answer: RiskAnalysisMultiAnswer,
+    answer: PersistentRiskAnalysisMultiAnswer,
     language: Language
   ): Try[String] =
     questionConfig match {

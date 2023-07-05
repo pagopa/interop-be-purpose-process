@@ -2,9 +2,7 @@ package it.pagopa.interop.purposeprocess.common.readmodel
 
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.purposemanagement.model.persistence.JsonFormats._
-import it.pagopa.interop.purposemanagement.model.purpose.{Draft, PersistentPurpose}
-import it.pagopa.interop.purposeprocess.api.converters.purposemanagement.PurposeVersionStateConverter
-import it.pagopa.interop.purposeprocess.model.PurposeVersionState
+import it.pagopa.interop.purposemanagement.model.purpose._
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates._
@@ -15,7 +13,40 @@ import org.mongodb.scala.model.Sorts.ascending
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-object ReadModelQueries {
+object ReadModelPurposeQueries extends ReadModelQuery {
+
+  def getPurpose(
+    purposeId: UUID
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Option[PersistentPurpose]] =
+    readModel.findOne[PersistentPurpose]("purposes", Filters.eq("data.id", purposeId.toString))
+
+  private def getPurposesFilters(
+    eServiceId: Option[UUID],
+    consumerId: Option[UUID],
+    states: Seq[PersistentPurposeVersionState]
+  ): Bson = {
+    val eserviceIdFilter = eServiceId.map(id => Filters.eq("data.eserviceId", id.toString))
+    val consumerIdFilter = consumerId.map(id => Filters.eq("data.consumerId", id.toString))
+    val statesFilter     = mapToVarArgs(
+      states
+        .map(_.toString)
+        .map(Filters.eq("data.versions.state", _))
+    )(Filters.or)
+
+    mapToVarArgs(eserviceIdFilter.toList ++ consumerIdFilter.toList ++ statesFilter.toList)(Filters.and)
+      .getOrElse(Filters.empty())
+  }
+
+  def getPurposes(
+    eServiceId: Option[UUID],
+    consumerId: Option[UUID],
+    states: Seq[PersistentPurposeVersionState],
+    offset: Int,
+    limit: Int
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Seq[PersistentPurpose]] = {
+    val filters: Bson = getPurposesFilters(eServiceId = eServiceId, consumerId = consumerId, states = states)
+    readModel.find[PersistentPurpose]("purposes", filters, offset, limit)
+  }
 
   def listPurposes(
     requesterId: UUID,
@@ -23,12 +54,12 @@ object ReadModelQueries {
     eServicesIds: List[String],
     consumersIds: List[String],
     producersIds: List[String],
-    states: List[PurposeVersionState],
+    states: List[PersistentPurposeVersionState],
     excludeDraft: Boolean,
     offset: Int,
     limit: Int,
     exactMatchOnTitle: Boolean = false
-  )(readModel: ReadModelService)(implicit ec: ExecutionContext): Future[PaginatedResult[PersistentPurpose]] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentPurpose]] = {
     val simpleFilters: Bson = listPurposesFilters(title, eServicesIds, consumersIds, states, exactMatchOnTitle)
     val query: Seq[Bson]    = Seq(
       `match`(simpleFilters),
@@ -87,14 +118,13 @@ object ReadModelQueries {
     title: Option[String],
     eServicesIds: List[String],
     consumersIds: List[String],
-    states: List[PurposeVersionState],
+    states: List[PersistentPurposeVersionState],
     exactMatchOnTitle: Boolean
   ): Bson = {
     // Takes purposes that contain only version with state Archived
     // (purposes that contain version with state == Archived but not versions with state != Archived)
     val archivedStatePartialFilter = states
-      .filter(_ == PurposeVersionState.ARCHIVED)
-      .map(PurposeVersionStateConverter.apiToPersistent)
+      .filter(_ == Archived)
       .map(_.toString)
       .distinct
       .map(v =>
@@ -105,8 +135,7 @@ object ReadModelQueries {
       )
 
     val statesPartialFilter = states
-      .filterNot(_ == PurposeVersionState.ARCHIVED)
-      .map(PurposeVersionStateConverter.apiToPersistent)
+      .filterNot(_ == Archived)
       .map(_.toString)
       .map(Filters.eq("data.versions.state", _))
 
@@ -133,6 +162,4 @@ object ReadModelQueries {
 
   private def listPurposesProducersFilters(producersIds: Seq[String]): Bson =
     mapToVarArgs(producersIds.map(Filters.eq("eservices.data.producerId", _)))(Filters.or).getOrElse(Filters.empty())
-
-  private def mapToVarArgs[A, B](l: Seq[A])(f: Seq[A] => B): Option[B] = Option.when(l.nonEmpty)(f(l))
 }

@@ -4,12 +4,12 @@ import it.pagopa.interop.commons.cqrs.model.ReadModelConfig
 import it.pagopa.interop.commons.cqrs.service.{MongoDbReadModelService, ReadModelService}
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.model.RiskAnalysisForm
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.model._
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.tenantmanagement.client.model.TenantKind
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.util.FakeDependencies._
 import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
@@ -29,7 +29,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
   val fakeAgreementManagementService: AgreementManagementService         = new FakeAgreementManagementService()
   val fakeAuthorizationManagementService: AuthorizationManagementService = new FakeAuthorizationManagementService()
   val fakeTenantManagementService: TenantManagementService               = new FakeTenantManagementService()
-  val dummyReadModel: ReadModelService                                   = new MongoDbReadModelService(
+  implicit val dummyReadModel: ReadModelService                          = new MongoDbReadModelService(
     ReadModelConfig(
       "mongodb://localhost/?socketTimeoutMS=1&serverSelectionTimeoutMS=1&connectTimeoutMS=1&&autoReconnect=false&keepAlive=false",
       "db"
@@ -48,16 +48,15 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       fakeCatalogManagementService,
       fakePurposeManagementService,
       fakeTenantManagementService,
-      dummyReadModel,
       fakeFileManager,
       pdfCreator = new PDFCreator {
         override def createDocument(
           template: String,
-          riskAnalysisForm: RiskAnalysisForm,
+          riskAnalysisForm: PersistentRiskAnalysisForm,
           dailyCalls: Int,
           eServiceInfo: EServiceInfo,
           language: Language
-        )(kind: TenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
+        )(kind: PersistentTenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
       uuidSupplier = new UUIDSupplier {
         override def get: UUID = UUID.randomUUID()

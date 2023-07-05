@@ -1,10 +1,5 @@
 package it.pagopa.interop.purposeprocess
 
-import it.pagopa.interop.purposemanagement.client.model.{
-  RiskAnalysisForm,
-  RiskAnalysisMultiAnswer,
-  RiskAnalysisSingleAnswer
-}
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
@@ -15,6 +10,9 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisMultiAnswer
+import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisSingleAnswer
 
 class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
@@ -133,7 +131,7 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
     "fail if the single answer is empty" in {
       val questionKey      = "usesPersonalData"
       val riskAnalysisForm = dummyRiskAnalysisForm.copy(singleAnswers =
-        Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = None))
+        Seq(PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = None))
       )
 
       val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
@@ -144,19 +142,19 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 }
 
 object PDFCreatorSpec {
-  val eServiceInfo: EServiceInfo              = EServiceInfo("EServiceName", "ProducerName", "ConsumerName")
-  val dailyCalls                              = 1000
-  val dummyRiskAnalysisForm: RiskAnalysisForm =
-    RiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
+  val eServiceInfo: EServiceInfo                        = EServiceInfo("EServiceName", "ProducerName", "ConsumerName")
+  val dailyCalls                                        = 1000
+  val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
+    PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
 
-  def makeSingleAnswerForm(key: String, value: String): RiskAnalysisForm =
+  def makeSingleAnswerForm(key: String, value: String): PersistentRiskAnalysisForm =
     dummyRiskAnalysisForm.copy(singleAnswers =
-      Seq(RiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = key, value = Some(value)))
+      Seq(PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = key, value = Some(value)))
     )
 
-  def makeMultiAnswerForm(key: String, values: List[String]): RiskAnalysisForm =
+  def makeMultiAnswerForm(key: String, values: List[String]): PersistentRiskAnalysisForm =
     dummyRiskAnalysisForm.copy(multiAnswers =
-      Seq(RiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = key, values = values))
+      Seq(PersistentRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = key, values = values))
     )
 
   def checkSuccessfulSingleAnswerResult(

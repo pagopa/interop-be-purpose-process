@@ -2,9 +2,9 @@ package it.pagopa.interop.purposeprocess.api.impl
 
 import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.directives.FileInfo
-import cats.implicits._
+import cats.syntax.all._
+import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
-import it.pagopa.interop.catalogmanagement.client.model.EService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
@@ -15,12 +15,22 @@ import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
-import it.pagopa.interop.tenantmanagement.client.{model => TenantManagementDependency}
 import it.pagopa.interop.purposeprocess.service._
+import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.purposemanagement.model.purpose.{Active}
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentPurposeVersion,
+  PersistentPurpose,
+  WaitingForApproval,
+  Draft
+}
+import it.pagopa.interop.purposemanagement.model.purpose.Suspended
 
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
@@ -31,34 +41,34 @@ final case class PurposeVersionActivation(
   pdfCreator: PDFCreator,
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
-)(implicit ec: ExecutionContext) {
+)(implicit ec: ExecutionContext, readModel: ReadModelService) {
   private[this] val riskAnalysisTemplate = Source
     .fromResource("riskAnalysisTemplate/index.html")
     .getLines()
     .mkString(System.lineSeparator())
 
   def activateOrWaitForApproval(
-    eService: EService,
-    purpose: Purpose,
-    version: PurposeVersion,
+    eService: CatalogItem,
+    purpose: PersistentPurpose,
+    version: PersistentPurposeVersion,
     organizationId: UUID,
     ownership: Ownership
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
 
-    def changeToWaitForApproval(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] =
+    def changeToWaitForApproval(version: PersistentPurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] =
       purposeManagementService.waitForApprovalPurposeVersion(
         purpose.id,
         version.id,
         StateChangeDetails(changedBy, dateTimeSupplier.get())
       )
 
-    def createWaitForApproval(version: PurposeVersion): Future[PurposeVersion] = for {
-      _                         <- Future.traverse(purpose.versions.find(_.state == WAITING_FOR_APPROVAL).toList) { v =>
+    def createWaitForApproval(version: PersistentPurposeVersion): Future[PurposeVersion] = for {
+      _                         <- Future.traverse(purpose.versions.find(_.state == WaitingForApproval).toList) { v =>
         purposeManagementService.deletePurposeVersion(purpose.id, v.id)
       }
       draftVersion              <- purposeManagementService.createPurposeVersion(
         purpose.id,
-        PurposeVersionSeed(version.dailyCalls, version.riskAnalysis)
+        PurposeVersionSeed(version.dailyCalls, version.riskAnalysis.map(_.toManagement))
       )
       waitingForApprovalVersion <- purposeManagementService.waitForApprovalPurposeVersion(
         purpose.id,
@@ -67,11 +77,11 @@ final case class PurposeVersionActivation(
       )
     } yield waitingForApprovalVersion
 
-    def activate(version: PurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
+    def activate(version: PersistentPurposeVersion, changedBy: ChangedBy): Future[PurposeVersion] = {
 
       val payload: ActivatePurposeVersionPayload =
         ActivatePurposeVersionPayload(
-          riskAnalysis = version.riskAnalysis,
+          riskAnalysis = version.riskAnalysis.map(_.toManagement),
           stateChangeDetails = StateChangeDetails(changedBy, dateTimeSupplier.get())
         )
 
@@ -87,7 +97,7 @@ final case class PurposeVersionActivation(
     }
 
     (version.state, ownership) match {
-      case (DRAFT, CONSUMER | SELF_CONSUMER) =>
+      case (Draft, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(
             organizationId,
@@ -98,10 +108,10 @@ final case class PurposeVersionActivation(
           ),
           changeToWaitForApproval(version, ChangedBy.CONSUMER)
         )
-      case (DRAFT, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
+      case (Draft, PRODUCER)                 => Future.failed(OrganizationIsNotTheConsumer(organizationId))
 
-      case (WAITING_FOR_APPROVAL, CONSUMER) => Future.failed(OrganizationIsNotTheProducer(organizationId))
-      case (WAITING_FOR_APPROVAL, PRODUCER | SELF_CONSUMER) =>
+      case (WaitingForApproval, CONSUMER)                 => Future.failed(OrganizationIsNotTheProducer(organizationId))
+      case (WaitingForApproval, PRODUCER | SELF_CONSUMER) =>
         firstVersionActivation(
           organizationId,
           purpose,
@@ -110,20 +120,20 @@ final case class PurposeVersionActivation(
           eService
         )
 
-      case (SUSPENDED, CONSUMER)
+      case (Suspended, CONSUMER)
           if purpose.suspendedByConsumer.contains(true) && purpose.suspendedByProducer.contains(true) =>
         activate(version, ChangedBy.CONSUMER)
-      case (SUSPENDED, CONSUMER) if purpose.suspendedByConsumer.contains(true) =>
+      case (Suspended, CONSUMER) if purpose.suspendedByConsumer.contains(true) =>
         isLoadAllowed(eService, purpose, version).ifM(
           activate(version, ChangedBy.CONSUMER),
           createWaitForApproval(version)
         )
-      case (SUSPENDED, SELF_CONSUMER)                                          =>
+      case (Suspended, SELF_CONSUMER)                                          =>
         isLoadAllowed(eService, purpose, version).ifM(
           activate(version, ChangedBy.PRODUCER),
           createWaitForApproval(version)
         )
-      case (SUSPENDED, PRODUCER)                                               =>
+      case (Suspended, PRODUCER)                                               =>
         activate(version, ChangedBy.PRODUCER)
 
       case _ => Future.failed(OrganizationNotAllowed(organizationId))
@@ -138,20 +148,22 @@ final case class PurposeVersionActivation(
     * @param version Version to activate
     * @return True if it will exceed, False otherwise
     */
-  def isLoadAllowed(eService: EService, purpose: Purpose, version: PurposeVersion)(implicit
-    contexts: Seq[(String, String)]
+  def isLoadAllowed(
+    eService: CatalogItem,
+    purpose: PersistentPurpose,
+    version: PersistentPurposeVersion
   ): Future[Boolean] = {
     for {
       consumerPurposes <- purposeManagementService.getPurposes(
         eserviceId = Some(purpose.eserviceId),
         consumerId = Some(purpose.consumerId),
-        states = Seq(ACTIVE)
+        states = Seq(Active)
       )
 
       allPurposes <- purposeManagementService.getPurposes(
         eserviceId = Some(purpose.eserviceId),
         consumerId = None,
-        states = Seq(ACTIVE)
+        states = Seq(Active)
       )
 
       agreements <- agreementManagementService.getAgreements(
@@ -161,8 +173,8 @@ final case class PurposeVersionActivation(
       )
       agreement  <- agreements.headOption.toFuture(AgreementNotFound(eService.id.toString, purpose.consumerId.toString))
 
-      consumerActiveVersions    = consumerPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
-      allPurposesActiveVersions = allPurposes.purposes.flatMap(_.versions.filter(_.state == ACTIVE))
+      consumerActiveVersions    = consumerPurposes.flatMap(_.versions.filter(_.state == Active))
+      allPurposesActiveVersions = allPurposes.flatMap(_.versions.filter(_.state == Active))
 
       consumerLoadRequestsSum = consumerActiveVersions.map(_.dailyCalls).sum
       allPurposesRequestsSum  = allPurposesActiveVersions.map(_.dailyCalls).sum
@@ -177,7 +189,7 @@ final case class PurposeVersionActivation(
     } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
   }
 
-  private def getTenantName(tenantId: UUID)(implicit contexts: Seq[(String, String)]): Future[String] = for {
+  private def getTenantName(tenantId: UUID): Future[String] = for {
     tenant <- getTenant(tenantId)
   } yield tenant.name
 
@@ -193,10 +205,10 @@ final case class PurposeVersionActivation(
     */
   def firstVersionActivation(
     requesterId: UUID,
-    purpose: Purpose,
-    version: PurposeVersion,
+    purpose: PersistentPurpose,
+    version: PersistentPurposeVersion,
     stateChangeDetails: StateChangeDetails,
-    eService: EService
+    eService: CatalogItem
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get()
     for {
@@ -241,10 +253,10 @@ final case class PurposeVersionActivation(
     */
   def createRiskAnalysisDocument(
     documentId: UUID,
-    purpose: Purpose,
-    version: PurposeVersion,
+    purpose: PersistentPurpose,
+    version: PersistentPurposeVersion,
     eServiceInfo: EServiceInfo
-  )(kind: TenantManagementDependency.TenantKind): Future[String] = {
+  )(kind: PersistentTenantKind): Future[String] = {
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
@@ -262,9 +274,5 @@ final case class PurposeVersionActivation(
     } yield path
   }
 
-  private def getTenant(
-    tenantId: UUID
-  )(implicit contexts: Seq[(String, String)]): Future[TenantManagementDependency.Tenant] = for {
-    tenant <- tenantManagementService.getTenant(tenantId)
-  } yield tenant
+  private def getTenant(tenantId: UUID): Future[PersistentTenant] = tenantManagementService.getTenantById(tenantId)
 }
