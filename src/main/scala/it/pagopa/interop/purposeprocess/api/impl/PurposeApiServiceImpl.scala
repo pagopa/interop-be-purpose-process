@@ -243,7 +243,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposes: ToEntityMarshaller[Purposes],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, SUPPORT_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, API_ROLE, SECURITY_ROLE, M2M_ROLE, INTERNAL_ROLE, SUPPORT_ROLE) {
     val operationLabel =
       s"Retrieving Purposes for name $name, EServices $eServicesIds, Consumers $consumersIds, Producers $producersIds"
 
@@ -303,7 +303,7 @@ final case class PurposeApiServiceImpl(
   override def deletePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, INTERNAL_ROLE) {
     val operationLabel = s"Deleting Version $versionId of Purpose $purposeId"
     logger.info(operationLabel)
 
@@ -403,7 +403,7 @@ final case class PurposeApiServiceImpl(
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
+  ): Route = authorize(ADMIN_ROLE, INTERNAL_ROLE) {
     val operationLabel = s"Archiving Version $versionId of Purpose $purposeId"
     logger.info(operationLabel)
 

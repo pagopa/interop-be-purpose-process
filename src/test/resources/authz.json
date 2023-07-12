@@ -35,7 +35,8 @@
     {
       "verb": "DELETE",
       "roles": [
-        "admin"
+        "admin",
+        "internal"
       ],
       "route": "deletePurposeVersion"
     },
@@ -63,7 +64,8 @@
     {
       "verb": "POST",
       "roles": [
-        "admin"
+        "admin",
+        "internal"
       ],
       "route": "archivePurposeVersion"
     },
@@ -74,6 +76,7 @@
         "api",
         "security",
         "m2m",
+        "internal",
         "support"
       ],
       "route": "getPurposes"
