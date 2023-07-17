@@ -101,6 +101,22 @@ h1 {
   margin: 16px 0;
 }
 
+.free-of-charge label {
+  font-style: italic;
+}
+
+.free-of-charge .value {
+  font-weight: 600;
+}
+
+.free-of-charge .item {
+  margin: 16px 0;
+}
+
+.free-of-charge  .item-not-visible {
+  display: none;
+}
+
 .purpose-answers .info-label {
   font-style: italic;
 }
