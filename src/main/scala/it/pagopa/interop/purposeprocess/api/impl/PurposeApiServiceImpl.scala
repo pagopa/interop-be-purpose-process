@@ -172,7 +172,7 @@ final case class PurposeApiServiceImpl(
         else Future.unit
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       tenant         <- tenantManagementService.getTenantById(organizationId)
-      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      _              <- assertOrganizationIsAConsumer(organizationId, purposeUpdateContent.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent

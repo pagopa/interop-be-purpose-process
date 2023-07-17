@@ -952,17 +952,22 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed if User is a Consumer and Purpose is in Draft State" in {
 
       val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
+          eserviceId = eserviceId,
+          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
         title = "A title",
         description = "A description",
+        eserviceId = eserviceId,
+        consumerId = consumerId,
         isFreeOfCharge = false,
         riskAnalysisForm = None
       )
@@ -988,6 +993,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
+          eserviceId = UUID.randomUUID(),
+          consumerId = consumerId,
           isFreeOfCharge = true,
           riskAnalysisForm = None
         )
@@ -1012,6 +1019,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
+          eserviceId = UUID.randomUUID(),
+          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )
@@ -1037,6 +1046,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
+          eserviceId = UUID.randomUUID(),
+          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )

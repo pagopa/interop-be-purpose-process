@@ -987,6 +987,12 @@ components:
           type: string
           minLength: 10
           maxLength: 250
+        eserviceId:
+          type: string
+          format: uuid
+        consumerId:
+          type: string
+          format: uuid
         isFreeOfCharge:
           type: boolean
         freeOfChargeReason:
@@ -997,6 +1003,8 @@ components:
         - title
         - description
         - isFreeOfCharge
+        - eserviceId
+        - consumerId
     DraftPurposeVersionUpdateContent:
       type: object
       description: contains the expected payload for purpose version update.
