@@ -978,6 +978,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
+
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
@@ -1012,6 +1015,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "fail if User is not a Consumer" in {
 
       val purposeId   = UUID.randomUUID()
+      val eserviceId  = UUID.randomUUID()
       val consumerId  = UUID.randomUUID()
       val requesterId = UUID.randomUUID()
 
@@ -1019,7 +1023,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
-          eserviceId = UUID.randomUUID(),
+          eserviceId = eserviceId,
           consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
@@ -1027,6 +1031,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockTenantRetrieve(requesterId, SpecData.tenant.copy(id = requesterId, kind = PersistentTenantKind.PRIVATE.some))
 
@@ -1041,12 +1048,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
     "fail if Purpose is not in DRAFT state" in {
       val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
         PurposeUpdateContent(
           title = "A title",
           description = "A description",
-          eserviceId = UUID.randomUUID(),
+          eserviceId = eserviceId,
           consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
@@ -1058,6 +1066,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
+
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
