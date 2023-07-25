@@ -77,8 +77,8 @@ object SpecData {
     name = "test_name"
   )
 
-  val validRiskAnalysis2_0_Pa: RiskAnalysisForm = RiskAnalysisForm(
-    version = "2.0",
+  val validRiskAnalysis3_0_Pa: RiskAnalysisForm = RiskAnalysisForm(
+    version = "3.0",
     answers = Map(
       "purpose"                                         -> List("INSTITUTIONAL"),
       "institutionalPurpose"                            -> List("MyPurpose"),
@@ -95,7 +95,8 @@ object SpecData {
       "confirmPricipleIntegrityAndDiscretion"           -> List("true"),
       "reasonPolicyNotProvided"                         -> List("Because"),
       "doneDpia"                                        -> List("NO"),
-      "dataRetentionPeriod"                             -> List("true"),
+      "dataDownload"                                    -> List("YES"),
+      "confirmDataRetentionPeriod"                      -> List("true"),
       "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
       "checkedExistenceMereCorrectnessInteropCatalogue" -> List("true"),
       "usesThirdPartyData"                              -> List("NO"),
@@ -103,8 +104,8 @@ object SpecData {
     )
   )
 
-  val validRiskAnalysis1_0_Private: RiskAnalysisForm = RiskAnalysisForm(
-    version = "1.0",
+  val validRiskAnalysis2_0_Private: RiskAnalysisForm = RiskAnalysisForm(
+    version = "2.0",
     answers = Map(
       "purpose"                                         -> List("INSTITUTIONAL"),
       "institutionalPurpose"                            -> List("MyPurpose"),
@@ -112,18 +113,18 @@ object SpecData {
       "personalDataTypes"                               -> List("OTHER"),
       "otherPersonalDataTypes"                          -> List("MyDataTypes"),
       "legalBasis"                                      -> List("LEGAL_OBLIGATION", "PUBLIC_INTEREST"),
-      "legalObligationReference"                        -> List("somethingLegal"),
+      "legalObligationReference"                        -> List("YES"),
       "legalBasisPublicInterest"                        -> List("RULE_OF_LAW"),
       "ruleOfLawText"                                   -> List("TheLaw"),
       "knowsDataQuantity"                               -> List("NO"),
       "dataQuantity"                                    -> Nil,
       "dataDownload"                                    -> List("YES"),
-      "deliveryMethod"                                  -> List("ANONYMOUS"),
+      "deliveryMethod"                                  -> List("CLEARTEXT"),
       "policyProvided"                                  -> List("NO"),
       "confirmPricipleIntegrityAndDiscretion"           -> List("true"),
       "reasonPolicyNotProvided"                         -> List("Because"),
       "doneDpia"                                        -> List("NO"),
-      "dataRetentionPeriod"                             -> List("true"),
+      "dataRetentionPeriod"                             -> List("10"),
       "purposePursuit"                                  -> List("MERE_CORRECTNESS"),
       "checkedExistenceMereCorrectnessInteropCatalogue" -> List("true"),
       "declarationConfirmGDPR"                          -> List("true")
@@ -131,7 +132,7 @@ object SpecData {
   )
 
   val validOnlySchemaRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
-    version = "2.0",
+    version = "3.0",
     answers = Map(
       "purpose"                    -> List("INSTITUTIONAL"),
       "usesPersonalData"           -> Nil,
@@ -141,7 +142,7 @@ object SpecData {
   )
 
   val validOnlySchemaRiskAnalysis1_0: RiskAnalysisForm = RiskAnalysisForm(
-    version = "1.0",
+    version = "2.0",
     answers = Map(
       "purpose"                    -> List("INSTITUTIONAL"),
       "usesPersonalData"           -> Nil,
@@ -177,12 +178,11 @@ object SpecData {
 
   def validManagementRiskAnalysisSeed(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisFormSeed = {
     val riskAnalysis =
-      if (tenantKind == PersistentTenantKind.PA) validRiskAnalysis2_0_Pa else validRiskAnalysis1_0_Private
+      if (tenantKind == PersistentTenantKind.PA) validRiskAnalysis3_0_Pa else validRiskAnalysis2_0_Private
     RiskAnalysisValidation
       .validate(riskAnalysis, false)(tenantKind)
       .toOption
       .get
-
   }
 
   def validManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {
