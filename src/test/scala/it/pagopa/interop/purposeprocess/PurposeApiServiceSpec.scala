@@ -113,12 +113,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion.copy(id = purposeCloned.id)))
 
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(SpecData.purpose.copy(id = purposeCloned.id)))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -226,12 +220,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(50, None), context)
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
-
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -341,12 +329,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
 
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -443,12 +425,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(500, None), context)
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
-
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
