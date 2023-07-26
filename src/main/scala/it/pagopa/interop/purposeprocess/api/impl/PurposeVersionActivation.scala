@@ -189,10 +189,6 @@ final case class PurposeVersionActivation(
     } yield consumerLoadRequestsSum + version.dailyCalls <= maxDailyCallsPerConsumer && (allPurposesRequestsSum + version.dailyCalls <= maxDailyCallsTotal)
   }
 
-  private def getTenantTuple(tenantId: UUID): Future[(String, String)] = for {
-    tenant <- getTenant(tenantId)
-  } yield (tenant.name, tenant.externalId.value)
-
   /** Activate a Version for the first time, meaning when the current status is Draft or Waiting for Approval.
     * The first activation generates also the risk analysis document.
     *
@@ -212,15 +208,13 @@ final case class PurposeVersionActivation(
   )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = {
     val documentId: UUID = uuidSupplier.get()
     for {
-      ((producerDescription, producerValue), (consumerDescription, consumerValue)) <- getTenantTuple(
-        eService.producerId
-      ).zip(getTenantTuple(purpose.consumerId))
+      (producer, consumer) <- getTenant(eService.producerId).zip(getTenant(purpose.consumerId))
       eServiceInfo = EServiceInfo(
         name = eService.name,
-        producerName = producerDescription,
-        producerValue = producerValue,
-        consumerName = consumerDescription,
-        consumerValue = consumerValue
+        producerName = producer.name,
+        producerIPACode = producer.externalId.value,
+        consumerName = consumer.name,
+        consumerIPACode = consumer.externalId.value
       )
       tenant     <- getTenant(requesterId)
       tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
