@@ -31,7 +31,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
       languages.foreach(language =>
         checkSuccessfulSingleAnswerResult(
-          result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language),
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge,
+            freeOfChargeReason,
+            language
+          ),
           expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
           expectedAnswer = answer,
           language = language
@@ -46,7 +54,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
       languages.foreach(language =>
         checkSuccessfulSingleAnswerResult(
-          result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language),
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge,
+            freeOfChargeReason,
+            language
+          ),
           expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
           expectedAnswer = answer,
           language = language
@@ -61,7 +77,84 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
       languages.foreach(language =>
         checkSuccessfulResult(
-          result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, language),
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge,
+            freeOfChargeReason,
+            language
+          ),
+          expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
+          expectedAnswer = answers,
+          language = language
+        )
+      )
+    }
+
+    "succeed without free of charge reason" in {
+      val questionKey      = "legalBasis"
+      val answers          = List("CONSENT", "CONTRACT", "SAFEGUARD")
+      val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = answers)
+
+      languages.foreach(language =>
+        checkSuccessfulResult(
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge = false,
+            freeOfChargeReason = None,
+            language
+          ),
+          expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
+          expectedAnswer = answers,
+          language = language
+        )
+      )
+    }
+
+    "succeed with free of charge but without reason" in {
+      val questionKey      = "legalBasis"
+      val answers          = List("CONSENT", "CONTRACT", "SAFEGUARD")
+      val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = answers)
+
+      languages.foreach(language =>
+        checkSuccessfulResult(
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge = true,
+            freeOfChargeReason = None,
+            language
+          ),
+          expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
+          expectedAnswer = answers,
+          language = language
+        )
+      )
+    }
+
+    "succeed with free of charge reason" in {
+      val questionKey      = "legalBasis"
+      val answers          = List("CONSENT", "CONTRACT", "SAFEGUARD")
+      val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = answers)
+
+      languages.foreach(language =>
+        checkSuccessfulResult(
+          result = setupData(
+            testConfig,
+            riskAnalysisForm,
+            dailyCalls,
+            eServiceInfo,
+            isFreeOfCharge = true,
+            freeOfChargeReason = Some("Reason"),
+            language
+          ),
           expectedQuestion = testConfig.questions.find(_.id == questionKey).get,
           expectedAnswer = answers,
           language = language
@@ -99,7 +192,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
         multiAnswers = multiForm.multiAnswers
       )
 
-      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      val result = setupData(
+        testConfig,
+        riskAnalysisForm,
+        dailyCalls,
+        eServiceInfo,
+        isFreeOfCharge,
+        freeOfChargeReason,
+        LanguageIt
+      )
 
       result shouldBe a[Success[_]]
       val answers = result.get("answers")
@@ -114,7 +215,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
       val questionKey      = "usesPersonalData"
       val answer           = "YES"
       val riskAnalysisForm = makeMultiAnswerForm(key = questionKey, values = List(answer))
-      val result           = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      val result           = setupData(
+        testConfig,
+        riskAnalysisForm,
+        dailyCalls,
+        eServiceInfo,
+        isFreeOfCharge,
+        freeOfChargeReason,
+        LanguageIt
+      )
 
       result.fold(_ shouldBe a[IncompatibleConfig], _ => fail("Expected failure, but got Success"))
     }
@@ -124,7 +233,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
       val answer           = "non-existent-answer"
       val riskAnalysisForm = makeSingleAnswerForm(key = questionKey, value = answer)
 
-      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      val result = setupData(
+        testConfig,
+        riskAnalysisForm,
+        dailyCalls,
+        eServiceInfo,
+        isFreeOfCharge,
+        freeOfChargeReason,
+        LanguageIt
+      )
       result.fold(_ shouldBe a[AnswerNotFoundInConfig], _ => fail("Expected failure, but got Success"))
     }
 
@@ -134,7 +251,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
         Seq(PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = questionKey, value = None))
       )
 
-      val result = setupData(testConfig, riskAnalysisForm, dailyCalls, eServiceInfo, LanguageIt)
+      val result = setupData(
+        testConfig,
+        riskAnalysisForm,
+        dailyCalls,
+        eServiceInfo,
+        isFreeOfCharge,
+        freeOfChargeReason,
+        LanguageIt
+      )
       result.fold(_ shouldBe a[UnexpectedEmptyAnswer], _ => fail("Expected failure, but got Success"))
     }
   }
@@ -142,6 +267,8 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 }
 
 object PDFCreatorSpec {
+  val isFreeOfCharge: Boolean                           = true
+  val freeOfChargeReason: Option[String]                = Some("Reason")
   val eServiceInfo: EServiceInfo                        = EServiceInfo("EServiceName", "ProducerName", "ConsumerName")
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
@@ -177,6 +304,8 @@ object PDFCreatorSpec {
         value should contain("eServiceName" -> eServiceInfo.name)
         value should contain("producerName" -> eServiceInfo.producerName)
         value should contain("consumerName" -> eServiceInfo.consumerName)
+        value.get("freeOfCharge") should not be empty
+        value.get("freeOfChargeReason") should not be empty
         value.get("date") should not be empty
 
         value.get("answers") should not be empty

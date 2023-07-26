@@ -55,6 +55,8 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
           riskAnalysisForm: PersistentRiskAnalysisForm,
           dailyCalls: Int,
           eServiceInfo: EServiceInfo,
+          isFreeOfCharge: Boolean,
+          freeOfChargeReason: Option[String],
           language: Language
         )(kind: PersistentTenantKind): Future[File] = Future.successful(File.createTempFile("full", "fake"))
       },
