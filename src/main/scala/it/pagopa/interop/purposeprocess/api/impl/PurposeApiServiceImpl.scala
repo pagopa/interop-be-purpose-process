@@ -184,7 +184,6 @@ final case class PurposeApiServiceImpl(
           Future.failed(MissingFreeOfChargeReason)
         else Future.unit
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      _              <- catalogManagementService.getEServiceById(purposeUpdateContent.eserviceId)
       tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
