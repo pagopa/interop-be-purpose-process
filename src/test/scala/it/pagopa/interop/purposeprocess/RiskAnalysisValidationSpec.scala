@@ -21,22 +21,23 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
   implicit val eqError: Eq[RiskAnalysisValidationError] = Eq.fromUniversalEquals
 
   "Risk Analysis Validation" should {
-    "succeed on correct form 2.0 on tenant kind PA" in {
+    "succeed on correct form 3.0 on tenant kind PA" in {
 
-      val riskAnalysis: RiskAnalysisForm = SpecData.validRiskAnalysis2_0_Pa
+      val riskAnalysis: RiskAnalysisForm = SpecData.validRiskAnalysis3_0_Pa
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
           SingleAnswerSeed("legalObligationReference", Some("somethingLegal")),
+          SingleAnswerSeed("dataDownload", Some("YES")),
           SingleAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Some("true")),
           SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
           SingleAnswerSeed("legalBasisPublicInterest", Some("RULE_OF_LAW")),
           SingleAnswerSeed("confirmPricipleIntegrityAndDiscretion", Some("true")),
           SingleAnswerSeed("usesThirdPartyData", Some("NO")),
           SingleAnswerSeed("purpose", Some("INSTITUTIONAL")),
+          SingleAnswerSeed("confirmDataRetentionPeriod", Some("true")),
           SingleAnswerSeed("ruleOfLawText", Some("TheLaw")),
-          SingleAnswerSeed("dataRetentionPeriod", Some("true")),
           SingleAnswerSeed("otherPersonalDataTypes", Some("MyDataTypes")),
           SingleAnswerSeed("knowsDataQuantity", Some("NO")),
           SingleAnswerSeed("institutionalPurpose", Some("MyPurpose")),
@@ -59,7 +60,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed on correct form 2.0 only schema on tenant kind PA" in {
+    "succeed on correct form 3.0 only schema on tenant kind PA" in {
       val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis2_0
 
       val expected = RiskAnalysisFormSeed(
@@ -75,22 +76,22 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed on correct form 1.0 on tenant kind PRIVATE" in {
-      val riskAnalysis = SpecData.validRiskAnalysis1_0_Private
+    "succeed on correct form 2.0 on tenant kind PRIVATE" in {
+      val riskAnalysis = SpecData.validRiskAnalysis2_0_Private
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswerSeed("legalObligationReference", Some("somethingLegal")),
+          SingleAnswerSeed("legalObligationReference", Some("YES")),
           SingleAnswerSeed("usesPersonalData", Some("YES")),
           SingleAnswerSeed("dataDownload", Some("YES")),
           SingleAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Some("true")),
-          SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
+          SingleAnswerSeed("deliveryMethod", Some("CLEARTEXT")),
           SingleAnswerSeed("legalBasisPublicInterest", Some("RULE_OF_LAW")),
           SingleAnswerSeed("confirmPricipleIntegrityAndDiscretion", Some("true")),
           SingleAnswerSeed("purpose", Some("INSTITUTIONAL")),
           SingleAnswerSeed("ruleOfLawText", Some("TheLaw")),
-          SingleAnswerSeed("dataRetentionPeriod", Some("true")),
+          SingleAnswerSeed("dataRetentionPeriod", Some("10")),
           SingleAnswerSeed("otherPersonalDataTypes", Some("MyDataTypes")),
           SingleAnswerSeed("knowsDataQuantity", Some("NO")),
           SingleAnswerSeed("institutionalPurpose", Some("MyPurpose")),
@@ -113,7 +114,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed on correct form 1.0 only schema on tenant kind PRIVATE" in {
+    "succeed on correct form 2.0 only schema on tenant kind PRIVATE" in {
       val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis1_0
 
       val expected = RiskAnalysisFormSeed(
@@ -129,22 +130,22 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed on correct form 1.0 on tenant kind GSP" in {
-      val riskAnalysis = SpecData.validRiskAnalysis1_0_Private
+    "succeed on correct form 2.0 on tenant kind GSP" in {
+      val riskAnalysis = SpecData.validRiskAnalysis2_0_Private
 
       val expected = RiskAnalysisFormSeed(
         version = riskAnalysis.version,
         singleAnswers = Seq(
-          SingleAnswerSeed("legalObligationReference", Some("somethingLegal")),
+          SingleAnswerSeed("legalObligationReference", Some("YES")),
           SingleAnswerSeed("usesPersonalData", Some("YES")),
           SingleAnswerSeed("dataDownload", Some("YES")),
           SingleAnswerSeed("checkedExistenceMereCorrectnessInteropCatalogue", Some("true")),
-          SingleAnswerSeed("deliveryMethod", Some("ANONYMOUS")),
+          SingleAnswerSeed("deliveryMethod", Some("CLEARTEXT")),
           SingleAnswerSeed("legalBasisPublicInterest", Some("RULE_OF_LAW")),
           SingleAnswerSeed("confirmPricipleIntegrityAndDiscretion", Some("true")),
           SingleAnswerSeed("purpose", Some("INSTITUTIONAL")),
           SingleAnswerSeed("ruleOfLawText", Some("TheLaw")),
-          SingleAnswerSeed("dataRetentionPeriod", Some("true")),
+          SingleAnswerSeed("dataRetentionPeriod", Some("10")),
           SingleAnswerSeed("otherPersonalDataTypes", Some("MyDataTypes")),
           SingleAnswerSeed("knowsDataQuantity", Some("NO")),
           SingleAnswerSeed("institutionalPurpose", Some("MyPurpose")),
@@ -167,7 +168,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     }
 
-    "succeed on correct form 1.0 only schema on tenant kind GSP" in {
+    "succeed on correct form 2.0 only schema on tenant kind GSP" in {
       val riskAnalysis = SpecData.validOnlySchemaRiskAnalysis1_0
 
       val expected = RiskAnalysisFormSeed(
@@ -184,7 +185,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
     }
 
     "fail if version does not exists" in {
-      val riskAnalysis = SpecData.validRiskAnalysis2_0_Pa.copy(version = "9999.0")
+      val riskAnalysis = SpecData.validRiskAnalysis3_0_Pa.copy(version = "9999.0")
 
       val result: ValidationResult[RiskAnalysisFormSeed] =
         RiskAnalysisValidation.validate(riskAnalysis, false)(PersistentTenantKind.PA)
@@ -195,7 +196,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail if a provided answer depends on a missing field" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "2.0",
+        version = "3.0",
         answers = Map(
           "purpose"                    -> List("purpose"),
           "usesPersonalData"           -> List("YES"),
@@ -214,7 +215,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "succeed only schema (fail if a provided answer depends on a missing field)" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "2.0",
+        version = "3.0",
         answers = Map(
           "purpose"                  -> List("INSTITUTIONAL"),
           "institutionalPurpose"     -> List("institutionalPurpose"),
@@ -242,7 +243,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail if a provided answer depends on an existing field with an unexpected value" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "2.0",
+        version = "3.0",
         answers = Map(
           "purpose"                  -> List("INSTITUTIONAL"),
           "institutionalPurpose"     -> List("institutionalPurpose"),
@@ -262,7 +263,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "succeed only schema (complete validation should fail because provided answer depends on an existing field with an unexpected value)" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose"                  -> List("INSTITUTIONAL"),
           "institutionalPurpose"     -> List("institutionalPurpose"),
@@ -291,7 +292,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail on missing expected answer (answer tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "2.0",
+        version = "3.0",
         answers = Map(
           "purpose"                    -> List("purpose"),
           "usesPersonalData"           -> List("NO"),
@@ -307,24 +308,26 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
       verifyValidationFailure(
         result,
         err =>
-          (err.contains(MissingExpectedField("personalDataTypes")) &&
+          (err.contains(UnexpectedField("usesPersonalData")) &&
+            err.contains(UnexpectedFieldValue("purpose", Some(Set("INSTITUTIONAL", "OTHER")))) &&
+            err.contains(UnexpectedField("usesThirdPartyPersonalData")) &&
+            err.contains(MissingExpectedField("personalDataTypes")) &&
             err.contains(MissingExpectedField("legalBasis")) &&
             err.contains(MissingExpectedField("knowsDataQuantity")) &&
             err.contains(MissingExpectedField("deliveryMethod")) &&
             err.contains(MissingExpectedField("policyProvided")) &&
             err.contains(MissingExpectedField("confirmPricipleIntegrityAndDiscretion")) &&
             err.contains(MissingExpectedField("doneDpia")) &&
+            err.contains(MissingExpectedField("dataDownload")) &&
             err.contains(MissingExpectedField("purposePursuit")) &&
             err.contains(MissingExpectedField("usesThirdPartyData")) &&
-            err.contains(MissingExpectedField("dataRetentionPeriod")) &&
             err.contains(MissingExpectedField("declarationConfirmGDPR"))) shouldBe true
       )
-
     }
 
     "succeed only schema (complete validation should fail because missing expected answer, as tree is not complete)" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "2.0",
+        version = "3.0",
         answers = Map("purpose" -> List("INSTITUTIONAL"), "usesConfidentialData" -> Nil, "securedDataAccess" -> Nil)
       )
 
@@ -343,7 +346,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail on unexpected field name in only schema validation" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose1"                   -> List("purpose"),
           "usesPersonalData"           -> List("NO"),
@@ -362,7 +365,7 @@ class RiskAnalysisValidationSpec extends AnyWordSpecLike {
 
     "fail on unexpected field value in only schema validation" in {
       val riskAnalysis = RiskAnalysisForm(
-        version = "1.0",
+        version = "2.0",
         answers = Map(
           "purpose"                    -> List("purpose"),
           "usesPersonalData"           -> List("pippo"),
