@@ -554,10 +554,9 @@ final case class PurposeApiServiceImpl(
         newPurpose  <- purposeManagementService.createPurpose(purposeSeed)
         dailyCalls     = getDailyCalls(purpose.versions)
         apiVersionSeed = PurposeVersionSeed(dailyCalls).toManagement
-        _              <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
-        updatedPurpose <- purposeManagementService.getPurposeById(newPurpose.id)
-        isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
-      } yield updatedPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+        purposeVersion <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
+        isValidRiskAnalysisForm = isRiskAnalysisFormValid(newPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+      } yield newPurpose.copy(versions = Seq(purposeVersion)).toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
