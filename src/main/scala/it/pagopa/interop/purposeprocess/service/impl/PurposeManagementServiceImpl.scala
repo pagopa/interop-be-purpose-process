@@ -16,7 +16,7 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
   PurposeVersionNotFound
 }
 import it.pagopa.interop.commons.utils.TypeConversions._
-import it.pagopa.interop.purposeprocess.common.readmodel.ReadModelPurposeQueries
+import it.pagopa.interop.purposeprocess.common.readmodel.{ReadModelPurposeQueries, PaginatedResult}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurpose
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentPurposeVersionState
@@ -63,6 +63,31 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     purposeId: UUID
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PersistentPurpose] =
     ReadModelPurposeQueries.getPurpose(purposeId).flatMap(_.toFuture(PurposeNotFound(purposeId)))
+
+  override def listPurposes(
+    requesterId: UUID,
+    title: Option[String],
+    eServicesIds: List[String],
+    consumersIds: List[String],
+    producersIds: List[String],
+    states: List[PersistentPurposeVersionState],
+    excludeDraft: Boolean,
+    offset: Int,
+    limit: Int,
+    exactMatchOnTitle: Boolean = false
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentPurpose]] =
+    ReadModelPurposeQueries.listPurposes(
+      requesterId,
+      title,
+      eServicesIds,
+      consumersIds,
+      producersIds,
+      states,
+      excludeDraft,
+      offset,
+      limit,
+      exactMatchOnTitle
+    )
 
   override def getPurposes(
     eserviceId: Option[UUID],

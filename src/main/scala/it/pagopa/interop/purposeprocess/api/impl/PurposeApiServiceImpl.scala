@@ -18,7 +18,6 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDep
 import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers._
 import it.pagopa.interop.purposeprocess.api.Adapters._
-import it.pagopa.interop.purposeprocess.common.readmodel._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposemanagement.model.purpose.{
@@ -113,7 +112,7 @@ final case class PurposeApiServiceImpl(
         OPERATIVE_AGREEMENT_STATES
       )
       agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      maybePurpose <- ReadModelPurposeQueries
+      maybePurpose <- purposeManagementService
         .listPurposes(
           seed.consumerId,
           seed.title.some,
@@ -252,7 +251,7 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purposes] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       states         <- parseArrayParameters(states).traverse(PurposeVersionState.fromValue).toFuture
-      purposes       <- ReadModelPurposeQueries.listPurposes(
+      purposes       <- purposeManagementService.listPurposes(
         organizationId,
         name,
         parseArrayParameters(eServicesIds),

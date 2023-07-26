@@ -4,6 +4,7 @@ import cats.syntax.all._
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthManagement}
 import it.pagopa.interop.purposemanagement.client.{model => Management}
 import it.pagopa.interop.purposeprocess.service._
+import it.pagopa.interop.purposeprocess.common.readmodel.PaginatedResult
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -51,6 +52,19 @@ object FakeDependencies {
       )
     )
 
+    override def listPurposes(
+      requesterId: UUID,
+      title: Option[String],
+      eServicesIds: List[String],
+      consumersIds: List[String],
+      producersIds: List[String],
+      states: List[PersistentPurposeVersionState],
+      excludeDraft: Boolean,
+      offset: Int,
+      limit: Int,
+      exactMatchOnTitle: Boolean = false
+    )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentPurpose]] =
+      Future.successful(PaginatedResult(Seq.empty, 0))
     override def updatePurpose(purposeId: UUID, purposeUpdateContent: Management.PurposeUpdateContent)(implicit
       contexts: Seq[(String, String)]
     ): Future[Management.Purpose] = Future.successful(
