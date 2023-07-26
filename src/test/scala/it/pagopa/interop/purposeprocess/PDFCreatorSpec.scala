@@ -143,7 +143,15 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
 object PDFCreatorSpec {
   val eServiceInfo: EServiceInfo                        =
-    EServiceInfo("EServiceName", "ProducerName", "ProducerIPACode", "ConsumerName", "consumerIPACode")
+    EServiceInfo(
+      "EServiceName",
+      "ProducerName",
+      "ProducerOrigin",
+      "ProducerIPACode",
+      "ConsumerName",
+      "ConsumerOrigin",
+      "consumerIPACode"
+    )
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
     PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
@@ -176,8 +184,8 @@ object PDFCreatorSpec {
       case Success(value) =>
         value should contain("dailyCalls" -> dailyCalls.toString)
         value should contain("eServiceName" -> eServiceInfo.name)
-        value should contain("producerName" -> eServiceInfo.producerName)
-        value should contain("consumerName" -> eServiceInfo.consumerName)
+        value.get("producerText") should not be empty
+        value.get("consumerText") should not be empty
         value.get("date") should not be empty
 
         value.get("answers") should not be empty
