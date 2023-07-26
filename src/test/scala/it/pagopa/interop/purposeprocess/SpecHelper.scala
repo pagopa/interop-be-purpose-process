@@ -45,6 +45,7 @@ import java.io.{ByteArrayOutputStream, File}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
+import it.pagopa.interop.purposeprocess.common.readmodel.PaginatedResult
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
@@ -181,6 +182,24 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
       .expects(eServiceId, consumerId, states, *, *)
       .once()
       .returns(Future.successful(result))
+
+  def mockListPurposesRetrieve(result: Seq[PersistentPurpose]) =
+    (mockPurposeManagementService
+      .listPurposes(
+        _: UUID,
+        _: Option[String],
+        _: List[String],
+        _: List[String],
+        _: List[String],
+        _: List[PersistentPurposeVersionState],
+        _: Boolean,
+        _: Int,
+        _: Int,
+        _: Boolean
+      )(_: ExecutionContext, _: ReadModelService))
+      .expects(*, *, *, *, *, *, *, *, *, *, *, *)
+      .once()
+      .returns(Future.successful(PaginatedResult(results = result, totalCount = result.size)))
 
   def mockTenantRetrieve(tenantId: UUID, result: PersistentTenant) =
     (mockTenantManagementService
