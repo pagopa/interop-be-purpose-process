@@ -18,16 +18,23 @@ object RiskAnalysisService extends RiskAnalysisService {
   private val riskAnalysisFormsMap: Map[PersistentTenantKind, Map[String, RiskAnalysisFormConfig]] = Map(
     PersistentTenantKind.PA      -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${PersistentTenantKind.PA.toString}/1.0.json"),
-      "2.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${PersistentTenantKind.PA.toString}/2.0.json")
+      "2.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${PersistentTenantKind.PA.toString}/2.0.json"),
+      "3.0" -> loadRiskAnalysisFormConfig(s"$riskAnalysisTemplatePath/${PersistentTenantKind.PA.toString}/3.0.json")
     ),
     PersistentTenantKind.PRIVATE -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(
         s"$riskAnalysisTemplatePath/${PersistentTenantKind.PRIVATE.toString}/1.0.json"
+      ),
+      "2.0" -> loadRiskAnalysisFormConfig(
+        s"$riskAnalysisTemplatePath/${PersistentTenantKind.PRIVATE.toString}/2.0.json"
       )
     ),
     PersistentTenantKind.GSP     -> Map(
       "1.0" -> loadRiskAnalysisFormConfig(
         s"$riskAnalysisTemplatePath/${PersistentTenantKind.PRIVATE.toString}/1.0.json"
+      ),
+      "2.0" -> loadRiskAnalysisFormConfig(
+        s"$riskAnalysisTemplatePath/${PersistentTenantKind.PRIVATE.toString}/2.0.json"
       )
     )
   )

@@ -8,14 +8,12 @@ import it.pagopa.interop.commons.utils.{ORGANIZATION_ID_CLAIM, USER_ROLES}
 import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
-import it.pagopa.interop.purposeprocess.common.readmodel.TotalCountResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
   PurposeNotFound,
   PurposeVersionDocumentNotFound,
   PurposeVersionNotFound
 }
 import it.pagopa.interop.purposeprocess.model._
-import org.mongodb.scala.bson.conversions.Bson
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpecLike
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -37,7 +35,6 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.matchers.should.Matchers._
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import spray.json.JsonReader
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
@@ -112,12 +109,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, *, context)
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion.copy(id = purposeCloned.id)))
-
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(SpecData.purpose.copy(id = purposeCloned.id)))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -227,12 +218,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
 
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -341,12 +326,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
 
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -443,12 +422,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(500, None), context)
         .once()
         .returns(Future.successful(SpecData.dependencyPurposeVersion))
-
-      (mockPurposeManagementService
-        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(purposeCloned.id, *, *)
-        .once()
-        .returns(Future.successful(purposeToClone))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -609,18 +582,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val purposes: Seq[PersistentPurpose] = List.empty
 
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 1, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(purposes.size))))
+      mockListPurposesRetrieve(purposes)
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -648,7 +610,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
         isFreeOfCharge = false
       )
 
@@ -674,18 +636,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val purposes: Seq[PersistentPurpose] = List.empty
 
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 1, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(purposes.size))))
+      mockListPurposesRetrieve(purposes)
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -711,7 +662,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
         isFreeOfCharge = false
       )
 
@@ -739,7 +690,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis1_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
         isFreeOfCharge = true
       )
 
@@ -867,18 +818,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
 
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 1, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(purposes.size))))
+      mockListPurposesRetrieve(purposes)
 
       Get() ~> service.createPurpose(seed) ~> check {
         status shouldEqual StatusCodes.Conflict
@@ -923,18 +863,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
 
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 1, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(purposes.size))))
+      mockListPurposesRetrieve(purposes)
 
       (mockPurposeManagementService
         .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
@@ -1200,18 +1129,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         PurposeManagementDependency.PurposeVersionState.ACTIVE
       )
 
-      // Data retrieve
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, 10, *, *)
-        .once()
-        .returns(Future.successful(purposes))
-      // Total count
-      (mockReadModel
-        .aggregate(_: String, _: Seq[Bson], _: Int, _: Int)(_: JsonReader[_], _: ExecutionContext))
-        .expects("purposes", *, 0, Int.MaxValue, *, *)
-        .once()
-        .returns(Future.successful(Seq(TotalCountResult(purposes.size))))
+      mockListPurposesRetrieve(purposes)
 
       Get() ~> service.getPurposes(
         Some("name"),
@@ -1803,7 +1721,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "3.0"
       }
     }
 
@@ -1822,7 +1740,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
 
@@ -1841,7 +1759,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
   }
@@ -1860,9 +1778,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("2.0") ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
 
