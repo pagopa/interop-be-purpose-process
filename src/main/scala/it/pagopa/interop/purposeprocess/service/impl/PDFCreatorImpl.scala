@@ -25,7 +25,7 @@ import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
 
 object PDFCreatorImpl extends PDFCreator with PDFManager {
-  val SI            = "Si"
+  val YES           = "Si"
   val NO            = "No"
   val NOT_AVAILABLE = "N/A"
   // Suppressing openhtmltopdf log
@@ -184,7 +184,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
        |""".stripMargin
 
   private[this] def freeOfChargeToHtml(isFreeOfCharge: Boolean): String = {
-    val yesOrNot = if (isFreeOfCharge) SI else NO
+    val yesOrNot = if (isFreeOfCharge) YES else NO
     s"""
        |<div class="item">
        |  <div class="label">Indicare se l'accesso ai dati messi a disposizione con la fruizione del presente e-service è a titolo gratuito</div>
