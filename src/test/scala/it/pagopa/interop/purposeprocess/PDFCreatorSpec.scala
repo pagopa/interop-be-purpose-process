@@ -142,7 +142,8 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 }
 
 object PDFCreatorSpec {
-  val eServiceInfo: EServiceInfo                        = EServiceInfo("EServiceName", "ProducerName", "ConsumerName")
+  val eServiceInfo: EServiceInfo                        =
+    EServiceInfo("EServiceName", "ProducerName", "ProducerValue", "ConsumerName", "ConsumerValue")
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
     PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)

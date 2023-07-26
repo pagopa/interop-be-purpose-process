@@ -66,12 +66,14 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     for {
       answers <- sortedAnswers(formConfig, riskAnalysisForm, language)
     } yield Map(
-      "dailyCalls"   -> dailyCalls.toString,
-      "answers"      -> answers.mkString("\n"),
-      "eServiceName" -> eServiceInfo.name,
-      "producerName" -> eServiceInfo.producerName,
-      "consumerName" -> eServiceInfo.consumerName,
-      "date"         -> LocalDateTime.now().format(printedDateFormatter)
+      "dailyCalls"    -> dailyCalls.toString,
+      "answers"       -> answers.mkString("\n"),
+      "eServiceName"  -> eServiceInfo.name,
+      "producerName"  -> eServiceInfo.producerName,
+      "producerValue" -> eServiceInfo.producerValue,
+      "consumerName"  -> eServiceInfo.consumerName,
+      "consumerValue" -> eServiceInfo.consumerValue,
+      "date"          -> LocalDateTime.now().format(printedDateFormatter)
     )
 
   def sortedAnswers(
