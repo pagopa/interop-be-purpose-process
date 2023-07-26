@@ -17,7 +17,10 @@ import it.pagopa.interop.purposeprocess.model._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.wordspec.AnyWordSpecLike
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.agreementmanagement.model.agreement.{Active => AgreementActive}
+import it.pagopa.interop.agreementmanagement.model.agreement.{
+  Active => AgreementActive,
+  Suspended => AgreementSuspended
+}
 import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDependency}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposemanagement.model.purpose.{
@@ -899,7 +902,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None
       )
 
-      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
@@ -908,12 +912,75 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
+      mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+    "succeed if case of change of eService" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          eserviceId = eserviceId,
+          isFreeOfCharge = false,
+          riskAnalysisForm = None
+        )
+      val seed                 = PurposeManagementDependency.PurposeUpdateContent(
+        title = "A title",
+        description = "A description",
+        eserviceId = eserviceId,
+        isFreeOfCharge = false,
+        riskAnalysisForm = None
+      )
+
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive, AgreementSuspended))
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail if case of change of eService if agreement was not found" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          eserviceId = eserviceId,
+          isFreeOfCharge = false,
+          riskAnalysisForm = None
+        )
+
+      val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive, AgreementSuspended), Seq.empty)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
       }
     }
     "fail when is free of charge but without free of charge reason agreement " in {
@@ -958,7 +1025,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockTenantRetrieve(requesterId, SpecData.tenant.copy(id = requesterId, kind = PersistentTenantKind.PRIVATE.some))
 
@@ -991,8 +1057,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, purpose)
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
-
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
