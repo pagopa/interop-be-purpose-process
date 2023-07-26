@@ -171,10 +171,9 @@ final case class PurposeApiServiceImpl(
           Future.failed(MissingFreeOfChargeReason)
         else Future.unit
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      _              <- tenantManagementService.getTenantById(purposeUpdateContent.consumerId)
       _              <- catalogManagementService.getEServiceById(purposeUpdateContent.eserviceId)
       tenant         <- tenantManagementService.getTenantById(organizationId)
-      _              <- assertOrganizationIsAConsumer(organizationId, purposeUpdateContent.consumerId)
+      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent

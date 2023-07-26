@@ -959,7 +959,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           title = "A title",
           description = "A description",
           eserviceId = eserviceId,
-          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )
@@ -967,7 +966,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         eserviceId = eserviceId,
-        consumerId = consumerId,
         isFreeOfCharge = false,
         riskAnalysisForm = None
       )
@@ -997,7 +995,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           title = "A title",
           description = "A description",
           eserviceId = UUID.randomUUID(),
-          consumerId = consumerId,
           isFreeOfCharge = true,
           riskAnalysisForm = None
         )
@@ -1024,7 +1021,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           title = "A title",
           description = "A description",
           eserviceId = eserviceId,
-          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )
@@ -1055,7 +1051,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           title = "A title",
           description = "A description",
           eserviceId = eserviceId,
-          consumerId = consumerId,
           isFreeOfCharge = false,
           riskAnalysisForm = None
         )

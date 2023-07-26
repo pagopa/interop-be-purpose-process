@@ -990,9 +990,6 @@ components:
         eserviceId:
           type: string
           format: uuid
-        consumerId:
-          type: string
-          format: uuid
         isFreeOfCharge:
           type: boolean
         freeOfChargeReason:
@@ -1004,7 +1001,6 @@ components:
         - description
         - isFreeOfCharge
         - eserviceId
-        - consumerId
     DraftPurposeVersionUpdateContent:
       type: object
       description: contains the expected payload for purpose version update.
