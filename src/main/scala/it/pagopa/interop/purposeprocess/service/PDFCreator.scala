@@ -13,6 +13,8 @@ trait PDFCreator {
     riskAnalysisForm: PersistentRiskAnalysisForm,
     dailyCalls: Int,
     eServiceInfo: EServiceInfo,
+    isFreeOfCharge: Boolean,
+    freeOfChargeReason: Option[String],
     language: Language
   )(kind: PersistentTenantKind): Future[File]
 }
