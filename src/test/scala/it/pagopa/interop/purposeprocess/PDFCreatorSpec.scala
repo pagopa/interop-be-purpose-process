@@ -1,18 +1,20 @@
 package it.pagopa.interop.purposeprocess
 
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentRiskAnalysisForm,
+  PersistentRiskAnalysisMultiAnswer,
+  PersistentRiskAnalysisSingleAnswer
+}
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
 import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
-import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
-import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisMultiAnswer
-import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisSingleAnswer
 
 class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 
@@ -267,9 +269,18 @@ class PDFCreatorSpec extends AnyWordSpecLike with SpecHelper {
 }
 
 object PDFCreatorSpec {
+  val eServiceInfo: EServiceInfo                        =
+    EServiceInfo(
+      "EServiceName",
+      "ProducerName",
+      "ProducerOrigin",
+      "ProducerIPACode",
+      "ConsumerName",
+      "ConsumerOrigin",
+      "consumerIPACode"
+    )
   val isFreeOfCharge: Boolean                           = true
   val freeOfChargeReason: Option[String]                = Some("Reason")
-  val eServiceInfo: EServiceInfo                        = EServiceInfo("EServiceName", "ProducerName", "ConsumerName")
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
     PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
@@ -302,10 +313,10 @@ object PDFCreatorSpec {
       case Success(value) =>
         value should contain("dailyCalls" -> dailyCalls.toString)
         value should contain("eServiceName" -> eServiceInfo.name)
-        value should contain("producerName" -> eServiceInfo.producerName)
-        value should contain("consumerName" -> eServiceInfo.consumerName)
         value.get("freeOfCharge") should not be empty
         value.get("freeOfChargeReason") should not be empty
+        value.get("producerText") should not be empty
+        value.get("consumerText") should not be empty
         value.get("date") should not be empty
 
         value.get("answers") should not be empty
