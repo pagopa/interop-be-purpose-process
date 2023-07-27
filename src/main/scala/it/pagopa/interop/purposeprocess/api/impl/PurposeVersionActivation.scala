@@ -262,6 +262,8 @@ final case class PurposeVersionActivation(
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,
+        purpose.isFreeOfCharge,
+        purpose.freeOfChargeReason,
         LanguageIt // TODO Language should be a request parameter
       )(kind)
       fileInfo = FileInfo("riskAnalysisDocument", document.getName, MediaTypes.`application/pdf`)
