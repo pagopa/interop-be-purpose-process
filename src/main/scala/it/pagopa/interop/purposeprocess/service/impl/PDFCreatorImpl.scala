@@ -5,16 +5,15 @@ import com.openhtmltopdf.util.XRLog
 import it.pagopa.interop.commons.files.model.PDFConfiguration
 import it.pagopa.interop.commons.files.service.PDFManager
 import it.pagopa.interop.commons.utils.TypeConversions._
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  PersistentRiskAnalysisForm,
+  PersistentRiskAnalysisMultiAnswer,
+  PersistentRiskAnalysisSingleAnswer
+}
 import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
-import it.pagopa.interop.purposemanagement.model.purpose.{
-  PersistentRiskAnalysisForm,
-  PersistentRiskAnalysisSingleAnswer,
-  PersistentRiskAnalysisMultiAnswer
-}
 
 import java.io.File
 import java.time.LocalDateTime
@@ -84,12 +83,24 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       "dailyCalls"         -> dailyCalls.toString,
       "answers"            -> answers.mkString("\n"),
       "eServiceName"       -> eServiceInfo.name,
-      "producerName"       -> eServiceInfo.producerName,
-      "consumerName"       -> eServiceInfo.consumerName,
+      "producerText"       -> getDescriptionText(
+        eServiceInfo.producerName,
+        eServiceInfo.producerOrigin,
+        eServiceInfo.producerIPACode
+      ),
+      "consumerText"       -> getDescriptionText(
+        eServiceInfo.consumerName,
+        eServiceInfo.consumerOrigin,
+        eServiceInfo.consumerIPACode
+      ),
       "freeOfCharge"       -> freeOfChargeHtml,
       "freeOfChargeReason" -> freeOfChargeReasonHtml,
       "date"               -> LocalDateTime.now().format(printedDateFormatter)
     )
+
+  def getDescriptionText(name: String, origin: String, value: String): String =
+    if (origin == "IPA") s"$name (codice IPA: ${value})"
+    else name
 
   def sortedAnswers(
     formConfig: RiskAnalysisFormConfig,
