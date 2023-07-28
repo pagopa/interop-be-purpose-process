@@ -386,6 +386,7 @@ object Adapters {
       } yield Management.PurposeUpdateContent(
         title = content.title,
         description = content.description,
+        eserviceId = content.eserviceId,
         isFreeOfCharge = content.isFreeOfCharge,
         freeOfChargeReason = content.freeOfChargeReason,
         riskAnalysisForm = riskAnalysisForm
