@@ -107,12 +107,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      (mockPurposeManagementService
-        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
-        .expects(purposeCloned.id, *, context)
-        .once()
-        .returns(Future.successful(SpecData.dependencyPurposeVersion.copy(id = purposeCloned.id)))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -214,12 +208,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(*, context)
         .once()
         .returns(Future.successful(purposeCloned))
-
-      (mockPurposeManagementService
-        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
-        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(50, None), context)
-        .once()
-        .returns(Future.successful(SpecData.dependencyPurposeVersion))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -323,12 +311,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      (mockPurposeManagementService
-        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
-        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(100, None), context)
-        .once()
-        .returns(Future.successful(SpecData.dependencyPurposeVersion))
-
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
       }
@@ -403,7 +385,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         riskAnalysisForm = None,
         title = s"${purposeToClone.title} - clone",
         description = purposeToClone.description,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 500
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
@@ -419,12 +402,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .expects(purposeSeed, context)
         .once()
         .returns(Future.successful(purposeCloned))
-
-      (mockPurposeManagementService
-        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
-        .expects(purposeCloned.id, PurposeManagementDependency.PurposeVersionSeed(500, None), context)
-        .once()
-        .returns(Future.successful(SpecData.dependencyPurposeVersion))
 
       Get() ~> service.clonePurpose(purposeId.toString) ~> check {
         status shouldEqual StatusCodes.OK
@@ -560,7 +537,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       val purpose = PersistentPurpose(
@@ -614,7 +592,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       val purpose = PersistentPurpose(
@@ -666,7 +645,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
@@ -694,7 +674,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
-        isFreeOfCharge = true
+        isFreeOfCharge = true,
+        dailyCalls = 100
       )
 
       Get() ~> service.createPurpose(seed) ~> check {
@@ -725,7 +706,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = Some(incorrectRiskAnalysis),
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
@@ -752,7 +734,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
@@ -782,7 +765,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       Get() ~> service.createPurpose(seed) ~> check {
@@ -807,7 +791,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       val purpose = SpecData.persistentPurpose.copy(consumerId = consumerId, eserviceId = eServiceId)
@@ -843,7 +828,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       val dependencySeed: PurposeManagementDependency.PurposeSeed = PurposeManagementDependency.PurposeSeed(
@@ -852,7 +838,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         title = "A title",
         description = "A description",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
 
       val purpose                          = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
