@@ -5,47 +5,40 @@ import akka.http.scaladsl.server.directives.FileInfo
 import akka.http.scaladsl.unmarshalling.FromEntityUnmarshaller
 import com.nimbusds.jwt.JWTClaimsSet
 import com.typesafe.config.{Config, ConfigFactory}
-import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
-import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.commons.files.service.FileManager
-import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
-import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
-import it.pagopa.interop.purposeprocess.SpecData.timestamp
-import it.pagopa.interop.purposeprocess.api.PurposeApiService
-import it.pagopa.interop.purposeprocess.api.impl._
-import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
-import it.pagopa.interop.purposeprocess.model.{
-  Problem,
-  Purpose,
-  PurposeVersion,
-  PurposeVersionDocument,
-  Purposes,
-  RiskAnalysisFormConfigResponse
-}
-import it.pagopa.interop.purposemanagement.model.purpose.{
-  PersistentPurpose,
-  PersistentPurposeVersionState,
-  PersistentRiskAnalysisForm,
-  Active
-}
-import it.pagopa.interop.catalogmanagement.model.CatalogItem
 import it.pagopa.interop.agreementmanagement.model.agreement.{
   PersistentAgreement,
   PersistentAgreementState,
   Active => AgreementActive
 }
-import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
+import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagement}
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
+import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
+import it.pagopa.interop.commons.files.service.FileManager
+import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
+import it.pagopa.interop.purposemanagement.client.{model => PurposeManagement}
+import it.pagopa.interop.purposemanagement.model.purpose.{
+  Active,
+  PersistentPurpose,
+  PersistentPurposeVersionState,
+  PersistentRiskAnalysisForm
+}
+import it.pagopa.interop.purposeprocess.SpecData.timestamp
+import it.pagopa.interop.purposeprocess.api.PurposeApiService
+import it.pagopa.interop.purposeprocess.api.impl._
+import it.pagopa.interop.purposeprocess.common.readmodel.PaginatedResult
+import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
+import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service._
-
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
 import org.scalamock.scalatest.MockFactory
 import spray.json._
+
 import java.io.{ByteArrayOutputStream, File}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
-import it.pagopa.interop.purposeprocess.common.readmodel.PaginatedResult
 
 trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFactory {
 
@@ -230,7 +223,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
   }
 
   def mockVersionFirstActivation(
-    requesterId: UUID,
     purposeId: UUID,
     versionId: UUID,
     producerId: UUID,
@@ -243,7 +235,6 @@ trait SpecHelper extends SprayJsonSupport with DefaultJsonProtocol with MockFact
 
     mockOrganizationRetrieve(producerId)
     mockOrganizationRetrieve(consumerId)
-    mockOrganizationRetrieve(requesterId)
 
     (mockPurposeManagementService
       .activatePurposeVersion(_: UUID, _: UUID, _: PurposeManagement.ActivatePurposeVersionPayload)(
