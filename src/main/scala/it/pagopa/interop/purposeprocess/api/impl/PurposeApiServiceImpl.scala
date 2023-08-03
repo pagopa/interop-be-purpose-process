@@ -358,8 +358,8 @@ final case class PurposeApiServiceImpl(
       versionUUID    <- versionId.toFutureUUID
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      tenant         <- tenantManagementService.getTenantById(organizationId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      consumer       <- tenantManagementService.getTenantById(purpose.consumerId)
+      tenantKind     <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
       version        <- getVersion(purpose, versionUUID)
       riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi)
       _              <-
