@@ -3,34 +3,27 @@ package it.pagopa.interop.purposeprocess.api.impl
 import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.directives.FileInfo
 import cats.syntax.all._
-import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
+import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
 import it.pagopa.interop.commons.utils.service.{OffsetDateTimeSupplier, UUIDSupplier}
 import it.pagopa.interop.purposemanagement.client.model.PurposeVersionState._
 import it.pagopa.interop.purposemanagement.client.model._
+import it.pagopa.interop.purposemanagement.model.purpose._
+import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.catalogmanagement.model.CatalogItem
-import it.pagopa.interop.purposemanagement.model.purpose.{Active}
-import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
-import it.pagopa.interop.purposemanagement.model.purpose.{
-  PersistentPurposeVersion,
-  PersistentPurpose,
-  WaitingForApproval,
-  Draft
-}
-import it.pagopa.interop.purposemanagement.model.purpose.Suspended
 
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
@@ -100,7 +93,6 @@ final case class PurposeVersionActivation(
       case (Draft, CONSUMER | SELF_CONSUMER) =>
         isLoadAllowed(eService, purpose, version).ifM(
           firstVersionActivation(
-            organizationId,
             purpose,
             version,
             StateChangeDetails(ChangedBy.CONSUMER, dateTimeSupplier.get()),
@@ -113,7 +105,6 @@ final case class PurposeVersionActivation(
       case (WaitingForApproval, CONSUMER)                 => Future.failed(OrganizationIsNotTheProducer(organizationId))
       case (WaitingForApproval, PRODUCER | SELF_CONSUMER) =>
         firstVersionActivation(
-          organizationId,
           purpose,
           version,
           StateChangeDetails(ChangedBy.PRODUCER, dateTimeSupplier.get()),
@@ -200,7 +191,6 @@ final case class PurposeVersionActivation(
     * @return The updated Version
     */
   def firstVersionActivation(
-    requesterId: UUID,
     purpose: PersistentPurpose,
     version: PersistentPurposeVersion,
     stateChangeDetails: StateChangeDetails,
@@ -218,9 +208,8 @@ final case class PurposeVersionActivation(
         consumerOrigin = consumer.externalId.origin,
         consumerIPACode = consumer.externalId.value
       )
-      tenant     <- getTenant(requesterId)
-      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
+      consumerKind <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
+      path         <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(consumerKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(
