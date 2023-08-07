@@ -3,7 +3,7 @@ package it.pagopa.interop.purposeprocess.api.impl
 import akka.http.scaladsl.marshalling.ToEntityMarshaller
 import akka.http.scaladsl.server.Directives.onComplete
 import akka.http.scaladsl.server.Route
-import cats.implicits._
+import cats.syntax.all._
 import com.typesafe.scalalogging.{Logger, LoggerTakingImplicit}
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
@@ -529,7 +529,7 @@ final case class PurposeApiServiceImpl(
         states != Seq(Draft)
       }
 
-      def createPurposeSeed(purpose: PersistentPurpose): PurposeSeed =
+      def createPurposeSeed(purpose: PersistentPurpose, dailyCalls: Int): PurposeSeed =
         PurposeSeed(
           eserviceId = purpose.eserviceId,
           consumerId = purpose.consumerId,
@@ -537,7 +537,8 @@ final case class PurposeApiServiceImpl(
           title = s"${purpose.title} - clone",
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
-          freeOfChargeReason = purpose.freeOfChargeReason
+          freeOfChargeReason = purpose.freeOfChargeReason,
+          dailyCalls = dailyCalls
         )
 
       def getDailyCalls(versions: Seq[PersistentPurposeVersion]): Int = {
@@ -560,18 +561,18 @@ final case class PurposeApiServiceImpl(
         tenant         <- tenantManagementService.getTenantById(organizationId)
         purposeUUID    <- purposeId.toFutureUUID
         purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-        _              <- Future.successful(purpose).ensure(PurposeCannotBeCloned(purposeId))(isClonable)
-        dependencySeed = createPurposeSeed(purpose)
+        dailyCalls = getDailyCalls(purpose.versions)
+        _ <-
+          if (isClonable(purpose)) Future.successful(purpose)
+          else Future.failed(PurposeCannotBeCloned(purposeId))
+        dependencySeed = createPurposeSeed(purpose, dailyCalls)
         tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
         purposeSeed <- dependencySeed
           .toManagement(schemaOnlyValidation = true)(tenantKind)
           .toFuture
         newPurpose  <- purposeManagementService.createPurpose(purposeSeed)
-        dailyCalls     = getDailyCalls(purpose.versions)
-        apiVersionSeed = PurposeVersionSeed(dailyCalls).toManagement
-        purposeVersion <- purposeManagementService.createPurposeVersion(newPurpose.id, apiVersionSeed)
         isValidRiskAnalysisForm = isRiskAnalysisFormValid(newPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
-      } yield newPurpose.copy(versions = Seq(purposeVersion)).toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+      } yield newPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }

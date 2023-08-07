@@ -77,7 +77,8 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         title = "???",
         description = "???",
         riskAnalysisForm = None,
-        isFreeOfCharge = false
+        isFreeOfCharge = false,
+        dailyCalls = 100
       )
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createPurpose(fakeSeed) })
     }
