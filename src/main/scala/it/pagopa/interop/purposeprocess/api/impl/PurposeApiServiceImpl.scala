@@ -24,6 +24,8 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurpose,
   PersistentPurposeVersion,
   Draft,
+  Active,
+  Suspended,
   WaitingForApproval
 }
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
@@ -147,13 +149,35 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Creating Purpose Version for Purpose $purposeId"
     logger.info(operationLabel)
 
+    def publish(
+      organizationId: UUID,
+      purpose: PersistentPurpose,
+      version: PersistentPurposeVersion
+    ): Future[PurposeManagementDependency.PurposeVersion] = for {
+      eService  <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      ownership <- Ownership
+        .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
+        .toFuture
+      published <- purposeVersionActivation.activateOrWaitForApproval(
+        eService,
+        purpose,
+        version,
+        organizationId,
+        ownership
+      )
+    } yield published
+
     val result: Future[PurposeVersion] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       version        <- purposeManagementService.createPurposeVersion(purposeUUID, seed.toManagement)
-    } yield version.toApi
+      published      <-
+        if (purpose.versions.exists(v => v.state == Active || v.state == Suspended))
+          publish(organizationId, purpose, version.toPersistent)
+        else Future.successful(version)
+    } yield published.toApi
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
