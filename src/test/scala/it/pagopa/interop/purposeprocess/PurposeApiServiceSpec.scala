@@ -1474,45 +1474,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose version creation" should {
-    "succeed in case of new draft version" in {
-
-      val consumerId       = UUID.randomUUID()
-      val purposeId        = UUID.randomUUID()
-      val purposeVersionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 1000)
-
-      val purposeVersion = PersistentPurposeVersion(
-        id = purposeVersionId,
-        state = Draft,
-        createdAt = SpecData.timestamp,
-        updatedAt = None,
-        expectedApprovalDate = None,
-        dailyCalls = seed.dailyCalls,
-        riskAnalysis = None,
-        firstActivationAt = None,
-        suspendedAt = None
-      )
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-
-      (mockPurposeManagementService
-        .createPurposeVersion(_: UUID, _: PurposeManagementDependency.PurposeVersionSeed)(_: Seq[(String, String)]))
-        .expects(purposeId, seed.toManagement, context)
-        .once()
-        .returns(Future.successful(SpecData.dependencyPurposeVersion.copy(id = purposeVersionId)))
-
-      val expected: PurposeVersion = purposeVersion.toApi
-
-      Get() ~> service.createPurposeVersion(purposeId.toString, seed) ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[PurposeVersion] shouldEqual expected
-      }
-    }
-
     "succeed in case of version already published" in {
 
       val consumerId        = UUID.randomUUID()
@@ -1652,7 +1613,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         updatedAt = None,
         expectedApprovalDate = None,
         dailyCalls = seed.dailyCalls,
-        riskAnalysis = Some(document),
+        riskAnalysis = None,
         firstActivationAt = Some(SpecData.timestamp),
         suspendedAt = None
       )
@@ -1676,9 +1637,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         SpecData.dependencyPurposeVersion.copy(
           id = purposeVersionId3,
           state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
-          riskAnalysis = Some(
-            PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, SpecData.timestamp)
-          ),
+          riskAnalysis = None,
           firstActivationAt = Some(SpecData.timestamp)
         )
 

@@ -24,8 +24,6 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurpose,
   PersistentPurposeVersion,
   Draft,
-  Active,
-  Suspended,
   WaitingForApproval
 }
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
@@ -173,10 +171,7 @@ final case class PurposeApiServiceImpl(
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       version        <- purposeManagementService.createPurposeVersion(purposeUUID, seed.toManagement)
-      published      <-
-        if (purpose.versions.exists(v => v.state == Active || v.state == Suspended))
-          publish(organizationId, purpose, version.toPersistent)
-        else Future.successful(version)
+      published      <- publish(organizationId, purpose, version.toPersistent)
     } yield published.toApi
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
