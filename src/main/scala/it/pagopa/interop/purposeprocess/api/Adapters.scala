@@ -55,6 +55,14 @@ object Adapters {
         path = document.path,
         createdAt = document.createdAt
       )
+
+    def toPersistent: Persistent.PersistentPurposeVersionDocument =
+      Persistent.PersistentPurposeVersionDocument(
+        id = document.id,
+        contentType = document.contentType,
+        path = document.path,
+        createdAt = document.createdAt
+      )
   }
 
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
@@ -269,7 +277,7 @@ object Adapters {
 
   implicit class ManagementPurposeVersionWrapper(private val version: Management.PurposeVersion) extends AnyVal {
 
-    def toApi: PurposeVersion =
+    def toApi: PurposeVersion                             =
       PurposeVersion(
         id = version.id,
         state = version.state.toApi,
@@ -278,6 +286,18 @@ object Adapters {
         firstActivationAt = version.firstActivationAt,
         expectedApprovalDate = version.expectedApprovalDate,
         riskAnalysis = version.riskAnalysis.map(_.toApi),
+        dailyCalls = version.dailyCalls,
+        suspendedAt = version.suspendedAt
+      )
+    def toPersistent: Persistent.PersistentPurposeVersion =
+      Persistent.PersistentPurposeVersion(
+        id = version.id,
+        state = version.state.toPersistent,
+        createdAt = version.createdAt,
+        updatedAt = version.updatedAt,
+        firstActivationAt = version.firstActivationAt,
+        expectedApprovalDate = version.expectedApprovalDate,
+        riskAnalysis = version.riskAnalysis.map(_.toPersistent),
         dailyCalls = version.dailyCalls,
         suspendedAt = version.suspendedAt
       )
@@ -319,6 +339,15 @@ object Adapters {
         case Management.PurposeVersionState.SUSPENDED            => PurposeVersionState.SUSPENDED
         case Management.PurposeVersionState.WAITING_FOR_APPROVAL => PurposeVersionState.WAITING_FOR_APPROVAL
         case Management.PurposeVersionState.ARCHIVED             => PurposeVersionState.ARCHIVED
+      }
+
+    def toPersistent: Persistent.PersistentPurposeVersionState =
+      state match {
+        case Management.PurposeVersionState.ACTIVE               => Persistent.Active
+        case Management.PurposeVersionState.DRAFT                => Persistent.Draft
+        case Management.PurposeVersionState.SUSPENDED            => Persistent.Suspended
+        case Management.PurposeVersionState.WAITING_FOR_APPROVAL => Persistent.WaitingForApproval
+        case Management.PurposeVersionState.ARCHIVED             => Persistent.Archived
       }
   }
 
