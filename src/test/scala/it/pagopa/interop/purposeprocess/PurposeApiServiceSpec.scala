@@ -880,14 +880,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = eserviceId,
           isFreeOfCharge = false,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
         title = "A title",
         description = "A description",
         eserviceId = eserviceId,
         isFreeOfCharge = false,
-        riskAnalysisForm = None
+        riskAnalysisForm = None,
+        dailyCalls = 100
       )
 
       val purpose =
@@ -916,14 +918,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = eserviceId,
           isFreeOfCharge = false,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
         title = "A title",
         description = "A description",
         eserviceId = eserviceId,
         isFreeOfCharge = false,
-        riskAnalysisForm = None
+        riskAnalysisForm = None,
+        dailyCalls = 100
       )
 
       val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
@@ -952,7 +956,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = eserviceId,
           isFreeOfCharge = false,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
 
       val purpose = SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
@@ -977,7 +982,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = UUID.randomUUID(),
           isFreeOfCharge = true,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
 
       implicit val context: Seq[(String, String)] =
@@ -1003,7 +1009,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = eserviceId,
           isFreeOfCharge = false,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
 
       implicit val context: Seq[(String, String)] =
@@ -1030,7 +1037,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           description = "A description",
           eserviceId = eserviceId,
           isFreeOfCharge = false,
-          riskAnalysisForm = None
+          riskAnalysisForm = None,
+          dailyCalls = 100
         )
       val purpose              =
         SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
@@ -1695,121 +1703,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0001"
-      }
-    }
-
-  }
-
-  "Purpose draft version update" should {
-
-    "succeed" in {
-
-      val consumerId       = UUID.randomUUID()
-      val purposeId        = UUID.randomUUID()
-      val purposeVersionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      val version  = SpecData.purposeVersion.copy(id = purposeVersionId)
-      val expected = SpecData.dependencyPurposeVersion.copy(id = purposeVersionId, dailyCalls = 100)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
-
-      (
-        mockPurposeManagementService
-          .updateDraftPurposeVersion(_: UUID, _: UUID, _: PurposeManagementDependency.DraftPurposeVersionUpdateContent)(
-            _: Seq[(String, String)]
-          )
-        )
-        .expects(
-          purposeId,
-          purposeVersionId,
-          PurposeManagementDependency.DraftPurposeVersionUpdateContent(100),
-          context
-        )
-        .once()
-        .returns(Future.successful[PurposeManagementDependency.PurposeVersion](expected))
-
-      Post() ~> service.updateDraftPurposeVersion(
-        purposeId.toString,
-        purposeVersionId.toString,
-        SpecData.draftUpdate(100)
-      ) ~> check {
-        status shouldEqual StatusCodes.OK
-        responseAs[PurposeVersion] shouldEqual expected.toApi
-      }
-    }
-
-    "fail if Purpose Version does not exist" in {
-
-      val consumerId       = UUID.randomUUID()
-      val purposeId        = UUID.randomUUID()
-      val purposeVersionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(id = purposeId, consumerId = consumerId))
-
-      Post() ~> service.updateDraftPurposeVersion(
-        purposeId.toString,
-        purposeVersionId.toString,
-        SpecData.draftUpdate(100)
-      ) ~> check {
-        status shouldEqual StatusCodes.NotFound
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.NotFound.intValue
-        problem.errors.head.code shouldBe "012-0010"
-      }
-    }
-
-    "fail if User is not a Consumer" in {
-
-      val purposeId        = UUID.randomUUID()
-      val consumerId       = UUID.randomUUID()
-      val purposeVersionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
-
-      Post() ~> service.updateDraftPurposeVersion(
-        purposeId.toString,
-        purposeVersionId.toString,
-        SpecData.draftUpdate(100)
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0001"
-      }
-    }
-
-    "fail if Purpose Version is not in DRAFT state" in {
-
-      val consumerId       = UUID.randomUUID()
-      val purposeId        = UUID.randomUUID()
-      val purposeVersionId = UUID.randomUUID()
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      val version =
-        SpecData.purposeVersion.copy(id = purposeVersionId, state = Active)
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId, versions = Seq(version)))
-
-      Post() ~> service.updateDraftPurposeVersion(
-        purposeId.toString,
-        purposeVersionId.toString,
-        SpecData.draftUpdate(100)
-      ) ~> check {
-        status shouldEqual StatusCodes.Forbidden
-        val problem = responseAs[Problem]
-        problem.status shouldBe StatusCodes.Forbidden.intValue
-        problem.errors.head.code shouldBe "012-0016"
       }
     }
 

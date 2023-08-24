@@ -299,8 +299,6 @@ object SpecData {
     freeOfChargeReason = None
   )
 
-  def draftUpdate(dailyCalls: Int): DraftPurposeVersionUpdateContent = DraftPurposeVersionUpdateContent(dailyCalls)
-
   def waitingForApprovalUpdate: WaitingForApprovalPurposeVersionUpdateContent =
     WaitingForApprovalPurposeVersionUpdateContent(timestamp)
 

@@ -467,38 +467,6 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { archivePurposeVersionResponse[PurposeVersion](operationLabel)(archivePurposeVersion200) }
   }
 
-  override def updateDraftPurposeVersion(
-    purposeId: String,
-    versionId: String,
-    updateContent: DraftPurposeVersionUpdateContent
-  )(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
-    val operationLabel = s"Updating Draft Version $versionId of Purpose $purposeId"
-    logger.info(operationLabel)
-
-    val result: Future[PurposeVersion] = for {
-      purposeUUID    <- purposeId.toFutureUUID
-      versionUUID    <- versionId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      purposeVersion <- getVersion(purpose, versionUUID)
-      _              <- assertPurposeVersionIsInDraftState(purpose.id, purposeVersion)
-      purposeVersion <- purposeManagementService.updateDraftPurposeVersion(
-        purposeUUID,
-        versionUUID,
-        updateContent.toManagement
-      )
-    } yield purposeVersion.toApi
-
-    onComplete(result) {
-      updateDraftPurposeVersionResponse[PurposeVersion](operationLabel)(updateDraftPurposeVersion200)
-    }
-  }
-
   override def updateWaitingForApprovalPurposeVersion(
     purposeId: String,
     versionId: String,
@@ -671,22 +639,11 @@ final case class PurposeApiServiceImpl(
     else Future.failed(PurposeNotInDraftState(purpose.id))
   }
 
-  private def assertPurposeVersionIsInDraftState(
-    purposeId: UUID,
-    purposeVersion: PersistentPurposeVersion
-  ): Future[Unit] = {
-    if (purposeVersion.state == Draft)
-      Future.successful(())
-    else Future.failed(PurposeVersionNotInDraftState(purposeId, purposeVersion.id))
-  }
-
   private def isRiskAnalysisFormValid(riskAnalysisForm: Option[RiskAnalysisForm])(kind: PersistentTenantKind): Boolean =
-    riskAnalysisForm
-      .map(
-        RiskAnalysisValidation
-          .validate(_, schemaOnlyValidation = false)(kind)
-          .isValid
-      )
-      .getOrElse(false)
+    riskAnalysisForm.exists(
+      RiskAnalysisValidation
+        .validate(_, schemaOnlyValidation = false)(kind)
+        .isValid
+    )
 
 }

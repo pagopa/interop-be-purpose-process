@@ -100,13 +100,6 @@
       "roles": [
         "admin"
       ],
-      "route": "updateDraftPurposeVersion"
-    },
-    {
-      "verb": "POST",
-      "roles": [
-        "admin"
-      ],
       "route": "updateWaitingForApprovalPurposeVersion"
     },
     {
