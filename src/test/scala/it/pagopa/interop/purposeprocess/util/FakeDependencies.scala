@@ -164,19 +164,6 @@ object FakeDependencies {
       )
     )
 
-    override def updateDraftPurposeVersion(
-      purposeId: UUID,
-      versionId: UUID,
-      updateContent: Management.DraftPurposeVersionUpdateContent
-    )(implicit contexts: Seq[(String, String)]): Future[Management.PurposeVersion] = Future.successful(
-      Management.PurposeVersion(
-        id = UUID.randomUUID(),
-        state = Management.PurposeVersionState.DRAFT,
-        createdAt = OffsetDateTime.now(),
-        dailyCalls = 1
-      )
-    )
-
     override def updateWaitingForApprovalPurposeVersion(
       purposeId: UUID,
       versionId: UUID,

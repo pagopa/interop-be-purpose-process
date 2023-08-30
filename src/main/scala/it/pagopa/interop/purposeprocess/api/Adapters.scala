@@ -262,12 +262,6 @@ object Adapters {
       Management.PurposeVersionSeed(seed.dailyCalls, None)
   }
 
-  implicit class DraftPurposeVersionUpdateContentWrapper(private val updateContent: DraftPurposeVersionUpdateContent)
-      extends AnyVal {
-    def toManagement: Management.DraftPurposeVersionUpdateContent =
-      Management.DraftPurposeVersionUpdateContent(dailyCalls = updateContent.dailyCalls)
-  }
-
   implicit class WaitingForApprovalPurposeVersionUpdateContentWrapper(
     private val updateContent: WaitingForApprovalPurposeVersionUpdateContent
   ) extends AnyVal {
@@ -419,7 +413,8 @@ object Adapters {
         eserviceId = content.eserviceId,
         isFreeOfCharge = content.isFreeOfCharge,
         freeOfChargeReason = content.freeOfChargeReason,
-        riskAnalysisForm = riskAnalysisForm
+        riskAnalysisForm = riskAnalysisForm,
+        dailyCalls = content.dailyCalls
       )
     }
   }
