@@ -28,7 +28,8 @@ import it.pagopa.interop.purposeprocess.api.PurposeApiService
 import it.pagopa.interop.purposeprocess.api.impl._
 import it.pagopa.interop.purposeprocess.common.readmodel.PaginatedResult
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.Language
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}

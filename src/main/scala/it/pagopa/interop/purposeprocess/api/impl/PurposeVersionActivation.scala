@@ -16,14 +16,16 @@ import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, LanguageIt}
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.LanguageIt
+import it.pagopa.interop.commons.riskanalysis.model.RiskAnalysisTemplate
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 
 final case class PurposeVersionActivation(
   agreementManagementService: AgreementManagementService,
@@ -35,10 +37,6 @@ final case class PurposeVersionActivation(
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext, readModel: ReadModelService) {
-  private[this] val riskAnalysisTemplate = Source
-    .fromResource("riskAnalysisTemplate/index.html")
-    .getLines()
-    .mkString(System.lineSeparator())
 
   def activateOrWaitForApproval(
     eService: CatalogItem,
@@ -247,7 +245,7 @@ final case class PurposeVersionActivation(
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
-        riskAnalysisTemplate,
+        RiskAnalysisTemplate.riskAnalysisTemplate,
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,

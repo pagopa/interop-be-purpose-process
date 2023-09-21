@@ -41,10 +41,11 @@ object Dependencies {
     lazy val catalogManagementModels =
       namespace %% "interop-be-catalog-management-models" % catalogManagementVersion
 
-    lazy val utils       = namespace %% "interop-commons-utils"        % commonsVersion
-    lazy val fileManager = namespace %% "interop-commons-file-manager" % commonsVersion
-    lazy val jwt         = namespace %% "interop-commons-jwt"          % commonsVersion
-    lazy val cqrs        = namespace %% "interop-commons-cqrs"         % commonsVersion
+    lazy val utils        = namespace %% "interop-commons-utils"          % commonsVersion
+    lazy val fileManager  = namespace %% "interop-commons-file-manager"   % commonsVersion
+    lazy val jwt          = namespace %% "interop-commons-jwt"            % commonsVersion
+    lazy val cqrs         = namespace %% "interop-commons-cqrs"           % commonsVersion
+    lazy val riskAnalysis = namespace %% "interop-commons-risk-analysis"  % commonsVersion
   }
 
   private[this] object cats {
@@ -114,6 +115,7 @@ object Dependencies {
       pagopa.fileManager                        % Compile,
       pagopa.jwt                                % Compile,
       pagopa.cqrs                               % Compile,
+      pagopa.riskAnalysis                       % Compile,
       akka.httpTestkit                          % Test,
       akka.testkit                              % Test,
       akka.untypedTestkit                       % Test,

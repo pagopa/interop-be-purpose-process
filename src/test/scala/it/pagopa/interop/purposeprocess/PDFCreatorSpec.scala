@@ -5,10 +5,11 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentRiskAnalysisMultiAnswer,
   PersistentRiskAnalysisSingleAnswer
 }
-import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.error.RiskAnalysisTemplateErrors._
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate._
+import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
+import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike

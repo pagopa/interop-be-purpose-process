@@ -12,7 +12,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurposeVersion,
   Active => PurposeActive
 }
-import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.catalogmanagement.model.{
   CatalogItem,
@@ -25,6 +25,7 @@ import it.pagopa.interop.catalogmanagement.model.{
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Consumer}
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentStamps, PersistentAgreement}
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
+import it.pagopa.interop.purposeprocess.api.Adapters._
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
@@ -157,9 +158,10 @@ object SpecData {
     val validOnlySchemaRiskAnalysis =
       if (tenantKind == PersistentTenantKind.PA) validOnlySchemaRiskAnalysis2_0 else validOnlySchemaRiskAnalysis1_0
     RiskAnalysisValidation
-      .validate(validOnlySchemaRiskAnalysis, true)(tenantKind)
+      .validate(validOnlySchemaRiskAnalysis.toTemplate, true)(tenantKind.toTemplate)
       .toOption
       .get
+      .toManagement
   }
 
   def validOnlySchemaPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
@@ -180,9 +182,10 @@ object SpecData {
     val riskAnalysis =
       if (tenantKind == PersistentTenantKind.PA) validRiskAnalysis3_0_Pa else validRiskAnalysis2_0_Private
     RiskAnalysisValidation
-      .validate(riskAnalysis, false)(tenantKind)
+      .validate(riskAnalysis.toTemplate, false)(tenantKind.toTemplate)
       .toOption
       .get
+      .toManagement
   }
 
   def validManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {

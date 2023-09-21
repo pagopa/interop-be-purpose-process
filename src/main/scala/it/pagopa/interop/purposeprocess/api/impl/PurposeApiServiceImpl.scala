@@ -31,7 +31,8 @@ import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
   OPERATIVE_AGREEMENT_STATES,
   CHANGE_ESERVICE_AGREEMENT_STATES
 }
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -383,7 +384,9 @@ final case class PurposeApiServiceImpl(
       riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi)
       _              <-
         riskAnalysisForm
-          .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
+          .traverse(risk =>
+            RiskAnalysisValidation.validate(risk.toTemplate, schemaOnlyValidation = false)(tenantKind.toTemplate)
+          )
           .leftMap(RiskAnalysisValidationFailed(_))
           .toEither
           .whenA(version.state == Draft)
@@ -578,7 +581,7 @@ final case class PurposeApiServiceImpl(
       kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       kindConfig                       <- RiskAnalysisService
         .riskAnalysisForms()
-        .get(kind)
+        .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       (latest, riskAnalysisFormConfig) <- kindConfig
         .maxByOption(_._1.toDouble)
@@ -606,7 +609,7 @@ final case class PurposeApiServiceImpl(
       kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
-        .get(kind)
+        .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       riskAnalysisFormConfig <- kindConfig
         .get(riskAnalysisVersion)
@@ -640,9 +643,9 @@ final case class PurposeApiServiceImpl(
   }
 
   private def isRiskAnalysisFormValid(riskAnalysisForm: Option[RiskAnalysisForm])(kind: PersistentTenantKind): Boolean =
-    riskAnalysisForm.exists(
+    riskAnalysisForm.exists(risk =>
       RiskAnalysisValidation
-        .validate(_, schemaOnlyValidation = false)(kind)
+        .validate(risk.toTemplate, schemaOnlyValidation = false)(kind.toTemplate)
         .isValid
     )
 
