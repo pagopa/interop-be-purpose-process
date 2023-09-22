@@ -935,9 +935,6 @@ components:
           type: string
           minLength: 10
           maxLength: 250
-        eserviceId:
-          type: string
-          format: uuid
         isFreeOfCharge:
           type: boolean
         freeOfChargeReason:
@@ -953,7 +950,6 @@ components:
         - title
         - description
         - isFreeOfCharge
-        - eserviceId
         - dailyCalls
     WaitingForApprovalPurposeVersionUpdateContent:
       type: object
