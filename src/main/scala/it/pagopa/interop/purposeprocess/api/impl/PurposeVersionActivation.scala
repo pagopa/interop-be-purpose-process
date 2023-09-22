@@ -21,8 +21,8 @@ import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERA
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant
 import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.LanguageIt
-import it.pagopa.interop.commons.riskanalysis.model.RiskAnalysisTemplate
 
+import scala.io.Source
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
@@ -37,6 +37,11 @@ final case class PurposeVersionActivation(
   uuidSupplier: UUIDSupplier,
   dateTimeSupplier: OffsetDateTimeSupplier
 )(implicit ec: ExecutionContext, readModel: ReadModelService) {
+
+  private[this] val riskAnalysisTemplate = Source
+    .fromResource("riskAnalysisTemplate/index.html")
+    .getLines()
+    .mkString(System.lineSeparator())
 
   def activateOrWaitForApproval(
     eService: CatalogItem,
@@ -245,7 +250,7 @@ final case class PurposeVersionActivation(
     for {
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
       document         <- pdfCreator.createDocument(
-        RiskAnalysisTemplate.riskAnalysisTemplate,
+        riskAnalysisTemplate,
         riskAnalysisForm,
         version.dailyCalls,
         eServiceInfo,
