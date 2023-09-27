@@ -8,20 +8,20 @@ import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{
-  RiskAnalysisFormConfig,
-  FormConfigQuestion,
-  LocalizedText,
   DataType,
-  Single,
-  Multi,
-  FreeText,
   Dependency,
-  LabeledValue,
+  FormConfigQuestion,
   FreeInputQuestion,
-  SingleQuestion,
+  FreeText,
+  HideOptionConfig,
+  LabeledValue,
+  LocalizedText,
+  Multi,
   MultiQuestion,
-  ValidationOption,
-  HideOptionConfig
+  RiskAnalysisFormConfig,
+  Single,
+  SingleQuestion,
+  ValidationOption
 }
 
 object Adapters {
@@ -410,7 +410,6 @@ object Adapters {
       } yield Management.PurposeUpdateContent(
         title = content.title,
         description = content.description,
-        eserviceId = content.eserviceId,
         isFreeOfCharge = content.isFreeOfCharge,
         freeOfChargeReason = content.freeOfChargeReason,
         riskAnalysisForm = riskAnalysisForm,
