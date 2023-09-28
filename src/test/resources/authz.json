@@ -8,6 +8,13 @@
       "route": "createPurpose"
     },
     {
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ],
+      "route": "createPurposeProducer"
+    },
+    {
       "verb": "GET",
       "roles": [
         "admin",

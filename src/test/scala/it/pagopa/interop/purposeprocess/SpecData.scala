@@ -20,7 +20,8 @@ import it.pagopa.interop.catalogmanagement.model.{
   Rest,
   CatalogDescriptor,
   Published,
-  Automatic
+  Automatic,
+  Deliver
 }
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Consumer}
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentStamps, PersistentAgreement}
@@ -41,7 +42,9 @@ object SpecData {
     technology = Rest,
     attributes = CatalogAttributes.empty.some,
     descriptors = Seq.empty,
-    createdAt = OffsetDateTimeSupplier.get()
+    createdAt = OffsetDateTimeSupplier.get(),
+    riskAnalysis = Seq.empty,
+    mode = Deliver
   )
 
   val descriptor: CatalogDescriptor = CatalogDescriptor(
@@ -169,6 +172,7 @@ object SpecData {
     PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
       version = seed.version,
+      riskAnalysisId = Some(UUID.randomUUID()),
       singleAnswers = seed.singleAnswers.map(a =>
         PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
@@ -208,6 +212,7 @@ object SpecData {
 
     PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
+      riskAnalysisId = Some(UUID.randomUUID()),
       version = seed.version,
       singleAnswers = seed.singleAnswers.map(a =>
         PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)

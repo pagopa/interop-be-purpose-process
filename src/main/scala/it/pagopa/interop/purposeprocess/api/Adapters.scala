@@ -24,6 +24,10 @@ import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.{
 }
 import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.commons.riskanalysis.{model => Template}
+import java.util.UUID
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisForm
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisSingleAnswer
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisMultiAnswer
 
 object Adapters {
 
@@ -115,12 +119,67 @@ object Adapters {
       )
   }
 
+  implicit class PurposeProducerSeedWrapper(private val seed: ProducerPurposeSeed) extends AnyVal {
+    def toManagement(eserviceId: UUID, riskAnalysisForm: Management.RiskAnalysisForm): Management.PurposeSeed =
+      Management.PurposeSeed(
+        eserviceId = eserviceId,
+        consumerId = seed.consumerId,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(
+          Management.RiskAnalysisFormSeed(
+            riskAnalysisId = Some(seed.riskAnalysisId),
+            version = riskAnalysisForm.version,
+            singleAnswers = riskAnalysisForm.singleAnswers.map(_.toSeed),
+            multiAnswers = riskAnalysisForm.multiAnswers.map(_.toSeed)
+          )
+        ),
+        isFreeOfCharge = seed.isFreeOfCharge,
+        freeOfChargeReason = seed.freeOfChargeReason,
+        dailyCalls = seed.dailyCalls
+      )
+  }
+
+  implicit class CatalogRiskAnalysisFormWrapper(private val riskAnalysisForm: CatalogRiskAnalysisForm) extends AnyVal {
+    def toManagement(riskAnalysisId: UUID): Management.RiskAnalysisForm = Management.RiskAnalysisForm(
+      id = riskAnalysisForm.id,
+      riskAnalysisId = Some(riskAnalysisId),
+      version = riskAnalysisForm.version,
+      singleAnswers = riskAnalysisForm.singleAnswers.map(_.toManagement),
+      multiAnswers = riskAnalysisForm.multiAnswers.map(_.toManagement)
+    )
+  }
+
+  implicit class CatalogRiskAnalysisMultiAnswerWrapper(private val multiAnswer: CatalogRiskAnalysisMultiAnswer)
+      extends AnyVal {
+    def toManagement: Management.RiskAnalysisMultiAnswer =
+      Management.RiskAnalysisMultiAnswer(id = multiAnswer.id, key = multiAnswer.key, values = multiAnswer.values)
+  }
+
+  implicit class CatalogRiskAnalysisSingleAnswerWrapper(private val singleAnswer: CatalogRiskAnalysisSingleAnswer)
+      extends AnyVal {
+    def toManagement: Management.RiskAnalysisSingleAnswer =
+      Management.RiskAnalysisSingleAnswer(id = singleAnswer.id, key = singleAnswer.key, value = singleAnswer.value)
+  }
+
   implicit class ManagementRiskAnalysisWrapper(private val riskAnalysis: Management.RiskAnalysisForm) extends AnyVal {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
         answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
       )
+  }
+
+  implicit class ManagementSingleAnswerWrapper(private val singleAnswer: Management.RiskAnalysisSingleAnswer)
+      extends AnyVal {
+    def toSeed: Management.RiskAnalysisSingleAnswerSeed =
+      Management.RiskAnalysisSingleAnswerSeed(key = singleAnswer.key, value = singleAnswer.value)
+  }
+
+  implicit class ManagementMultinswerWrapper(private val multiAnswer: Management.RiskAnalysisMultiAnswer)
+      extends AnyVal {
+    def toSeed: Management.RiskAnalysisMultiAnswerSeed =
+      Management.RiskAnalysisMultiAnswerSeed(key = multiAnswer.key, values = multiAnswer.values)
   }
 
   implicit class ManagementSingleAnswersWrapper(private val singleAnswers: Seq[Management.RiskAnalysisSingleAnswer])

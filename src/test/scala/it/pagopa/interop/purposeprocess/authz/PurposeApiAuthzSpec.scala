@@ -84,6 +84,22 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createPurpose(fakeSeed) })
     }
 
+    "accept authorized roles for createPurposeProducer" in {
+      val endpoint = AuthorizedRoutes.endpoints("createPurposeProducer")
+      val fakeSeed = ProducerPurposeSeed(
+        consumerId = UUID.randomUUID(),
+        riskAnalysisId = UUID.randomUUID(),
+        title = "???",
+        description = "???",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.createPurposeProducer(UUID.randomUUID().toString, fakeSeed) }
+      )
+    }
+
     "accept authorized roles for clonePurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("clonePurpose")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.clonePurpose("fakeSeed") })

@@ -284,7 +284,13 @@ object PDFCreatorSpec {
   val freeOfChargeReason: Option[String]                = Some("Reason")
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
-    PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
+    PersistentRiskAnalysisForm(
+      id = UUID.randomUUID(),
+      riskAnalysisId = Some(UUID.randomUUID()),
+      version = "1.0",
+      singleAnswers = Nil,
+      multiAnswers = Nil
+    )
 
   def makeSingleAnswerForm(key: String, value: String): PersistentRiskAnalysisForm =
     dummyRiskAnalysisForm.copy(singleAnswers =

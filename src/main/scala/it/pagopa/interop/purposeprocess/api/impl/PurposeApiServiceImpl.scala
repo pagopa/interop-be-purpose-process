@@ -26,6 +26,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
+import it.pagopa.interop.catalogmanagement.model.Receive
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
   OPERATIVE_AGREEMENT_STATES,
@@ -91,6 +92,55 @@ final case class PurposeApiServiceImpl(
     onComplete(result) {
       getRiskAnalysisDocumentResponse[PurposeVersionDocument](operationLabel)(getRiskAnalysisDocument200)
     }
+  }
+
+  override def createPurposeProducer(eServiceId: String, seed: ProducerPurposeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel =
+      s"Creating Purposes for EService ${eServiceId}, Consumer ${seed.consumerId}"
+
+    val result: Future[Purpose] = for {
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      eServiceUUID   <- eServiceId.toFutureUUID
+      eService       <- catalogManagementService.getEServiceById(eServiceUUID)
+      _ <- if (eService.mode == Receive) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      riskAnalysis <- eService.riskAnalysis
+        .filter(_.id == seed.riskAnalysisId)
+        .headOption
+        .toFuture(RiskAnalysisNotFound(eServiceUUID, seed.riskAnalysisId))
+      _            <-
+        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+        else Future.unit
+      tenant       <- tenantManagementService.getTenantById(organizationId)
+      tenantKind   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      clientSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
+      agreements <- agreementManagementService.getAgreements(eServiceUUID, seed.consumerId, OPERATIVE_AGREEMENT_STATES)
+      agreement  <- agreements.headOption.toFuture(AgreementNotFound(eServiceUUID.toString, seed.consumerId.toString))
+      maybePurpose <- purposeManagementService
+        .listPurposes(
+          seed.consumerId,
+          seed.title.some,
+          List(agreement.eserviceId.toString),
+          List(agreement.consumerId.toString),
+          List(agreement.producerId.toString),
+          states = List.empty,
+          excludeDraft = false,
+          offset = 0,
+          limit = 1,
+          exactMatchOnTitle = true
+        )
+        .map(_.results.headOption)
+
+      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
+      purpose <- purposeManagementService.createPurpose(clientSeed)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+    } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+
+    onComplete(result) { createPurposeProducerResponse[Purpose](operationLabel)(createPurposeProducer200) }
   }
 
   override def createPurpose(seed: PurposeSeed)(implicit
@@ -297,7 +347,7 @@ final case class PurposeApiServiceImpl(
         offset,
         limit
       )
-      apiPurposes = purposes.results.map(_.toApi(false))
+      apiPurposes = purposes.results.map(_.toApi(false)).map(_.copy(riskAnalysisForm = None))
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -642,10 +692,13 @@ final case class PurposeApiServiceImpl(
     else Future.failed(PurposeNotInDraftState(purpose.id))
   }
 
-  private def isRiskAnalysisFormValid(riskAnalysisForm: Option[RiskAnalysisForm])(kind: PersistentTenantKind): Boolean =
+  private def isRiskAnalysisFormValid(
+    riskAnalysisForm: Option[RiskAnalysisForm],
+    schemaOnlyValidation: Boolean = false
+  )(kind: PersistentTenantKind): Boolean =
     riskAnalysisForm.exists(risk =>
       RiskAnalysisValidation
-        .validate(risk.toTemplate, schemaOnlyValidation = false)(kind.toTemplate)
+        .validate(risk.toTemplate, schemaOnlyValidation)(kind.toTemplate)
         .isValid
     )
 
