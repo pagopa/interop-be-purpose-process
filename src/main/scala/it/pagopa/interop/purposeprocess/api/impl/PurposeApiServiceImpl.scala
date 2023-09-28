@@ -248,20 +248,22 @@ final case class PurposeApiServiceImpl(
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      purposeUUID    <- purposeId.toFutureUUID
-      _              <-
+      eService       <- catalogManagementService.getEServiceById(purposeUpdateContent.eserviceId)
+      _           <- if (eService.mode == Receive) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      purposeUUID <- purposeId.toFutureUUID
+      _           <-
         if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
           Future.failed(MissingFreeOfChargeReason)
         else Future.unit
-      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      tenant         <- tenantManagementService.getTenantById(organizationId)
-      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      _              <- assertPurposeIsInDraftState(purpose)
-      _              <-
+      purpose     <- purposeManagementService.getPurposeById(purposeUUID)
+      tenant      <- tenantManagementService.getTenantById(organizationId)
+      _           <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      _           <- assertPurposeIsInDraftState(purpose)
+      _           <-
         if (purpose.eserviceId == purposeUpdateContent.eserviceId) Future.unit
         else verifyAgreementExistence(purpose.consumerId, purposeUpdateContent.eserviceId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent
+      tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      depPayload  <- purposeUpdateContent
         .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
