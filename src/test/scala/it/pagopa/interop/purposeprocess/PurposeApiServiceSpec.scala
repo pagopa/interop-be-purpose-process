@@ -34,7 +34,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Suspended,
   PersistentPurposeVersionDocument
 }
-import it.pagopa.interop.catalogmanagement.model.Receive
+import it.pagopa.interop.catalogmanagement.model.Deliver
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.matchers.should.Matchers._
@@ -947,7 +947,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "fail if case of eService with Receive mode" in {
+    "fail if case of eService with Deliver mode" in {
 
       val purposeId            = UUID.randomUUID()
       val eserviceId           = UUID.randomUUID()
@@ -965,7 +965,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Deliver))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest

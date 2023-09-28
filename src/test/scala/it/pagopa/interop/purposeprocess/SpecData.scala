@@ -21,7 +21,7 @@ import it.pagopa.interop.catalogmanagement.model.{
   CatalogDescriptor,
   Published,
   Automatic,
-  Deliver
+  Receive
 }
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Consumer}
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentStamps, PersistentAgreement}
@@ -44,7 +44,7 @@ object SpecData {
     descriptors = Seq.empty,
     createdAt = OffsetDateTimeSupplier.get(),
     riskAnalysis = Seq.empty,
-    mode = Deliver
+    mode = Receive
   )
 
   val descriptor: CatalogDescriptor = CatalogDescriptor(

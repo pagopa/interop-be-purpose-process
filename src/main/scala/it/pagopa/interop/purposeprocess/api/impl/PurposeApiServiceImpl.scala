@@ -26,7 +26,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
-import it.pagopa.interop.catalogmanagement.model.Receive
+import it.pagopa.interop.catalogmanagement.model.Deliver
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
   OPERATIVE_AGREEMENT_STATES,
@@ -107,7 +107,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       eServiceUUID   <- eServiceId.toFutureUUID
       eService       <- catalogManagementService.getEServiceById(eServiceUUID)
-      _ <- if (eService.mode == Receive) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      _ <- if (eService.mode == Deliver) Future.failed(EServiceNotInDeliverMode(eService.id)) else Future.unit
       riskAnalysis <- eService.riskAnalysis
         .filter(_.id == seed.riskAnalysisId)
         .headOption
@@ -249,7 +249,7 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       eService       <- catalogManagementService.getEServiceById(purposeUpdateContent.eserviceId)
-      _           <- if (eService.mode == Receive) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      _           <- if (eService.mode == Deliver) Future.failed(EServiceNotInDeliverMode(eService.id)) else Future.unit
       purposeUUID <- purposeId.toFutureUUID
       _           <-
         if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)

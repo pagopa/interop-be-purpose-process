@@ -60,7 +60,7 @@ object ResponseHandlers extends AkkaResponses {
     result match {
       case Success(s)                            => success(s)
       case Failure(ex: EServiceNotFound)         => badRequest(ex, logMessage)
-      case Failure(ex: EServiceNotInReceiveMode) => badRequest(ex, logMessage)
+      case Failure(ex: EServiceNotInDeliverMode) => badRequest(ex, logMessage)
       case Failure(ex)                           => internalServerError(ex, logMessage)
     }
 
@@ -83,7 +83,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: RiskAnalysisValidationFailed)   => badRequest(ex, logMessage)
       case Failure(ex: MissingFreeOfChargeReason.type) => badRequest(ex, logMessage)
       case Failure(ex: EServiceNotFound)               => badRequest(ex, logMessage)
-      case Failure(ex: EServiceNotInReceiveMode)       => badRequest(ex, logMessage)
+      case Failure(ex: EServiceNotInDeliverMode)       => badRequest(ex, logMessage)
       case Failure(ex: TenantNotFound)                 => badRequest(ex, logMessage)
       case Failure(ex: AgreementNotFound)              => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer)   => forbidden(ex, logMessage)
