@@ -26,7 +26,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
-import it.pagopa.interop.catalogmanagement.model.Receive
+import it.pagopa.interop.catalogmanagement.model.Deliver
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
   OPERATIVE_AGREEMENT_STATES,
@@ -94,7 +94,7 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def createPurposeProducer(eServiceId: String, seed: ProducerPurposeSeed)(implicit
+  override def createPurposeFromEService(eServiceId: String, seed: ProducerPurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -107,7 +107,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       eServiceUUID   <- eServiceId.toFutureUUID
       eService       <- catalogManagementService.getEServiceById(eServiceUUID)
-      _ <- if (eService.mode == Receive) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      _ <- if (eService.mode == Deliver) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
       riskAnalysis <- eService.riskAnalysis
         .filter(_.id == seed.riskAnalysisId)
         .headOption
@@ -117,7 +117,7 @@ final case class PurposeApiServiceImpl(
         else Future.unit
       tenant       <- tenantManagementService.getTenantById(organizationId)
       tenantKind   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
+      purposeSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
       agreements <- agreementManagementService.getAgreements(eServiceUUID, seed.consumerId, OPERATIVE_AGREEMENT_STATES)
       agreement  <- agreements.headOption.toFuture(AgreementNotFound(eServiceUUID.toString, seed.consumerId.toString))
       maybePurpose <- purposeManagementService
@@ -136,11 +136,11 @@ final case class PurposeApiServiceImpl(
         .map(_.results.headOption)
 
       _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
-      purpose <- purposeManagementService.createPurpose(clientSeed)
+      purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
-    onComplete(result) { createPurposeProducerResponse[Purpose](operationLabel)(createPurposeProducer200) }
+    onComplete(result) { createPurposeFromEServiceResponse[Purpose](operationLabel)(createPurposeFromEService200) }
   }
 
   override def createPurpose(seed: PurposeSeed)(implicit
@@ -159,7 +159,7 @@ final case class PurposeApiServiceImpl(
         else Future.unit
       tenant         <- tenantManagementService.getTenantById(organizationId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
+      purposeSeed    <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
       agreements     <- agreementManagementService.getAgreements(
         seed.eserviceId,
         seed.consumerId,
@@ -182,7 +182,7 @@ final case class PurposeApiServiceImpl(
         .map(_.results.headOption)
 
       _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
-      purpose <- purposeManagementService.createPurpose(clientSeed)
+      purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
 
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
