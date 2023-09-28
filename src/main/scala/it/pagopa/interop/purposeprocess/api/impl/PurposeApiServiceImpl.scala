@@ -619,7 +619,7 @@ final case class PurposeApiServiceImpl(
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
 
-  override def retrieveLatestRiskAnalysisConfiguration()(implicit
+  override def retrieveLatestRiskAnalysisConfiguration(tenantKind: Option[String])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -628,10 +628,13 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
-      organizationId                   <- getOrganizationIdFutureUUID(contexts)
-      tenant                           <- tenantManagementService.getTenantById(organizationId)
-      kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      kindConfig                       <- RiskAnalysisService
+      organizationId  <- getOrganizationIdFutureUUID(contexts)
+      tenant          <- tenantManagementService.getTenantById(organizationId)
+      tenantKindParam <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind            <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
+      kindConfig      <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
@@ -647,7 +650,8 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def retrieveRiskAnalysisConfigurationByVersion(riskAnalysisVersion: String)(implicit
+  override def retrieveRiskAnalysisConfigurationByVersion(tenantKind: Option[String], riskAnalysisVersion: String)(
+    implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -658,7 +662,10 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId         <- getOrganizationIdFutureUUID(contexts)
       tenant                 <- tenantManagementService.getTenantById(organizationId)
-      kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      tenantKindParam        <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind                   <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind.toTemplate)

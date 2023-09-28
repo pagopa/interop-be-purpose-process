@@ -197,6 +197,14 @@ object Adapters {
       Template.RiskAnalysisForm(version = riskAnalysis.version, answers = riskAnalysis.answers)
   }
 
+  implicit class TenantKindWrapper(private val kind: TenantKind) extends AnyVal {
+    def toPersistent: PersistentTenantKind = kind match {
+      case TenantKind.PA      => PersistentTenantKind.PA
+      case TenantKind.GSP     => PersistentTenantKind.GSP
+      case TenantKind.PRIVATE => PersistentTenantKind.PRIVATE
+    }
+  }
+
   implicit class PersistentTenantKindrapper(private val kind: PersistentTenantKind) extends AnyVal {
     def toTemplate: Template.RiskAnalysisTenantKind = kind match {
       case PersistentTenantKind.PA      => Template.RiskAnalysisTenantKind.PA

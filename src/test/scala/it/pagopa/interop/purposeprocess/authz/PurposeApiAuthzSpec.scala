@@ -200,8 +200,17 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("retrieveLatestRiskAnalysisConfiguration")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration() }
+        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration(None) }
       )
     }
+
+    "accept authorized roles for retrieveRiskAnalysisConfigurationByVersion" in {
+      val endpoint = AuthorizedRoutes.endpoints("retrieveRiskAnalysisConfigurationByVersion")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.retrieveRiskAnalysisConfigurationByVersion(None, "fake") }
+      )
+    }
+
   }
 }

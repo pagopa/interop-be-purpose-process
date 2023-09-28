@@ -628,6 +628,10 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
+      - name: tenantKind
+        in: query
+        schema:
+          $ref: '#/components/schemas/TenantKind'
     get:
       tags:
         - purpose
@@ -661,6 +665,10 @@ paths:
         required: true
         schema:
           type: string
+      - name: tenantKind
+        in: query
+        schema:
+          $ref: '#/components/schemas/TenantKind'
     get:
       tags:
         - purpose
@@ -699,6 +707,13 @@ components:
       schema:
         type: string
   schemas:
+    TenantKind:
+      type: string
+      description: Tenant Kind
+      enum:
+        - PA
+        - PRIVATE
+        - GSP
     RiskAnalysisFormConfigResponse:
       type: object
       properties:
