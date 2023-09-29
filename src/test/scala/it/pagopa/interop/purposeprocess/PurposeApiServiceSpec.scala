@@ -32,12 +32,12 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Suspended,
   PersistentPurposeVersionDocument
 }
+import it.pagopa.interop.catalogmanagement.model.{Deliver, Receive}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.matchers.should.Matchers._
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import it.pagopa.interop.catalogmanagement.model.Receive
 
 class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with ScalatestRouteTest with ScalaFutures {
 
@@ -1006,7 +1006,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         purpose.eserviceId,
         SpecData.eService.copy(
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
-          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId)),
+          mode = Deliver
         )
       )
 
@@ -1014,7 +1015,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
-        problem.errors.head.code shouldBe "012-0025"
+        problem.errors.head.code shouldBe "012-0026"
       }
     }
 
@@ -1066,7 +1067,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
-        problem.errors.head.code shouldBe "012-0026"
+        problem.errors.head.code shouldBe "012-0027"
       }
     }
 
@@ -1401,6 +1402,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
@@ -1409,8 +1413,39 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+    "fail if case of eService with Receive mode" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None,
+          dailyCalls = 100
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0025"
+      }
+    }
     "fail when is free of charge but without free of charge reason agreement " in {
       val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
         PurposeUpdateContent(
@@ -1424,6 +1459,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
@@ -1436,6 +1477,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId   = UUID.randomUUID()
       val consumerId  = UUID.randomUUID()
       val requesterId = UUID.randomUUID()
+      val eserviceId  = UUID.randomUUID()
 
       val purposeUpdateContent =
         PurposeUpdateContent(
@@ -1449,9 +1491,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      mockTenantRetrieve(requesterId, SpecData.tenant.copy(id = requesterId, kind = PersistentTenantKind.PRIVATE.some))
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -1461,8 +1501,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
     "fail if Purpose is not in DRAFT state" in {
-      val purposeId            = UUID.randomUUID()
-      val consumerId           = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+
       val purposeUpdateContent =
         PurposeUpdateContent(
           title = "A title",
@@ -1472,13 +1514,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           dailyCalls = 100
         )
       val purpose              =
-        SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
+        SpecData.purpose.copy(
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersionNotInDraftState)
+        )
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -2251,7 +2296,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "3.0"
       }
@@ -2270,7 +2315,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2289,7 +2334,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(Some("GSP")) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2310,7 +2355,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("2.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(Some("PA"), "2.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2329,7 +2374,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
@@ -2348,7 +2393,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }

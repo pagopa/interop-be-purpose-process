@@ -26,7 +26,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
-import it.pagopa.interop.catalogmanagement.model.Deliver
+import it.pagopa.interop.catalogmanagement.model.{Receive, Deliver}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
@@ -133,7 +133,7 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
       eService       <- catalogManagementService.getEServiceById(seed.eServiceId)
-      _ <- if (eService.mode == Deliver) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
+      _ <- if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id))
       riskAnalysis <- eService.riskAnalysis
         .find(_.id == seed.riskAnalysisId)
         .toFuture(RiskAnalysisNotFound(seed.eServiceId, seed.riskAnalysisId))
@@ -214,7 +214,7 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
-  override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
+  override def updatePurpose(purposeId: String, seed: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -225,16 +225,15 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
-      _              <-
-        if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
-          Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _          <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
+      _          <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenant     <- tenantManagementService.getTenantById(organizationId)
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      depPayload <- seed
         .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
@@ -590,7 +589,7 @@ final case class PurposeApiServiceImpl(
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
 
-  override def retrieveLatestRiskAnalysisConfiguration()(implicit
+  override def retrieveLatestRiskAnalysisConfiguration(tenantKind: Option[String])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -599,10 +598,13 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
-      organizationId                   <- getOrganizationIdFutureUUID(contexts)
-      tenant                           <- tenantManagementService.getTenantById(organizationId)
-      kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      kindConfig                       <- RiskAnalysisService
+      organizationId  <- getOrganizationIdFutureUUID(contexts)
+      tenant          <- tenantManagementService.getTenantById(organizationId)
+      tenantKindParam <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind            <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
+      kindConfig      <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
@@ -618,7 +620,8 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def retrieveRiskAnalysisConfigurationByVersion(riskAnalysisVersion: String)(implicit
+  override def retrieveRiskAnalysisConfigurationByVersion(tenantKind: Option[String], riskAnalysisVersion: String)(
+    implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -629,7 +632,10 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId         <- getOrganizationIdFutureUUID(contexts)
       tenant                 <- tenantManagementService.getTenantById(organizationId)
-      kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      tenantKindParam        <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind                   <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind.toTemplate)
