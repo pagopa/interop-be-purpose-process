@@ -2296,7 +2296,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "3.0"
       }
@@ -2315,7 +2315,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2334,7 +2334,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(Some("GSP")) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2355,7 +2355,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("2.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(Some("PA"), "2.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -2374,7 +2374,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
@@ -2393,7 +2393,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
