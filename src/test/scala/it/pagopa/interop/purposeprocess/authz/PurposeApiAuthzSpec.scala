@@ -87,6 +87,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
     "accept authorized roles for createPurposeFromEService" in {
       val endpoint = AuthorizedRoutes.endpoints("createPurposeFromEService")
       val fakeSeed = EServicePurposeSeed(
+        eServiceId = UUID.randomUUID(),
         consumerId = UUID.randomUUID(),
         riskAnalysisId = UUID.randomUUID(),
         title = "???",
@@ -96,7 +97,7 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       )
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.createPurposeFromEService(UUID.randomUUID().toString, fakeSeed) }
+        { implicit c: Seq[(String, String)] => service.createPurposeFromEService(fakeSeed) }
       )
     }
 

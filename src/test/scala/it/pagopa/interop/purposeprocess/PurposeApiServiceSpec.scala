@@ -878,6 +878,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -928,7 +929,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurpose.copy(id = purpose.id)))
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[Purpose].id shouldEqual purpose.id
       }
@@ -943,6 +944,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -957,7 +959,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.failed(EServiceNotFound(eServiceId)))
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
@@ -975,6 +977,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1007,7 +1010,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       )
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
@@ -1025,6 +1028,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1058,7 +1062,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       )
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
@@ -1076,6 +1080,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1113,7 +1118,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
@@ -1131,6 +1136,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1164,7 +1170,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       )
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
@@ -1184,6 +1190,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1220,7 +1227,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.BadRequest.intValue
@@ -1238,6 +1245,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = UUID.randomUUID(),
         title = "A title",
@@ -1246,7 +1254,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         dailyCalls = 100
       )
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
@@ -1264,6 +1272,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1294,7 +1303,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockListPurposesRetrieve(purposes)
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.Conflict
         responseAs[Problem].status shouldBe 409
       }
@@ -1310,6 +1319,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1356,7 +1366,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.dependencyPurpose.copy(id = purpose.id)))
 
-      Get() ~> service.createPurposeFromEService(eServiceId.toString, seed) ~> check {
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -1377,6 +1387,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           dailyCalls = 100
         )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
+        eserviceId = eserviceId,
         title = "A title",
         description = "A description",
         isFreeOfCharge = false,

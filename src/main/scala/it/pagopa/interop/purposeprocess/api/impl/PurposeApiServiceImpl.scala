@@ -121,27 +121,26 @@ final case class PurposeApiServiceImpl(
     _ <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
   } yield ()
 
-  override def createPurposeFromEService(eServiceId: String, seed: EServicePurposeSeed)(implicit
+  override def createPurposeFromEService(seed: EServicePurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel =
-      s"Creating Purposes for EService ${eServiceId}, Consumer ${seed.consumerId}"
+      s"Creating Purposes for EService ${seed.eServiceId}, Consumer ${seed.consumerId}"
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      eServiceUUID   <- eServiceId.toFutureUUID
-      eService       <- catalogManagementService.getEServiceById(eServiceUUID)
+      eService       <- catalogManagementService.getEServiceById(seed.eServiceId)
       _ <- if (eService.mode == Deliver) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
       riskAnalysis <- eService.riskAnalysis
         .find(_.id == seed.riskAnalysisId)
-        .toFuture(RiskAnalysisNotFound(eServiceUUID, seed.riskAnalysisId))
+        .toFuture(RiskAnalysisNotFound(seed.eServiceId, seed.riskAnalysisId))
       _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
       tenantKind   <- getTenantKind(organizationId)
-      purposeSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
-      _       <- checkAgreements(eServiceUUID, seed.consumerId, seed.title)
+      purposeSeed = seed.toManagement(seed.eServiceId, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
+      _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title)
       purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(
         riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
@@ -236,7 +235,7 @@ final case class PurposeApiServiceImpl(
       _              <- assertPurposeIsInDraftState(purpose)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent
-        .toManagement(schemaOnlyValidation = true)(tenantKind)
+        .toManagement(eserviceId = purpose.eserviceId, schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
