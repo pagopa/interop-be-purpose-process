@@ -149,17 +149,10 @@ paths:
             schema:
               $ref: '#/components/schemas/PurposeSeed'
         required: true
-  /purposes/eservice/{eServiceId}:
+  /reverse/purposes:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
-      - name: eServiceId
-        in: path
-        description: the eService id
-        required: true
-        schema:
-          type: string
-          format: uuid
     post:
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -1006,9 +999,6 @@ components:
           type: string
           minLength: 10
           maxLength: 250
-        eserviceId:
-          type: string
-          format: uuid
         isFreeOfCharge:
           type: boolean
         freeOfChargeReason:
@@ -1024,7 +1014,6 @@ components:
         - title
         - description
         - isFreeOfCharge
-        - eserviceId
         - dailyCalls
     WaitingForApprovalPurposeVersionUpdateContent:
       type: object
@@ -1103,6 +1092,9 @@ components:
       type: object
       description: contains the expected payload for purpose creation.
       properties:
+        eServiceId:
+          type: string
+          format: uuid      
         consumerId:
           type: string
           format: uuid
@@ -1125,6 +1117,7 @@ components:
           type: integer
           format: int32
       required:
+        - eServiceId
         - consumerId
         - title
         - riskAnalysisId
