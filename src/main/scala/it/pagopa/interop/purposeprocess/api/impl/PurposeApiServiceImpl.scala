@@ -26,12 +26,9 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
-import it.pagopa.interop.catalogmanagement.model.Receive
+import it.pagopa.interop.catalogmanagement.model.{Receive, Deliver}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
-import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
-  OPERATIVE_AGREEMENT_STATES,
-  CHANGE_ESERVICE_AGREEMENT_STATES
-}
+import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
 import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.service._
@@ -124,27 +121,26 @@ final case class PurposeApiServiceImpl(
     _ <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
   } yield ()
 
-  override def createPurposeFromEService(eServiceId: String, seed: EServicePurposeSeed)(implicit
+  override def createPurposeFromEService(seed: EServicePurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
   ): Route = authorize(ADMIN_ROLE) {
     val operationLabel =
-      s"Creating Purposes for EService ${eServiceId}, Consumer ${seed.consumerId}"
+      s"Creating Purposes for EService ${seed.eServiceId}, Consumer ${seed.consumerId}"
 
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      eServiceUUID   <- eServiceId.toFutureUUID
-      eService       <- catalogManagementService.getEServiceById(eServiceUUID)
-      _ <- if (eService.mode == Receive) Future.failed(EServiceNotInDeliverMode(eService.id)) else Future.unit
+      eService       <- catalogManagementService.getEServiceById(seed.eServiceId)
+      _ <- if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id))
       riskAnalysis <- eService.riskAnalysis
         .find(_.id == seed.riskAnalysisId)
-        .toFuture(RiskAnalysisNotFound(eServiceUUID, seed.riskAnalysisId))
+        .toFuture(RiskAnalysisNotFound(seed.eServiceId, seed.riskAnalysisId))
       _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
       tenantKind   <- getTenantKind(organizationId)
-      purposeSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
-      _       <- checkAgreements(eServiceUUID, seed.consumerId, seed.title)
+      purposeSeed = seed.toManagement(seed.eServiceId, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
+      _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title)
       purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(
         riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
@@ -226,35 +222,21 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    def verifyAgreementExistence(consumerId: UUID, eServiceId: UUID): Future[Unit] = for {
-      agreements <- agreementManagementService.getAgreements(
-        eServiceId = eServiceId,
-        consumerId = consumerId,
-        states = CHANGE_ESERVICE_AGREEMENT_STATES
-      )
-      _          <-
-        if (agreements.isEmpty) Future.failed(AgreementNotFound(eServiceId.toString, consumerId.toString))
-        else Future.unit
-    } yield ()
-
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
-      eService       <- catalogManagementService.getEServiceById(purposeUpdateContent.eserviceId)
-      _           <- if (eService.mode == Receive) Future.failed(EServiceNotInDeliverMode(eService.id)) else Future.unit
-      purposeUUID <- purposeId.toFutureUUID
-      _           <-
+      purposeUUID    <- purposeId.toFutureUUID
+      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _ <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
+      _ <-
         if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
           Future.failed(MissingFreeOfChargeReason)
         else Future.unit
-      purpose     <- purposeManagementService.getPurposeById(purposeUUID)
-      tenant      <- tenantManagementService.getTenantById(organizationId)
-      _           <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      _           <- assertPurposeIsInDraftState(purpose)
-      _           <-
-        if (purpose.eserviceId == purposeUpdateContent.eserviceId) Future.unit
-        else verifyAgreementExistence(purpose.consumerId, purposeUpdateContent.eserviceId)
-      tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload  <- purposeUpdateContent
+      tenant         <- tenantManagementService.getTenantById(organizationId)
+      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      _              <- assertPurposeIsInDraftState(purpose)
+      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      depPayload     <- purposeUpdateContent
         .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)

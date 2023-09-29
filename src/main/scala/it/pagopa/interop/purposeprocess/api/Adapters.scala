@@ -7,20 +7,20 @@ import it.pagopa.interop.purposemanagement.model.{purpose => Persistent}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
 import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.{
-  RiskAnalysisFormConfig,
-  FormConfigQuestion,
-  LocalizedText,
   DataType,
-  Single,
-  Multi,
-  FreeText,
   Dependency,
-  LabeledValue,
+  FormConfigQuestion,
   FreeInputQuestion,
-  SingleQuestion,
+  FreeText,
+  HideOptionConfig,
+  LabeledValue,
+  LocalizedText,
+  Multi,
   MultiQuestion,
-  ValidationOption,
-  HideOptionConfig
+  RiskAnalysisFormConfig,
+  Single,
+  SingleQuestion,
+  ValidationOption
 }
 import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.commons.riskanalysis.{model => Template}
@@ -494,9 +494,9 @@ object Adapters {
   }
 
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def toManagement(
-      schemaOnlyValidation: Boolean
-    )(kind: PersistentTenantKind): Either[Throwable, Management.PurposeUpdateContent] = {
+    def toManagement(schemaOnlyValidation: Boolean)(
+      kind: PersistentTenantKind
+    ): Either[Throwable, Management.PurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
           .traverse(risk =>
@@ -509,7 +509,6 @@ object Adapters {
       } yield Management.PurposeUpdateContent(
         title = content.title,
         description = content.description,
-        eserviceId = content.eserviceId,
         isFreeOfCharge = content.isFreeOfCharge,
         freeOfChargeReason = content.freeOfChargeReason,
         riskAnalysisForm = riskAnalysisForm,
