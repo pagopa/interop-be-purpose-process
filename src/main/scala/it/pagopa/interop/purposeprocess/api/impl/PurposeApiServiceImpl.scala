@@ -137,7 +137,10 @@ final case class PurposeApiServiceImpl(
 
       _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
       purpose <- purposeManagementService.createPurpose(purposeSeed)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(
+        riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
+        schemaOnlyValidation = true
+      )(tenantKind)
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
     onComplete(result) { createPurposeFromEServiceResponse[Purpose](operationLabel)(createPurposeFromEService200) }
