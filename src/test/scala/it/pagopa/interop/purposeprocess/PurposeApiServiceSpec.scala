@@ -880,7 +880,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -945,7 +945,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -977,7 +977,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1027,7 +1027,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1078,7 +1078,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1133,7 +1133,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1186,7 +1186,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1240,7 +1240,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = UUID.randomUUID(),
         title = "A title",
@@ -1266,7 +1266,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",
@@ -1312,7 +1312,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val seed: ProducerPurposeSeed = ProducerPurposeSeed(
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
         consumerId = consumerId,
         riskAnalysisId = riskAnalysisId,
         title = "A title",

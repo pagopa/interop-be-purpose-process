@@ -94,7 +94,37 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def createPurposeFromEService(eServiceId: String, seed: ProducerPurposeSeed)(implicit
+  private def checkFreeOfCharge(isFreeOfCharge: Boolean, freeOfChargeReason: Option[String]): Future[Unit] =
+    if (isFreeOfCharge && freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+    else Future.unit
+
+  private def getTenantKind(requesterId: UUID): Future[PersistentTenantKind] = for {
+    tenant     <- tenantManagementService.getTenantById(requesterId)
+    tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+  } yield tenantKind
+
+  private def checkAgreements(eServiceId: UUID, consumerId: UUID, title: String): Future[Unit] = for {
+    agreements   <- agreementManagementService.getAgreements(eServiceId, consumerId, OPERATIVE_AGREEMENT_STATES)
+    agreement    <- agreements.headOption.toFuture(AgreementNotFound(eServiceId.toString, consumerId.toString))
+    maybePurpose <- purposeManagementService
+      .listPurposes(
+        consumerId,
+        title.some,
+        List(agreement.eserviceId.toString),
+        List(agreement.consumerId.toString),
+        List(agreement.producerId.toString),
+        states = List.empty,
+        excludeDraft = false,
+        offset = 0,
+        limit = 1,
+        exactMatchOnTitle = true
+      )
+      .map(_.results.headOption)
+
+    _ <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
+  } yield ()
+
+  override def createPurposeFromEService(eServiceId: String, seed: EServicePurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -109,37 +139,16 @@ final case class PurposeApiServiceImpl(
       eService       <- catalogManagementService.getEServiceById(eServiceUUID)
       _ <- if (eService.mode == Deliver) Future.failed(EServiceNotInReceiveMode(eService.id)) else Future.unit
       riskAnalysis <- eService.riskAnalysis
-        .filter(_.id == seed.riskAnalysisId)
-        .headOption
+        .find(_.id == seed.riskAnalysisId)
         .toFuture(RiskAnalysisNotFound(eServiceUUID, seed.riskAnalysisId))
-      _            <-
-        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
-      tenant       <- tenantManagementService.getTenantById(organizationId)
-      tenantKind   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenantKind   <- getTenantKind(organizationId)
       purposeSeed = seed.toManagement(eServiceUUID, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
-      agreements <- agreementManagementService.getAgreements(eServiceUUID, seed.consumerId, OPERATIVE_AGREEMENT_STATES)
-      agreement  <- agreements.headOption.toFuture(AgreementNotFound(eServiceUUID.toString, seed.consumerId.toString))
-      maybePurpose <- purposeManagementService
-        .listPurposes(
-          seed.consumerId,
-          seed.title.some,
-          List(agreement.eserviceId.toString),
-          List(agreement.consumerId.toString),
-          List(agreement.producerId.toString),
-          states = List.empty,
-          excludeDraft = false,
-          offset = 0,
-          limit = 1,
-          exactMatchOnTitle = true
-        )
-        .map(_.results.headOption)
-
-      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
+      _       <- checkAgreements(eServiceUUID, seed.consumerId, seed.title)
       purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(
         riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
-        schemaOnlyValidation = true
+        schemaOnlyValidation = false
       )(tenantKind)
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
@@ -157,36 +166,15 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      _              <-
-        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
-      tenant         <- tenantManagementService.getTenantById(organizationId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      _              <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenantKind     <- getTenantKind(organizationId)
       purposeSeed    <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
-      agreements     <- agreementManagementService.getAgreements(
-        seed.eserviceId,
-        seed.consumerId,
-        OPERATIVE_AGREEMENT_STATES
-      )
-      agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      maybePurpose <- purposeManagementService
-        .listPurposes(
-          seed.consumerId,
-          seed.title.some,
-          List(agreement.eserviceId.toString),
-          List(agreement.consumerId.toString),
-          List(agreement.producerId.toString),
-          states = List.empty,
-          excludeDraft = false,
-          offset = 0,
-          limit = 1,
-          exactMatchOnTitle = true
-        )
-        .map(_.results.headOption)
-
-      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
-      purpose <- purposeManagementService.createPurpose(purposeSeed)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+      _              <- checkAgreements(seed.eserviceId, seed.consumerId, seed.title)
+      purpose        <- purposeManagementService.createPurpose(purposeSeed)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(
+        riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
+        schemaOnlyValidation = false
+      )(tenantKind)
 
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
