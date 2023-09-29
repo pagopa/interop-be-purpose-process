@@ -28,10 +28,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
 }
 import it.pagopa.interop.catalogmanagement.model.Deliver
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
-import it.pagopa.interop.purposeprocess.service.AgreementManagementService.{
-  OPERATIVE_AGREEMENT_STATES,
-  CHANGE_ESERVICE_AGREEMENT_STATES
-}
+import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
 import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.service._
@@ -226,17 +223,6 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    def verifyAgreementExistence(consumerId: UUID, eServiceId: UUID): Future[Unit] = for {
-      agreements <- agreementManagementService.getAgreements(
-        eServiceId = eServiceId,
-        consumerId = consumerId,
-        states = CHANGE_ESERVICE_AGREEMENT_STATES
-      )
-      _          <-
-        if (agreements.isEmpty) Future.failed(AgreementNotFound(eServiceId.toString, consumerId.toString))
-        else Future.unit
-    } yield ()
-
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
@@ -248,9 +234,6 @@ final case class PurposeApiServiceImpl(
       tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
-      _              <-
-        if (purpose.eserviceId == purposeUpdateContent.eserviceId) Future.unit
-        else verifyAgreementExistence(purpose.consumerId, purposeUpdateContent.eserviceId)
       tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       depPayload     <- purposeUpdateContent
         .toManagement(schemaOnlyValidation = true)(tenantKind)
