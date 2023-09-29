@@ -131,6 +131,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'        
         '409':
           description: Name Conflict
           content:
@@ -160,13 +166,13 @@ paths:
         - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
-      operationId: createPurposeProducer
+      operationId: createPurposeFromEService
       description: Create a Purpose for EService with Receive mode
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProducerPurposeSeed'
+              $ref: '#/components/schemas/EServicePurposeSeed'
         required: true
       responses:
         '200':
@@ -180,7 +186,19 @@ paths:
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'      
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'                       
   /purposes/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -1081,7 +1099,7 @@ components:
         createdAt:
           type: string
           format: date-time
-    ProducerPurposeSeed:
+    EServicePurposeSeed:
       type: object
       description: contains the expected payload for purpose creation.
       properties:
