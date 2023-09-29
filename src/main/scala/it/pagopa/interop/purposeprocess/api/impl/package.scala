@@ -42,7 +42,7 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
     jsonFormat11(FormConfigQuestionResponse)
   implicit def riskAnalysisFormConfigResponseFormat: RootJsonFormat[RiskAnalysisFormConfigResponse] =
     jsonFormat2(RiskAnalysisFormConfigResponse)
-  implicit def producerPurposeSeedFormat: RootJsonFormat[ProducerPurposeSeed] = jsonFormat7(ProducerPurposeSeed)
+  implicit def eServicePurposeSeedFormat: RootJsonFormat[EServicePurposeSeed] = jsonFormat7(EServicePurposeSeed)
 
   final val entityMarshallerProblem: ToEntityMarshaller[Problem] = sprayJsonMarshaller[Problem]
 }

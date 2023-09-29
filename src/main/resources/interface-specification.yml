@@ -172,7 +172,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProducerPurposeSeed'
+              $ref: '#/components/schemas/EServicePurposeSeed'
         required: true
       responses:
         '200':
@@ -1084,7 +1084,7 @@ components:
         createdAt:
           type: string
           format: date-time
-    ProducerPurposeSeed:
+    EServicePurposeSeed:
       type: object
       description: contains the expected payload for purpose creation.
       properties:

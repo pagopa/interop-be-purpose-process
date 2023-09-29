@@ -62,7 +62,6 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: EServiceNotFound)               => badRequest(ex, logMessage)
       case Failure(ex: EServiceNotInDeliverMode)       => badRequest(ex, logMessage)
       case Failure(ex: RiskAnalysisNotFound)           => badRequest(ex, logMessage)
-      case Failure(ex: RiskAnalysisValidationFailed)   => badRequest(ex, logMessage)
       case Failure(ex: AgreementNotFound)              => badRequest(ex, logMessage)
       case Failure(ex: MissingFreeOfChargeReason.type) => badRequest(ex, logMessage)
       case Failure(ex: OrganizationIsNotTheConsumer)   => forbidden(ex, logMessage)

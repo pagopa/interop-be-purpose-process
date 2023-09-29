@@ -119,7 +119,7 @@ object Adapters {
       )
   }
 
-  implicit class PurposeProducerSeedWrapper(private val seed: ProducerPurposeSeed) extends AnyVal {
+  implicit class PurposeProducerSeedWrapper(private val seed: EServicePurposeSeed) extends AnyVal {
     def toManagement(eserviceId: UUID, riskAnalysisForm: Management.RiskAnalysisForm): Management.PurposeSeed =
       Management.PurposeSeed(
         eserviceId = eserviceId,
