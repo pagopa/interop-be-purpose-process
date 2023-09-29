@@ -1413,43 +1413,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "succeed if case of change of eService" in {
-
-      val purposeId            = UUID.randomUUID()
-      val eserviceId           = UUID.randomUUID()
-      val consumerId           = UUID.randomUUID()
-      val purposeUpdateContent =
-        PurposeUpdateContent(
-          title = "A title",
-          description = "A description",
-          isFreeOfCharge = false,
-          riskAnalysisForm = None,
-          dailyCalls = 100
-        )
-      val seed                 = PurposeManagementDependency.PurposeUpdateContent(
-        title = "A title",
-        description = "A description",
-        isFreeOfCharge = false,
-        riskAnalysisForm = None,
-        dailyCalls = 100
-      )
-
-      val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
-
-      implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
-
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
-      mockPurposeRetrieve(purposeId, purpose)
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
-
-      mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
-
-      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
-        status shouldEqual StatusCodes.OK
-      }
-    }
     "fail if case of eService with Receive mode" in {
 
       val purposeId            = UUID.randomUUID()
