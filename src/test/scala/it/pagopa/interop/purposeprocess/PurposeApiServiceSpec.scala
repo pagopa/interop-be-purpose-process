@@ -1387,7 +1387,6 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           dailyCalls = 100
         )
       val seed                 = PurposeManagementDependency.PurposeUpdateContent(
-        eserviceId = eserviceId,
         title = "A title",
         description = "A description",
         isFreeOfCharge = false,

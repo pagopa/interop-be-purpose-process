@@ -494,9 +494,9 @@ object Adapters {
   }
 
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def toManagement(schemaOnlyValidation: Boolean, eserviceId: UUID)(
-      kind: PersistentTenantKind
-    ): Either[Throwable, Management.PurposeUpdateContent] = {
+    def toManagement(
+      schemaOnlyValidation: Boolean
+    )(kind: PersistentTenantKind): Either[Throwable, Management.PurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
           .traverse(risk =>
@@ -512,8 +512,7 @@ object Adapters {
         isFreeOfCharge = content.isFreeOfCharge,
         freeOfChargeReason = content.freeOfChargeReason,
         riskAnalysisForm = riskAnalysisForm,
-        dailyCalls = content.dailyCalls,
-        eserviceId = eserviceId
+        dailyCalls = content.dailyCalls
       )
     }
   }
