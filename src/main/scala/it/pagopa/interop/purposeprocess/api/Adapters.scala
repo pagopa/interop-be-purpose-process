@@ -494,9 +494,9 @@ object Adapters {
   }
 
   implicit class PurposeUpdateContentWrapper(private val content: PurposeUpdateContent) extends AnyVal {
-    def toManagement(schemaOnlyValidation: Boolean)(
-      kind: PersistentTenantKind
-    ): Either[Throwable, Management.PurposeUpdateContent] = {
+    def toManagement(
+      schemaOnlyValidation: Boolean
+    )(kind: PersistentTenantKind): Either[Throwable, Management.PurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
           .traverse(risk =>

@@ -214,7 +214,7 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
-  override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
+  override def updatePurpose(purposeId: String, seed: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -226,17 +226,14 @@ final case class PurposeApiServiceImpl(
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      _ <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
-      _ <-
-        if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
-          Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
-      tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _          <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
+      _          <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenant     <- tenantManagementService.getTenantById(organizationId)
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      depPayload <- seed
         .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
