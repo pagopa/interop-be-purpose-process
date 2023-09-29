@@ -11,7 +11,8 @@ import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
   PurposeNotFound,
   PurposeVersionDocumentNotFound,
-  PurposeVersionNotFound
+  PurposeVersionNotFound,
+  EServiceNotFound
 }
 import it.pagopa.interop.purposeprocess.model._
 import org.scalatest.concurrent.ScalaFutures
@@ -31,6 +32,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Suspended,
   PersistentPurposeVersionDocument
 }
+import it.pagopa.interop.catalogmanagement.model.{Deliver, Receive}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.matchers.should.Matchers._
@@ -865,6 +867,512 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
   }
 
+  "Purpose creation from EService" should {
+    "succeed" in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = false,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+        )
+      )
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
+
+      val purposeSeed: PurposeManagementDependency.PurposeSeed = seed.toManagement(
+        eServiceId,
+        SpecData.riskAnalysis.copy(id = riskAnalysisId).riskAnalysisForm.toManagement(seed.riskAnalysisId)
+      )
+      val purposes: Seq[PersistentPurpose]                     = List.empty
+
+      mockListPurposesRetrieve(purposes)
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(purposeSeed, context)
+        .once()
+        .returns(Future.successful(SpecData.dependencyPurpose.copy(id = purpose.id)))
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[Purpose].id shouldEqual purpose.id
+      }
+    }
+
+    "fail if EService not found" in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(Future.failed(EServiceNotFound(eServiceId)))
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0024"
+      }
+    }
+
+    "fail if EService has Deliver mode" in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = false,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId)),
+          mode = Deliver
+        )
+      )
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0026"
+      }
+    }
+
+    "fail if Risk Analysis not found" in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = false,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq.empty
+        )
+      )
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0027"
+      }
+    }
+
+    "fail on SUSPENDED agreement " in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = false,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+        )
+      )
+
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0005"
+      }
+    }
+
+    "fail when is free of charge but without free of charge reason agreement " in {
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = true,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = true,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+        )
+      )
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0023"
+      }
+    }
+
+    "fail if Agreement does not exist" in {
+
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+      val purposeId      = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = PersistentPurpose(
+        id = purposeId,
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        versions = Seq.empty,
+        suspendedByConsumer = None,
+        suspendedByProducer = None,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(SpecData.validPersistentRiskAnalysis(PersistentTenantKind.PA)),
+        createdAt = SpecData.timestamp,
+        updatedAt = None,
+        isFreeOfCharge = false,
+        freeOfChargeReason = None
+      )
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+        )
+      )
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0005"
+      }
+    }
+
+    "fail if User is not a Consumer" in {
+
+      val eServiceId  = UUID.randomUUID()
+      val consumerId  = UUID.randomUUID()
+      val requesterId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = UUID.randomUUID(),
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+
+    "fail if already exist a purpose with the same title" in {
+
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose = SpecData.persistentPurpose.copy(consumerId = consumerId, eserviceId = eServiceId)
+      val purposes: Seq[PersistentPurpose] = Seq(purpose)
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
+        )
+      )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(purposes)
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.Conflict
+        responseAs[Problem].status shouldBe 409
+      }
+    }
+
+    "succeed if there is no purpose with the same title" in {
+
+      val eServiceId     = UUID.randomUUID()
+      val consumerId     = UUID.randomUUID()
+      val riskAnalysisId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val seed: EServicePurposeSeed = EServicePurposeSeed(
+        eServiceId = eServiceId,
+        consumerId = consumerId,
+        riskAnalysisId = riskAnalysisId,
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val dependencySeed: PurposeManagementDependency.PurposeSeed = PurposeManagementDependency.PurposeSeed(
+        eserviceId = eServiceId,
+        consumerId = consumerId,
+        title = "A title",
+        description = "A description",
+        riskAnalysisForm = Some(SpecData.riskAnalysisOnlySchemaSeed.copy(riskAnalysisId = Some(riskAnalysisId))),
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+
+      val purpose                          = SpecData.purpose.copy(consumerId = consumerId, eserviceId = eServiceId)
+      val purposes: Seq[PersistentPurpose] = List.empty
+
+      mockEServiceRetrieve(
+        purpose.eserviceId,
+        SpecData.eService.copy(
+          descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
+          mode = Receive,
+          riskAnalysis = Seq(SpecData.riskAnalysisOnlySchema.copy(id = riskAnalysisId))
+        )
+      )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
+
+      mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(purposes)
+
+      (mockPurposeManagementService
+        .createPurpose(_: PurposeManagementDependency.PurposeSeed)(_: Seq[(String, String)]))
+        .expects(dependencySeed, context)
+        .once()
+        .returns(Future.successful(SpecData.dependencyPurpose.copy(id = purpose.id)))
+
+      Get() ~> service.createPurposeFromEService(seed) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+  }
+
   "Purpose updating" should {
     "succeed if User is a Consumer and Purpose is in Draft State" in {
 
@@ -894,6 +1402,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
@@ -902,8 +1413,39 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+    "fail if case of eService with Receive mode" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None,
+          dailyCalls = 100
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0025"
+      }
+    }
     "fail when is free of charge but without free of charge reason agreement " in {
       val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
       val consumerId           = UUID.randomUUID()
       val purposeUpdateContent =
         PurposeUpdateContent(
@@ -917,6 +1459,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
@@ -929,6 +1477,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId   = UUID.randomUUID()
       val consumerId  = UUID.randomUUID()
       val requesterId = UUID.randomUUID()
+      val eserviceId  = UUID.randomUUID()
 
       val purposeUpdateContent =
         PurposeUpdateContent(
@@ -942,9 +1491,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      mockTenantRetrieve(requesterId, SpecData.tenant.copy(id = requesterId, kind = PersistentTenantKind.PRIVATE.some))
-
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(consumerId = consumerId))
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -954,8 +1501,10 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       }
     }
     "fail if Purpose is not in DRAFT state" in {
-      val purposeId            = UUID.randomUUID()
-      val consumerId           = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+
       val purposeUpdateContent =
         PurposeUpdateContent(
           title = "A title",
@@ -965,13 +1514,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           dailyCalls = 100
         )
       val purpose              =
-        SpecData.purpose.copy(consumerId = consumerId, versions = Seq(SpecData.purposeVersionNotInDraftState))
+        SpecData.purpose.copy(
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersionNotInDraftState)
+        )
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -1744,7 +2296,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "3.0"
       }
@@ -1763,7 +2315,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(None) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -1782,7 +2334,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveLatestRiskAnalysisConfiguration() ~> check {
+      Get() ~> service.retrieveLatestRiskAnalysisConfiguration(Some("GSP")) ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -1803,7 +2355,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("2.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(Some("PA"), "2.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
@@ -1822,7 +2374,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
@@ -1841,7 +2393,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion("1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }

@@ -131,6 +131,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'        
         '409':
           description: Name Conflict
           content:
@@ -143,6 +149,49 @@ paths:
             schema:
               $ref: '#/components/schemas/PurposeSeed'
         required: true
+  /reverse/purposes:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+    post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/IpAddress'
+      tags:
+        - purpose
+      operationId: createPurposeFromEService
+      description: Create a Purpose for EService with Receive mode
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EServicePurposeSeed'
+        required: true
+      responses:
+        '200':
+          description: Purpose created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'                       
   /purposes/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -590,6 +639,10 @@ paths:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
       - $ref: '#/components/parameters/IpAddress'
+      - name: tenantKind
+        in: query
+        schema:
+          $ref: '#/components/schemas/TenantKind'
     get:
       tags:
         - purpose
@@ -623,6 +676,10 @@ paths:
         required: true
         schema:
           type: string
+      - name: tenantKind
+        in: query
+        schema:
+          $ref: '#/components/schemas/TenantKind'
     get:
       tags:
         - purpose
@@ -661,6 +718,13 @@ components:
       schema:
         type: string
   schemas:
+    TenantKind:
+      type: string
+      description: Tenant Kind
+      enum:
+        - PA
+        - PRIVATE
+        - GSP
     RiskAnalysisFormConfigResponse:
       type: object
       properties:
@@ -1024,6 +1088,42 @@ components:
         createdAt:
           type: string
           format: date-time
+    EServicePurposeSeed:
+      type: object
+      description: contains the expected payload for purpose creation.
+      properties:
+        eServiceId:
+          type: string
+          format: uuid      
+        consumerId:
+          type: string
+          format: uuid
+        riskAnalysisId:
+          type: string
+          format: uuid  
+        title:
+          type: string
+          minLength: 5
+          maxLength: 60
+        description:
+          type: string
+          minLength: 10
+          maxLength: 250
+        isFreeOfCharge:
+          type: boolean
+        freeOfChargeReason:
+          type: string
+        dailyCalls:
+          type: integer
+          format: int32
+      required:
+        - eServiceId
+        - consumerId
+        - title
+        - riskAnalysisId
+        - description
+        - isFreeOfCharge
+        - dailyCalls      
     PurposeSeed:
       type: object
       description: contains the expected payload for purpose creation.
@@ -1083,6 +1183,9 @@ components:
               type: string
               minLength: 1
               maxLength: 250
+        riskAnalysisId:
+            type: string
+            format: uuid
       required:
         - version
         - answers

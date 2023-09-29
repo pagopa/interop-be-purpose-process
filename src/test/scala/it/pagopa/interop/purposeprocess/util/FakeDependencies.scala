@@ -12,7 +12,7 @@ import scala.concurrent.{Future, ExecutionContext}
 import it.pagopa.interop.purposemanagement.model.purpose.{PersistentPurpose, PersistentPurposeVersionState}
 import it.pagopa.interop.agreementmanagement.model.agreement.{PersistentAgreementState, PersistentAgreement}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
-import it.pagopa.interop.catalogmanagement.model.{CatalogAttributes, CatalogItem, Rest}
+import it.pagopa.interop.catalogmanagement.model.{CatalogAttributes, CatalogItem, Rest, Deliver}
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentExternalId, PersistentTenantKind}
 import it.pagopa.interop.authorizationmanagement.model.client.PersistentClient
 
@@ -222,7 +222,9 @@ object FakeDependencies {
           technology = Rest,
           attributes = CatalogAttributes.empty.some,
           descriptors = Seq.empty,
-          createdAt = OffsetDateTime.now()
+          createdAt = OffsetDateTime.now(),
+          riskAnalysis = Seq.empty,
+          mode = Deliver
         )
       )
 

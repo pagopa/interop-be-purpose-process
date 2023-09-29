@@ -8,6 +8,13 @@
       "route": "createPurpose"
     },
     {
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ],
+      "route": "createPurposeFromEService"
+    },
+    {
       "verb": "GET",
       "roles": [
         "admin",

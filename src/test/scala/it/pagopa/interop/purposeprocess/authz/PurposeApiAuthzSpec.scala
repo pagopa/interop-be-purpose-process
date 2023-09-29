@@ -84,6 +84,23 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createPurpose(fakeSeed) })
     }
 
+    "accept authorized roles for createPurposeFromEService" in {
+      val endpoint = AuthorizedRoutes.endpoints("createPurposeFromEService")
+      val fakeSeed = EServicePurposeSeed(
+        eServiceId = UUID.randomUUID(),
+        consumerId = UUID.randomUUID(),
+        riskAnalysisId = UUID.randomUUID(),
+        title = "???",
+        description = "???",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.createPurposeFromEService(fakeSeed) }
+      )
+    }
+
     "accept authorized roles for clonePurpose" in {
       val endpoint = AuthorizedRoutes.endpoints("clonePurpose")
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.clonePurpose("fakeSeed") })
@@ -184,8 +201,17 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("retrieveLatestRiskAnalysisConfiguration")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration() }
+        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration(None) }
       )
     }
+
+    "accept authorized roles for retrieveRiskAnalysisConfigurationByVersion" in {
+      val endpoint = AuthorizedRoutes.endpoints("retrieveRiskAnalysisConfigurationByVersion")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.retrieveRiskAnalysisConfigurationByVersion(None, "fake") }
+      )
+    }
+
   }
 }

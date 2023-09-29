@@ -84,4 +84,12 @@ object PurposeProcessErrors {
   final case class EServiceNotFound(eServiceId: UUID)
       extends ComponentError("0024", s"EService ${eServiceId.toString} not found")
 
+  final case class EServiceNotInDeliverMode(eServiceId: UUID)
+      extends ComponentError("0025", s"EService ${eServiceId.toString} has not Deliver mode")
+
+  final case class EServiceNotInReceiveMode(eServiceId: UUID)
+      extends ComponentError("0026", s"EService ${eServiceId.toString} has not Receive mode")
+  final case class RiskAnalysisNotFound(eServiceId: UUID, riskAnalysisId: UUID)
+      extends ComponentError("0027", s"EService $eServiceId does not contain Risk Analysis $riskAnalysisId")
+
 }
