@@ -1,7 +1,7 @@
 package it.pagopa.interop.purposeprocess.service
 
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.Language
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 

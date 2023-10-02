@@ -1,4 +1,4 @@
-package it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate
+package it.pagopa.interop.purposeprocess.model
 
 final case class EServiceInfo(
   name: String,

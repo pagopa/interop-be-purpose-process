@@ -16,7 +16,7 @@ import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.Ownership.{CONSUMER, PRODUCER, SELF_CONSUMER}
 import it.pagopa.interop.purposeprocess.common.system.ApplicationConfiguration
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenant

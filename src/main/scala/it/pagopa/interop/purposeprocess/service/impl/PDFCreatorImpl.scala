@@ -22,7 +22,7 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.api.Adapters._
 object PDFCreatorImpl extends PDFCreator with PDFManager {

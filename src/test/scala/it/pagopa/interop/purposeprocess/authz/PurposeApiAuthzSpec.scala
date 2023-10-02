@@ -9,7 +9,7 @@ import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.EServiceInfo
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.util.FakeDependencies._
 import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
