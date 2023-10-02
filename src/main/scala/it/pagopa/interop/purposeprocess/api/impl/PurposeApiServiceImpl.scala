@@ -26,9 +26,11 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   WaitingForApproval
 }
+import it.pagopa.interop.catalogmanagement.model.{Receive, Deliver}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.service._
 
 import java.util.UUID
@@ -89,6 +91,66 @@ final case class PurposeApiServiceImpl(
     }
   }
 
+  private def checkFreeOfCharge(isFreeOfCharge: Boolean, freeOfChargeReason: Option[String]): Future[Unit] =
+    if (isFreeOfCharge && freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
+    else Future.unit
+
+  private def getTenantKind(requesterId: UUID): Future[PersistentTenantKind] = for {
+    tenant     <- tenantManagementService.getTenantById(requesterId)
+    tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+  } yield tenantKind
+
+  private def checkAgreements(eServiceId: UUID, consumerId: UUID, title: String): Future[Unit] = for {
+    agreements   <- agreementManagementService.getAgreements(eServiceId, consumerId, OPERATIVE_AGREEMENT_STATES)
+    agreement    <- agreements.headOption.toFuture(AgreementNotFound(eServiceId.toString, consumerId.toString))
+    maybePurpose <- purposeManagementService
+      .listPurposes(
+        consumerId,
+        title.some,
+        List(agreement.eserviceId.toString),
+        List(agreement.consumerId.toString),
+        List(agreement.producerId.toString),
+        states = List.empty,
+        excludeDraft = false,
+        offset = 0,
+        limit = 1,
+        exactMatchOnTitle = true
+      )
+      .map(_.results.headOption)
+
+    _ <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
+  } yield ()
+
+  override def createPurposeFromEService(seed: EServicePurposeSeed)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel =
+      s"Creating Purposes for EService ${seed.eServiceId}, Consumer ${seed.consumerId}"
+
+    val result: Future[Purpose] = for {
+      organizationId <- getOrganizationIdFutureUUID(contexts)
+      _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      eService       <- catalogManagementService.getEServiceById(seed.eServiceId)
+      _ <- if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id))
+      riskAnalysis <- eService.riskAnalysis
+        .find(_.id == seed.riskAnalysisId)
+        .toFuture(RiskAnalysisNotFound(seed.eServiceId, seed.riskAnalysisId))
+      _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenantKind   <- getTenantKind(organizationId)
+      purposeSeed = seed.toManagement(seed.eServiceId, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
+      _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title)
+      purpose <- purposeManagementService.createPurpose(purposeSeed)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(
+        riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
+        schemaOnlyValidation = false
+      )(tenantKind)
+    } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+
+    onComplete(result) { createPurposeFromEServiceResponse[Purpose](operationLabel)(createPurposeFromEService200) }
+  }
+
   override def createPurpose(seed: PurposeSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
@@ -100,36 +162,15 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
-      _              <-
-        if (seed.isFreeOfCharge && seed.freeOfChargeReason.isEmpty) Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
-      tenant         <- tenantManagementService.getTenantById(organizationId)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      clientSeed     <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
-      agreements     <- agreementManagementService.getAgreements(
-        seed.eserviceId,
-        seed.consumerId,
-        OPERATIVE_AGREEMENT_STATES
-      )
-      agreement <- agreements.headOption.toFuture(AgreementNotFound(seed.eserviceId.toString, seed.consumerId.toString))
-      maybePurpose <- purposeManagementService
-        .listPurposes(
-          seed.consumerId,
-          seed.title.some,
-          List(agreement.eserviceId.toString),
-          List(agreement.consumerId.toString),
-          List(agreement.producerId.toString),
-          states = List.empty,
-          excludeDraft = false,
-          offset = 0,
-          limit = 1,
-          exactMatchOnTitle = true
-        )
-        .map(_.results.headOption)
-
-      _       <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(seed.title)))
-      purpose <- purposeManagementService.createPurpose(clientSeed)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+      _              <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenantKind     <- getTenantKind(organizationId)
+      purposeSeed    <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
+      _              <- checkAgreements(seed.eserviceId, seed.consumerId, seed.title)
+      purpose        <- purposeManagementService.createPurpose(purposeSeed)
+      isValidRiskAnalysisForm = isRiskAnalysisFormValid(
+        riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
+        schemaOnlyValidation = false
+      )(tenantKind)
 
     } yield purpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
@@ -173,7 +214,7 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { createPurposeVersionResponse[PurposeVersion](operationLabel)(createPurposeVersion200) }
   }
 
-  override def updatePurpose(purposeId: String, purposeUpdateContent: PurposeUpdateContent)(implicit
+  override def updatePurpose(purposeId: String, seed: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -184,16 +225,15 @@ final case class PurposeApiServiceImpl(
     val result: Future[Purpose] = for {
       organizationId <- getOrganizationIdFutureUUID(contexts)
       purposeUUID    <- purposeId.toFutureUUID
-      _              <-
-        if (purposeUpdateContent.isFreeOfCharge && purposeUpdateContent.freeOfChargeReason.isEmpty)
-          Future.failed(MissingFreeOfChargeReason)
-        else Future.unit
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      tenant         <- tenantManagementService.getTenantById(organizationId)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
       _              <- assertPurposeIsInDraftState(purpose)
-      tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload     <- purposeUpdateContent
+      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      _          <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
+      _          <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
+      tenant     <- tenantManagementService.getTenantById(organizationId)
+      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      depPayload <- seed
         .toManagement(schemaOnlyValidation = true)(tenantKind)
         .toFuture
       updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
@@ -279,7 +319,7 @@ final case class PurposeApiServiceImpl(
         offset,
         limit
       )
-      apiPurposes = purposes.results.map(_.toApi(false))
+      apiPurposes = purposes.results.map(_.toApi(false)).map(_.copy(riskAnalysisForm = None))
     } yield Purposes(results = apiPurposes, totalCount = purposes.totalCount)
 
     onComplete(result) { getPurposesResponse[Purposes](operationLabel)(getPurposes200) }
@@ -366,7 +406,9 @@ final case class PurposeApiServiceImpl(
       riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi)
       _              <-
         riskAnalysisForm
-          .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
+          .traverse(risk =>
+            RiskAnalysisValidation.validate(risk.toTemplate, schemaOnlyValidation = false)(tenantKind.toTemplate)
+          )
           .leftMap(RiskAnalysisValidationFailed(_))
           .toEither
           .whenA(version.state == Draft)
@@ -547,7 +589,7 @@ final case class PurposeApiServiceImpl(
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
 
-  override def retrieveLatestRiskAnalysisConfiguration()(implicit
+  override def retrieveLatestRiskAnalysisConfiguration(tenantKind: Option[String])(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -556,12 +598,15 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
-      organizationId                   <- getOrganizationIdFutureUUID(contexts)
-      tenant                           <- tenantManagementService.getTenantById(organizationId)
-      kind                             <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      kindConfig                       <- RiskAnalysisService
+      organizationId  <- getOrganizationIdFutureUUID(contexts)
+      tenant          <- tenantManagementService.getTenantById(organizationId)
+      tenantKindParam <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind            <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
+      kindConfig      <- RiskAnalysisService
         .riskAnalysisForms()
-        .get(kind)
+        .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       (latest, riskAnalysisFormConfig) <- kindConfig
         .maxByOption(_._1.toDouble)
@@ -575,7 +620,8 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def retrieveRiskAnalysisConfigurationByVersion(riskAnalysisVersion: String)(implicit
+  override def retrieveRiskAnalysisConfigurationByVersion(tenantKind: Option[String], riskAnalysisVersion: String)(
+    implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerRiskAnalysisFormConfigResponse: ToEntityMarshaller[RiskAnalysisFormConfigResponse],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -586,10 +632,13 @@ final case class PurposeApiServiceImpl(
     val result: Future[RiskAnalysisFormConfigResponse] = for {
       organizationId         <- getOrganizationIdFutureUUID(contexts)
       tenant                 <- tenantManagementService.getTenantById(organizationId)
-      kind                   <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+      tenantKindParam        <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind                   <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+        Future.successful(kind.toPersistent)
+      )
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
-        .get(kind)
+        .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
       riskAnalysisFormConfig <- kindConfig
         .get(riskAnalysisVersion)
@@ -622,10 +671,13 @@ final case class PurposeApiServiceImpl(
     else Future.failed(PurposeNotInDraftState(purpose.id))
   }
 
-  private def isRiskAnalysisFormValid(riskAnalysisForm: Option[RiskAnalysisForm])(kind: PersistentTenantKind): Boolean =
-    riskAnalysisForm.exists(
+  private def isRiskAnalysisFormValid(
+    riskAnalysisForm: Option[RiskAnalysisForm],
+    schemaOnlyValidation: Boolean = false
+  )(kind: PersistentTenantKind): Boolean =
+    riskAnalysisForm.exists(risk =>
       RiskAnalysisValidation
-        .validate(_, schemaOnlyValidation = false)(kind)
+        .validate(risk.toTemplate, schemaOnlyValidation)(kind.toTemplate)
         .isValid
     )
 

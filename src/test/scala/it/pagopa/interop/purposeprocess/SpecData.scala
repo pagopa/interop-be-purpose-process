@@ -12,7 +12,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentPurposeVersion,
   Active => PurposeActive
 }
-import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.catalogmanagement.model.{
   CatalogItem,
@@ -20,17 +20,115 @@ import it.pagopa.interop.catalogmanagement.model.{
   Rest,
   CatalogDescriptor,
   Published,
-  Automatic
+  Automatic,
+  Deliver,
+  CatalogRiskAnalysis,
+  CatalogRiskAnalysisForm,
+  CatalogRiskAnalysisSingleAnswer,
+  CatalogRiskAnalysisMultiAnswer
 }
 import it.pagopa.interop.authorizationmanagement.model.client.{PersistentClient, Consumer}
 import it.pagopa.interop.agreementmanagement.model.agreement.{Active, PersistentStamps, PersistentAgreement}
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
+import it.pagopa.interop.purposeprocess.api.Adapters._
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 object SpecData {
 
   final val timestamp = OffsetDateTime.of(2022, 12, 31, 11, 22, 33, 44, ZoneOffset.UTC)
+
+  val riskAnalysisOnlySchemaSeed: PurposeManagement.RiskAnalysisFormSeed = PurposeManagement.RiskAnalysisFormSeed(
+    riskAnalysisId = Some(UUID.randomUUID()),
+    version = "3.0",
+    singleAnswers = Seq(PurposeManagement.RiskAnalysisSingleAnswerSeed(key = "purpose", value = Some("INSTITUTIONAL"))),
+    multiAnswers = Seq(PurposeManagement.RiskAnalysisMultiAnswerSeed(key = "personalDataTypes", values = Seq("OTHER")))
+  )
+
+  val riskAnalysisOnlySchema: CatalogRiskAnalysis = CatalogRiskAnalysis(
+    id = UUID.randomUUID(),
+    name = "EService Risk Analysis",
+    riskAnalysisForm = CatalogRiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = "3.0",
+      singleAnswers =
+        Seq(CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "purpose", value = Some("INSTITUTIONAL"))),
+      multiAnswers =
+        Seq(CatalogRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = "personalDataTypes", values = Seq("OTHER")))
+    ),
+    createdAt = OffsetDateTimeSupplier.get()
+  )
+
+  val riskAnalysis: CatalogRiskAnalysis = CatalogRiskAnalysis(
+    id = UUID.randomUUID(),
+    name = "EService Risk Analysis",
+    riskAnalysisForm = CatalogRiskAnalysisForm(
+      id = UUID.randomUUID(),
+      version = "3.0",
+      singleAnswers = Seq(
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "purpose", value = Some("INSTITUTIONAL")),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "legalObligationReference", value = Some("YES")),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "dataDownload", value = Some("YES")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "checkedExistenceMereCorrectnessInteropCatalogue",
+          value = Some("true")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "deliveryMethod", value = Some("CLEARTEXT")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "legalBasisPublicInterest",
+          value = Some("RULE_OF_LAW")
+        ),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "confirmPricipleIntegrityAndDiscretion",
+          value = Some("true")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "ruleOfLawText", value = Some("TheLaw")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "confirmDataRetentionPeriod",
+          value = Some("true")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "usesThirdPartyData", value = Some("YES")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "otherPersonalDataTypes",
+          value = Some("MyThirdPartyData")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "doesUseThirdPartyData", value = Some("YES")),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "knowsDataQuantity", value = Some("NO")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "institutionalPurpose",
+          value = Some("MyPurpose")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "policyProvided", value = Some("NO")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "reasonPolicyNotProvided",
+          value = Some("Because")
+        ),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "doneDpia", value = Some("NO")),
+        CatalogRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = "declarationConfirmGDPR", value = Some("true")),
+        CatalogRiskAnalysisSingleAnswer(
+          id = UUID.randomUUID(),
+          key = "purposePursuit",
+          value = Some("MERE_CORRECTNESS")
+        )
+      ),
+      multiAnswers = Seq(
+        CatalogRiskAnalysisMultiAnswer(id = UUID.randomUUID(), key = "personalDataTypes", values = Seq("OTHER")),
+        CatalogRiskAnalysisMultiAnswer(
+          id = UUID.randomUUID(),
+          key = "legalBasis",
+          values = Seq("LEGAL_OBLIGATION", "PUBLIC_INTEREST")
+        )
+      )
+    ),
+    createdAt = OffsetDateTimeSupplier.get()
+  )
 
   val eService: CatalogItem = CatalogItem(
     id = UUID.randomUUID(),
@@ -40,7 +138,9 @@ object SpecData {
     technology = Rest,
     attributes = CatalogAttributes.empty.some,
     descriptors = Seq.empty,
-    createdAt = OffsetDateTimeSupplier.get()
+    createdAt = OffsetDateTimeSupplier.get(),
+    riskAnalysis = Seq.empty,
+    mode = Deliver
   )
 
   val descriptor: CatalogDescriptor = CatalogDescriptor(
@@ -157,9 +257,10 @@ object SpecData {
     val validOnlySchemaRiskAnalysis =
       if (tenantKind == PersistentTenantKind.PA) validOnlySchemaRiskAnalysis2_0 else validOnlySchemaRiskAnalysis1_0
     RiskAnalysisValidation
-      .validate(validOnlySchemaRiskAnalysis, true)(tenantKind)
+      .validate(validOnlySchemaRiskAnalysis.toTemplate, true)(tenantKind.toTemplate)
       .toOption
       .get
+      .toManagement
   }
 
   def validOnlySchemaPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
@@ -167,6 +268,7 @@ object SpecData {
     PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
       version = seed.version,
+      riskAnalysisId = Some(UUID.randomUUID()),
       singleAnswers = seed.singleAnswers.map(a =>
         PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)
       ),
@@ -180,9 +282,10 @@ object SpecData {
     val riskAnalysis =
       if (tenantKind == PersistentTenantKind.PA) validRiskAnalysis3_0_Pa else validRiskAnalysis2_0_Private
     RiskAnalysisValidation
-      .validate(riskAnalysis, false)(tenantKind)
+      .validate(riskAnalysis.toTemplate, false)(tenantKind.toTemplate)
       .toOption
       .get
+      .toManagement
   }
 
   def validManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {
@@ -205,6 +308,7 @@ object SpecData {
 
     PersistentRiskAnalysisForm(
       id = UUID.randomUUID(),
+      riskAnalysisId = Some(UUID.randomUUID()),
       version = seed.version,
       singleAnswers = seed.singleAnswers.map(a =>
         PersistentRiskAnalysisSingleAnswer(id = UUID.randomUUID(), key = a.key, value = a.value)

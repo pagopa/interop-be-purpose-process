@@ -6,8 +6,7 @@ import it.pagopa.interop.purposemanagement.client.{model => Management}
 import it.pagopa.interop.purposemanagement.model.{purpose => Persistent}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.RiskAnalysisValidationFailed
-import it.pagopa.interop.purposeprocess.api.impl.RiskAnalysisValidation
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.{
   DataType,
   Dependency,
   FormConfigQuestion,
@@ -23,6 +22,12 @@ import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{
   SingleQuestion,
   ValidationOption
 }
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
+import it.pagopa.interop.commons.riskanalysis.{model => Template}
+import java.util.UUID
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisForm
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisSingleAnswer
+import it.pagopa.interop.catalogmanagement.model.CatalogRiskAnalysisMultiAnswer
 
 object Adapters {
 
@@ -65,17 +70,42 @@ object Adapters {
       )
   }
 
+  implicit class TemplateRiskAnalysisFormSeedWrapper(private val riskAnalysis: Template.RiskAnalysisFormSeed)
+      extends AnyVal {
+    def toManagement: Management.RiskAnalysisFormSeed =
+      Management.RiskAnalysisFormSeed(
+        version = riskAnalysis.version,
+        singleAnswers = riskAnalysis.singleAnswers.map(_.toManagement),
+        multiAnswers = riskAnalysis.multiAnswers.map(_.toManagement)
+      )
+  }
+
+  implicit class RiskAnalysisSingleAnswerValidatedWrapper(
+    private val singleAnswers: Template.RiskAnalysisSingleAnswerValidated
+  ) extends AnyVal {
+    def toManagement: Management.RiskAnalysisSingleAnswerSeed =
+      Management.RiskAnalysisSingleAnswerSeed(key = singleAnswers.key, value = singleAnswers.value)
+  }
+
+  implicit class RiskAnalysisMultiAnswerValidatedWrapper(
+    private val multiAnswers: Template.RiskAnalysisMultiAnswerValidated
+  ) extends AnyVal {
+    def toManagement: Management.RiskAnalysisMultiAnswerSeed =
+      Management.RiskAnalysisMultiAnswerSeed(key = multiAnswers.key, values = multiAnswers.values)
+  }
+
   implicit class PurposeSeedWrapper(private val seed: PurposeSeed) extends AnyVal {
     def toManagement(
       schemaOnlyValidation: Boolean
     )(kind: PersistentTenantKind): Either[RiskAnalysisValidationFailed, Management.PurposeSeed] =
       for {
         riskAnalysisFormSeed <- seed.riskAnalysisForm
-          .traverse(
+          .traverse(risk =>
             RiskAnalysisValidation
-              .validate(_, schemaOnlyValidation)(kind)
+              .validate(risk.toTemplate, schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
+              .map(_.toManagement)
           )
       } yield Management.PurposeSeed(
         eserviceId = seed.eserviceId,
@@ -89,12 +119,67 @@ object Adapters {
       )
   }
 
+  implicit class PurposeProducerSeedWrapper(private val seed: EServicePurposeSeed) extends AnyVal {
+    def toManagement(eserviceId: UUID, riskAnalysisForm: Management.RiskAnalysisForm): Management.PurposeSeed =
+      Management.PurposeSeed(
+        eserviceId = eserviceId,
+        consumerId = seed.consumerId,
+        title = seed.title,
+        description = seed.description,
+        riskAnalysisForm = Some(
+          Management.RiskAnalysisFormSeed(
+            riskAnalysisId = Some(seed.riskAnalysisId),
+            version = riskAnalysisForm.version,
+            singleAnswers = riskAnalysisForm.singleAnswers.map(_.toSeed),
+            multiAnswers = riskAnalysisForm.multiAnswers.map(_.toSeed)
+          )
+        ),
+        isFreeOfCharge = seed.isFreeOfCharge,
+        freeOfChargeReason = seed.freeOfChargeReason,
+        dailyCalls = seed.dailyCalls
+      )
+  }
+
+  implicit class CatalogRiskAnalysisFormWrapper(private val riskAnalysisForm: CatalogRiskAnalysisForm) extends AnyVal {
+    def toManagement(riskAnalysisId: UUID): Management.RiskAnalysisForm = Management.RiskAnalysisForm(
+      id = riskAnalysisForm.id,
+      riskAnalysisId = Some(riskAnalysisId),
+      version = riskAnalysisForm.version,
+      singleAnswers = riskAnalysisForm.singleAnswers.map(_.toManagement),
+      multiAnswers = riskAnalysisForm.multiAnswers.map(_.toManagement)
+    )
+  }
+
+  implicit class CatalogRiskAnalysisMultiAnswerWrapper(private val multiAnswer: CatalogRiskAnalysisMultiAnswer)
+      extends AnyVal {
+    def toManagement: Management.RiskAnalysisMultiAnswer =
+      Management.RiskAnalysisMultiAnswer(id = multiAnswer.id, key = multiAnswer.key, values = multiAnswer.values)
+  }
+
+  implicit class CatalogRiskAnalysisSingleAnswerWrapper(private val singleAnswer: CatalogRiskAnalysisSingleAnswer)
+      extends AnyVal {
+    def toManagement: Management.RiskAnalysisSingleAnswer =
+      Management.RiskAnalysisSingleAnswer(id = singleAnswer.id, key = singleAnswer.key, value = singleAnswer.value)
+  }
+
   implicit class ManagementRiskAnalysisWrapper(private val riskAnalysis: Management.RiskAnalysisForm) extends AnyVal {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
         answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
       )
+  }
+
+  implicit class ManagementSingleAnswerWrapper(private val singleAnswer: Management.RiskAnalysisSingleAnswer)
+      extends AnyVal {
+    def toSeed: Management.RiskAnalysisSingleAnswerSeed =
+      Management.RiskAnalysisSingleAnswerSeed(key = singleAnswer.key, value = singleAnswer.value)
+  }
+
+  implicit class ManagementMultinswerWrapper(private val multiAnswer: Management.RiskAnalysisMultiAnswer)
+      extends AnyVal {
+    def toSeed: Management.RiskAnalysisMultiAnswerSeed =
+      Management.RiskAnalysisMultiAnswerSeed(key = multiAnswer.key, values = multiAnswer.values)
   }
 
   implicit class ManagementSingleAnswersWrapper(private val singleAnswers: Seq[Management.RiskAnalysisSingleAnswer])
@@ -105,6 +190,27 @@ object Adapters {
   implicit class ManagementMultiAnswersWrapper(private val multiAnswers: Seq[Management.RiskAnalysisMultiAnswer])
       extends AnyVal {
     def toApi: Map[String, Seq[String]] = multiAnswers.map(a => (a.key, a.values)).toMap
+  }
+
+  implicit class RiskAnalysisFormWrapper(private val riskAnalysis: RiskAnalysisForm) extends AnyVal {
+    def toTemplate: Template.RiskAnalysisForm =
+      Template.RiskAnalysisForm(version = riskAnalysis.version, answers = riskAnalysis.answers)
+  }
+
+  implicit class TenantKindWrapper(private val kind: TenantKind) extends AnyVal {
+    def toPersistent: PersistentTenantKind = kind match {
+      case TenantKind.PA      => PersistentTenantKind.PA
+      case TenantKind.GSP     => PersistentTenantKind.GSP
+      case TenantKind.PRIVATE => PersistentTenantKind.PRIVATE
+    }
+  }
+
+  implicit class PersistentTenantKindrapper(private val kind: PersistentTenantKind) extends AnyVal {
+    def toTemplate: Template.RiskAnalysisTenantKind = kind match {
+      case PersistentTenantKind.PA      => Template.RiskAnalysisTenantKind.PA
+      case PersistentTenantKind.GSP     => Template.RiskAnalysisTenantKind.GSP
+      case PersistentTenantKind.PRIVATE => Template.RiskAnalysisTenantKind.PRIVATE
+    }
   }
 
   implicit class PersistentRiskAnalysisFormWrapper(private val riskAnalysis: Persistent.PersistentRiskAnalysisForm)
@@ -401,11 +507,12 @@ object Adapters {
     )(kind: PersistentTenantKind): Either[Throwable, Management.PurposeUpdateContent] = {
       for {
         riskAnalysisForm <- content.riskAnalysisForm
-          .traverse(
+          .traverse(risk =>
             RiskAnalysisValidation
-              .validate(_, schemaOnlyValidation = schemaOnlyValidation)(kind)
+              .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
+              .map(_.toManagement)
           )
       } yield Management.PurposeUpdateContent(
         title = content.title,

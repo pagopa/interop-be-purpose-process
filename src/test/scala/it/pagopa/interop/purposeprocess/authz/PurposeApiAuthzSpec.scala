@@ -9,7 +9,7 @@ import it.pagopa.interop.purposeprocess.api.impl.PurposeApiServiceImpl
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposemanagement.model.purpose.PersistentRiskAnalysisForm
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate.{EServiceInfo, Language}
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import it.pagopa.interop.purposeprocess.service._
 import it.pagopa.interop.purposeprocess.util.FakeDependencies._
 import it.pagopa.interop.purposeprocess.util.{AuthorizedRoutes, AuthzScalatestRouteTest}
@@ -21,6 +21,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 import java.util.concurrent.{ExecutorService, Executors}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate.Language
 
 class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with AuthzScalatestRouteTest {
 
@@ -81,6 +82,23 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         dailyCalls = 100
       )
       validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.createPurpose(fakeSeed) })
+    }
+
+    "accept authorized roles for createPurposeFromEService" in {
+      val endpoint = AuthorizedRoutes.endpoints("createPurposeFromEService")
+      val fakeSeed = EServicePurposeSeed(
+        eServiceId = UUID.randomUUID(),
+        consumerId = UUID.randomUUID(),
+        riskAnalysisId = UUID.randomUUID(),
+        title = "???",
+        description = "???",
+        isFreeOfCharge = false,
+        dailyCalls = 100
+      )
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.createPurposeFromEService(fakeSeed) }
+      )
     }
 
     "accept authorized roles for clonePurpose" in {
@@ -183,8 +201,17 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       val endpoint = AuthorizedRoutes.endpoints("retrieveLatestRiskAnalysisConfiguration")
       validateAuthorization(
         endpoint,
-        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration() }
+        { implicit c: Seq[(String, String)] => service.retrieveLatestRiskAnalysisConfiguration(None) }
       )
     }
+
+    "accept authorized roles for retrieveRiskAnalysisConfigurationByVersion" in {
+      val endpoint = AuthorizedRoutes.endpoints("retrieveRiskAnalysisConfigurationByVersion")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.retrieveRiskAnalysisConfigurationByVersion(None, "fake") }
+      )
+    }
+
   }
 }

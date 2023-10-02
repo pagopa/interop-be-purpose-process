@@ -10,10 +10,10 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentRiskAnalysisMultiAnswer,
   PersistentRiskAnalysisSingleAnswer
 }
-import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service._
-import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
+import it.pagopa.interop.commons.riskanalysis.error.RiskAnalysisTemplateErrors._
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate._
+import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
+import it.pagopa.interop.purposeprocess.service.PDFCreator
 
 import java.io.File
 import java.time.LocalDateTime
@@ -22,7 +22,9 @@ import java.util.UUID
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
-
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
+import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
+import it.pagopa.interop.purposeprocess.api.Adapters._
 object PDFCreatorImpl extends PDFCreator with PDFManager {
   val YES           = "Si"
   val NO            = "No"
@@ -49,8 +51,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         file       <- createTempFile
         kindConfig <- RiskAnalysisService
           .riskAnalysisForms()
-          .get(kind)
-          .toTry(TenantKindTemplateConfigNotFound(kind))
+          .get(kind.toTemplate)
+          .toTry(TenantKindTemplateConfigNotFound(kind.toTemplate))
         formConfig <- kindConfig
           .get(riskAnalysisForm.version)
           .toTry(FormTemplateConfigNotFound(riskAnalysisForm.version))

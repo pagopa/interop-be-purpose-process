@@ -5,10 +5,11 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentRiskAnalysisMultiAnswer,
   PersistentRiskAnalysisSingleAnswer
 }
-import it.pagopa.interop.purposeprocess.error.RiskAnalysisTemplateErrors._
-import it.pagopa.interop.purposeprocess.model.riskAnalysisTemplate._
-import it.pagopa.interop.purposeprocess.service.RiskAnalysisService
+import it.pagopa.interop.commons.riskanalysis.error.RiskAnalysisTemplateErrors._
+import it.pagopa.interop.commons.riskanalysis.model.riskAnalysisTemplate._
+import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
 import it.pagopa.interop.purposeprocess.service.impl.PDFCreatorImpl.setupData
+import it.pagopa.interop.purposeprocess.model.EServiceInfo
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -283,7 +284,13 @@ object PDFCreatorSpec {
   val freeOfChargeReason: Option[String]                = Some("Reason")
   val dailyCalls                                        = 1000
   val dummyRiskAnalysisForm: PersistentRiskAnalysisForm =
-    PersistentRiskAnalysisForm(id = UUID.randomUUID(), version = "1.0", singleAnswers = Nil, multiAnswers = Nil)
+    PersistentRiskAnalysisForm(
+      id = UUID.randomUUID(),
+      riskAnalysisId = Some(UUID.randomUUID()),
+      version = "1.0",
+      singleAnswers = Nil,
+      multiAnswers = Nil
+    )
 
   def makeSingleAnswerForm(key: String, value: String): PersistentRiskAnalysisForm =
     dummyRiskAnalysisForm.copy(singleAnswers =
