@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.directives.FileInfo
 import cats.syntax.all._
 import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
-import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.catalogmanagement.model.{CatalogItem, Deliver, Receive}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
@@ -204,6 +204,10 @@ final case class PurposeVersionActivation(
       (producer, consumer) <- getTenant(eService.producerId).zip(getTenant(purpose.consumerId))
       eServiceInfo = EServiceInfo(
         name = eService.name,
+        mode = eService.mode match {
+          case Receive => "Riceve"
+          case Deliver => "Eroga"
+        },
         producerName = producer.name,
         producerOrigin = producer.externalId.origin,
         producerIPACode = producer.externalId.value,

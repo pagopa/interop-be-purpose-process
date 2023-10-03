@@ -97,7 +97,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       ),
       "freeOfCharge"       -> freeOfChargeHtml,
       "freeOfChargeReason" -> freeOfChargeReasonHtml,
-      "date"               -> LocalDateTime.now().format(printedDateFormatter)
+      "date"               -> LocalDateTime.now().format(printedDateFormatter),
+      "eServiceMode"       -> eServiceInfo.mode
     )
 
   def getDescriptionText(name: String, origin: String, value: String): String =

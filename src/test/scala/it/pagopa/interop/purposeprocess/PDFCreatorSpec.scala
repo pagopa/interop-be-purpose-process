@@ -273,6 +273,7 @@ object PDFCreatorSpec {
   val eServiceInfo: EServiceInfo                        =
     EServiceInfo(
       "EServiceName",
+      "EServiceMode",
       "ProducerName",
       "ProducerOrigin",
       "ProducerIPACode",

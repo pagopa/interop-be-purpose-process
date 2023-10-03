@@ -2,6 +2,7 @@ package it.pagopa.interop.purposeprocess.model
 
 final case class EServiceInfo(
   name: String,
+  mode: String,
   producerName: String,
   producerOrigin: String,
   producerIPACode: String,
