@@ -166,7 +166,8 @@ object Adapters {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
-        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
+        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi,
+        riskAnalysisId = riskAnalysis.riskAnalysisId
       )
   }
 
@@ -218,7 +219,8 @@ object Adapters {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
-        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
+        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi,
+        riskAnalysisId = riskAnalysis.riskAnalysisId
       )
   }
 
