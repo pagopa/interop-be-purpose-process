@@ -1,8 +1,10 @@
 package it.pagopa.interop.purposeprocess.model
 
+import it.pagopa.interop.catalogmanagement.model.CatalogItemMode
+
 final case class EServiceInfo(
   name: String,
-  mode: String,
+  mode: CatalogItemMode,
   producerName: String,
   producerOrigin: String,
   producerIPACode: String,

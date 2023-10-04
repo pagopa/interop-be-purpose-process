@@ -2,6 +2,7 @@ package it.pagopa.interop.purposeprocess.service.impl
 
 import cats.implicits.toTraverseOps
 import com.openhtmltopdf.util.XRLog
+import it.pagopa.interop.catalogmanagement.model.{Deliver, Receive}
 import it.pagopa.interop.commons.files.model.PDFConfiguration
 import it.pagopa.interop.commons.files.service.PDFManager
 import it.pagopa.interop.commons.utils.TypeConversions._
@@ -81,8 +82,12 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
     for {
       answers <- sortedAnswers(formConfig, riskAnalysisForm, language)
       (freeOfChargeHtml, freeOfChargeReasonHtml) = formatFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
+      localizedMode                              = eServiceInfo.mode match {
+        case Receive => getLocalizedLabel(LocalizedText("Riceve", "Receives"), language)
+        case Deliver => getLocalizedLabel(LocalizedText("Eroga", "Distributes"), language)
+      }
     } yield Map(
-      "dailyCalls"         -> dailyCalls.toString,
+      "dailyCalls" -> dailyCalls.toString,
       "answers"            -> answers.mkString("\n"),
       "eServiceName"       -> eServiceInfo.name,
       "producerText"       -> getDescriptionText(
@@ -98,7 +103,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       "freeOfCharge"       -> freeOfChargeHtml,
       "freeOfChargeReason" -> freeOfChargeReasonHtml,
       "date"               -> LocalDateTime.now().format(printedDateFormatter),
-      "eServiceMode"       -> eServiceInfo.mode
+      "eServiceMode"       -> localizedMode
     )
 
   def getDescriptionText(name: String, origin: String, value: String): String =
