@@ -87,7 +87,7 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
         case Deliver => getLocalizedLabel(LocalizedText("Eroga", "Distributes"), language)
       }
     } yield Map(
-      "dailyCalls" -> dailyCalls.toString,
+      "dailyCalls"         -> dailyCalls.toString,
       "answers"            -> answers.mkString("\n"),
       "eServiceName"       -> eServiceInfo.name,
       "producerText"       -> getDescriptionText(
