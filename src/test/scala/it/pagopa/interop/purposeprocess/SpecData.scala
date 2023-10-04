@@ -260,7 +260,7 @@ object SpecData {
       .validate(validOnlySchemaRiskAnalysis.toTemplate, true)(tenantKind.toTemplate)
       .toOption
       .get
-      .toManagement
+      .toManagement(validOnlySchemaRiskAnalysis.riskAnalysisId)
   }
 
   def validOnlySchemaPersistentRiskAnalysis(tenantKind: PersistentTenantKind): PersistentRiskAnalysisForm = {
@@ -285,7 +285,7 @@ object SpecData {
       .validate(riskAnalysis.toTemplate, false)(tenantKind.toTemplate)
       .toOption
       .get
-      .toManagement
+      .toManagement(riskAnalysis.riskAnalysisId)
   }
 
   def validManagementRiskAnalysis(tenantKind: PersistentTenantKind): PurposeManagement.RiskAnalysisForm = {

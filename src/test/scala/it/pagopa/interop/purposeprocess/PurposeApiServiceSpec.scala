@@ -1562,7 +1562,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             RiskAnalysisValidation
               .validate(risk.toApi.toTemplate, schemaOnlyValidation = true)(PersistentTenantKind.PRIVATE.toTemplate)
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
           )
           .toOption
           .get,
