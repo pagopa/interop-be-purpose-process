@@ -72,8 +72,9 @@ object Adapters {
 
   implicit class TemplateRiskAnalysisFormSeedWrapper(private val riskAnalysis: Template.RiskAnalysisFormSeed)
       extends AnyVal {
-    def toManagement: Management.RiskAnalysisFormSeed =
+    def toManagement(riskAnalysisId: Option[UUID]): Management.RiskAnalysisFormSeed =
       Management.RiskAnalysisFormSeed(
+        riskAnalysisId = riskAnalysisId,
         version = riskAnalysis.version,
         singleAnswers = riskAnalysis.singleAnswers.map(_.toManagement),
         multiAnswers = riskAnalysis.multiAnswers.map(_.toManagement)
@@ -105,7 +106,7 @@ object Adapters {
               .validate(risk.toTemplate, schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
           )
       } yield Management.PurposeSeed(
         eserviceId = seed.eserviceId,
@@ -514,7 +515,7 @@ object Adapters {
               .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
           )
       } yield Management.PurposeUpdateContent(
         title = content.title,
@@ -538,7 +539,7 @@ object Adapters {
               .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
           )
       } yield Management.PurposeUpdateContent(
         title = content.title,
