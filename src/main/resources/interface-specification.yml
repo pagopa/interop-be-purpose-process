@@ -192,6 +192,44 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'                       
+  /reverse/purposes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationIdHeader'
+      - $ref: '#/components/parameters/IpAddress'
+      - name: id
+        in: path
+        description: the purpose id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/IpAddress'
+      tags:
+        - purpose
+      operationId: updateReversePurpose
+      description: Updates a Purpose of an EService
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReversePurposeUpdateContent'
+        required: true
+      responses:
+        '200':
+          description: Purpose updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purpose'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /purposes/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
@@ -1005,6 +1043,32 @@ components:
           type: string    
         riskAnalysisForm:
           $ref: '#/components/schemas/RiskAnalysisForm'
+        dailyCalls:
+          description: 'maximum number of daily calls that this version can perform.'
+          type: integer
+          format: int32
+          minimum: 0
+      required:
+        - title
+        - description
+        - isFreeOfCharge
+        - dailyCalls
+    ReversePurposeUpdateContent:
+      type: object
+      description: contains the expected payload for purpose update.
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 60
+        description:
+          type: string
+          minLength: 10
+          maxLength: 250
+        isFreeOfCharge:
+          type: boolean
+        freeOfChargeReason:
+          type: string
         dailyCalls:
           description: 'maximum number of daily calls that this version can perform.'
           type: integer

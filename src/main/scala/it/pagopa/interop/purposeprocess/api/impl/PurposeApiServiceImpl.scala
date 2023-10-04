@@ -21,12 +21,12 @@ import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors._
 import it.pagopa.interop.purposeprocess.model._
 import it.pagopa.interop.purposemanagement.model.purpose.{
+  Draft,
   PersistentPurpose,
   PersistentPurposeVersion,
-  Draft,
   WaitingForApproval
 }
-import it.pagopa.interop.catalogmanagement.model.{Receive, Deliver}
+import it.pagopa.interop.catalogmanagement.model.{CatalogItem, Deliver, Receive}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
@@ -222,26 +222,63 @@ final case class PurposeApiServiceImpl(
     val operationLabel = s"Updating Purpose $purposeId"
     logger.info(operationLabel)
 
-    val result: Future[Purpose] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      purposeUUID    <- purposeId.toFutureUUID
-      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
-      _              <- assertPurposeIsInDraftState(purpose)
-      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      _          <- if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id))
-      _          <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
-      tenant     <- tenantManagementService.getTenantById(organizationId)
-      tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-      depPayload <- seed
-        .toManagement(schemaOnlyValidation = true)(tenantKind)
-        .toFuture
-      updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, depPayload)
-      isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
-    } yield updatedPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
+    val result: Future[Purpose] = updatePurpose(
+      purposeId,
+      eService => if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id)),
+      seed.isFreeOfCharge,
+      seed.freeOfChargeReason,
+      (_, tenantKind) =>
+        seed
+          .toManagement(schemaOnlyValidation = true)(tenantKind)
+          .toFuture
+    )
 
     onComplete(result) { updatePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
   }
+
+  override def updateReversePurpose(purposeId: String, seed: ReversePurposeUpdateContent)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route = authorize(ADMIN_ROLE) {
+    val operationLabel = s"Updating Reverse Purpose $purposeId"
+    logger.info(operationLabel)
+
+    val result: Future[Purpose] = updatePurpose(
+      purposeId,
+      eService => if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id)),
+      seed.isFreeOfCharge,
+      seed.freeOfChargeReason,
+      (purpose, tenantKind) =>
+        seed
+          .toManagement(schemaOnlyValidation = true, purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+          .toFuture
+    )
+
+    onComplete(result) { updateReversePurposeResponse[Purpose](operationLabel)(updatePurpose200) }
+  }
+
+  private def updatePurpose(
+    purposeId: String,
+    eServiceModeCheck: CatalogItem => Future[Unit],
+    isFreeOfCharge: Boolean,
+    freeOfChargeReason: Option[String],
+    payload: (PersistentPurpose, PersistentTenantKind) => Future[PurposeManagementDependency.PurposeUpdateContent]
+  )(implicit contexts: Seq[(String, String)]): Future[Purpose] = for {
+    organizationId <- getOrganizationIdFutureUUID(contexts)
+    purposeUUID    <- purposeId.toFutureUUID
+    purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+    _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+    _              <- assertPurposeIsInDraftState(purpose)
+    eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
+    _              <- eServiceModeCheck(eService)
+    _              <- checkFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
+    tenant         <- tenantManagementService.getTenantById(organizationId)
+    tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+    purposePayload <- payload(purpose, tenantKind)
+    updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, purposePayload)
+    isValidRiskAnalysisForm = isRiskAnalysisFormValid(updatedPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
+  } yield updatedPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
   override def getPurpose(id: String)(implicit
     contexts: Seq[(String, String)],

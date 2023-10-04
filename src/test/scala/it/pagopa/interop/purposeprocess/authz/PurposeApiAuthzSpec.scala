@@ -178,6 +178,14 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       )
     }
 
+    "accept authorized roles for updateReversePurpose" in {
+      val endpoint    = AuthorizedRoutes.endpoints("updateReversePurpose")
+      val fakeContent = ReversePurposeUpdateContent("test", "Fake", false, None, 100)
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.updateReversePurpose("fake", fakeContent) }
+      )
+    }
     "accept authorized roles for updateWaitingForApprovalPurposeVersion" in {
       val endpoint    = AuthorizedRoutes.endpoints("updateWaitingForApprovalPurposeVersion")
       val fakeContent = WaitingForApprovalPurposeVersionUpdateContent(OffsetDateTime.now())
