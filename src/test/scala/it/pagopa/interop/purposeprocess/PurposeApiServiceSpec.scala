@@ -9,10 +9,10 @@ import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl._
 import it.pagopa.interop.purposeprocess.api.impl.ResponseHandlers.serviceCode
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
+  EServiceNotFound,
   PurposeNotFound,
   PurposeVersionDocumentNotFound,
-  PurposeVersionNotFound,
-  EServiceNotFound
+  PurposeVersionNotFound
 }
 import it.pagopa.interop.purposeprocess.model._
 import org.scalatest.concurrent.ScalaFutures
@@ -23,19 +23,21 @@ import it.pagopa.interop.purposemanagement.client.{model => PurposeManagementDep
 import it.pagopa.interop.authorizationmanagement.client.{model => AuthorizationManagementDependency}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import it.pagopa.interop.purposemanagement.model.purpose.{
-  PersistentPurpose,
-  PersistentPurposeVersion,
-  WaitingForApproval,
   Active,
   Archived,
   Draft,
+  PersistentPurpose,
+  PersistentPurposeVersion,
+  PersistentPurposeVersionDocument,
   Suspended,
-  PersistentPurposeVersionDocument
+  WaitingForApproval
 }
 import it.pagopa.interop.catalogmanagement.model.{Deliver, Receive}
+import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
 
 import java.time.{OffsetDateTime, ZoneOffset}
 import org.scalatest.matchers.should.Matchers._
+
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -1526,6 +1528,171 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockPurposeRetrieve(purposeId, purpose)
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0015"
+      }
+    }
+  }
+
+  "Reverse Purpose updating" should {
+    "succeed if User is a Consumer and Purpose is in Draft State" in {
+
+      val purposeId                   = UUID.randomUUID()
+      val eserviceId                  = UUID.randomUUID()
+      val consumerId                  = UUID.randomUUID()
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 100
+        )
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      val seed = PurposeManagementDependency.PurposeUpdateContent(
+        title = "A title",
+        description = "A description",
+        isFreeOfCharge = false,
+        riskAnalysisForm = purpose.riskAnalysisForm
+          .traverse(risk =>
+            RiskAnalysisValidation
+              .validate(risk.toApi.toTemplate, schemaOnlyValidation = true)(PersistentTenantKind.PRIVATE.toTemplate)
+              .toEither
+              .map(_.toManagement)
+          )
+          .toOption
+          .get,
+        dailyCalls = 100
+      )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
+
+      mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail if case of eService with Deliver mode" in {
+
+      val purposeId                   = UUID.randomUUID()
+      val eserviceId                  = UUID.randomUUID()
+      val consumerId                  = UUID.randomUUID()
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 100
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Deliver))
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0026"
+      }
+    }
+    "fail when is free of charge but without free of charge reason agreement " in {
+      val purposeId                   = UUID.randomUUID()
+      val eserviceId                  = UUID.randomUUID()
+      val consumerId                  = UUID.randomUUID()
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = true,
+          dailyCalls = 100
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      mockPurposeRetrieve(purposeId, purpose)
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0023"
+      }
+    }
+    "fail if User is not a Consumer" in {
+
+      val purposeId   = UUID.randomUUID()
+      val consumerId  = UUID.randomUUID()
+      val requesterId = UUID.randomUUID()
+      val eserviceId  = UUID.randomUUID()
+
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 100
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId))
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Forbidden
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0001"
+      }
+    }
+    "fail if Purpose is not in DRAFT state" in {
+      val purposeId  = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 100
+        )
+      val purpose                     =
+        SpecData.purpose.copy(
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersionNotInDraftState)
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue

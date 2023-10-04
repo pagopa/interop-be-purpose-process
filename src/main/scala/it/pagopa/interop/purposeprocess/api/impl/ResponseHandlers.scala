@@ -98,6 +98,24 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex) => internalServerError(ex, logMessage)
     }
 
+  def updateReversePurposeResponse[T](logMessage: String)(
+    success: T => Route
+  )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =
+    result match {
+      case Success(s)                                  => success(s)
+      case Failure(ex: RiskAnalysisValidationFailed)   => badRequest(ex, logMessage)
+      case Failure(ex: MissingFreeOfChargeReason.type) => badRequest(ex, logMessage)
+      case Failure(ex: EServiceNotFound)               => badRequest(ex, logMessage)
+      case Failure(ex: EServiceNotInReceiveMode)       => badRequest(ex, logMessage)
+      case Failure(ex: TenantNotFound)                 => badRequest(ex, logMessage)
+      case Failure(ex: AgreementNotFound)              => badRequest(ex, logMessage)
+      case Failure(ex: OrganizationIsNotTheConsumer)   => forbidden(ex, logMessage)
+      case Failure(ex: PurposeNotInDraftState)         => forbidden(ex, logMessage)
+      case Failure(ex: PurposeNotFound)                => notFound(ex, logMessage)
+
+      case Failure(ex) => internalServerError(ex, logMessage)
+    }
+
   def getPurposeResponse[T](logMessage: String)(
     success: T => Route
   )(result: Try[T])(implicit contexts: Seq[(String, String)], logger: LoggerTakingImplicit[ContextFieldsToLog]): Route =

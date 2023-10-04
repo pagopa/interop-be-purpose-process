@@ -526,4 +526,28 @@ object Adapters {
       )
     }
   }
+
+  implicit class ReversePurposeUpdateContentWrapper(private val content: ReversePurposeUpdateContent) extends AnyVal {
+    def toManagement(schemaOnlyValidation: Boolean, originalRiskAnalysisForm: Option[RiskAnalysisForm])(
+      kind: PersistentTenantKind
+    ): Either[Throwable, Management.PurposeUpdateContent] = {
+      for {
+        riskAnalysisForm <- originalRiskAnalysisForm
+          .traverse(risk =>
+            RiskAnalysisValidation
+              .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
+              .leftMap(RiskAnalysisValidationFailed(_))
+              .toEither
+              .map(_.toManagement)
+          )
+      } yield Management.PurposeUpdateContent(
+        title = content.title,
+        description = content.description,
+        isFreeOfCharge = content.isFreeOfCharge,
+        freeOfChargeReason = content.freeOfChargeReason,
+        riskAnalysisForm = riskAnalysisForm,
+        dailyCalls = content.dailyCalls
+      )
+    }
+  }
 }
