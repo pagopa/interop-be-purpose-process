@@ -1042,7 +1042,7 @@ components:
         freeOfChargeReason:
           type: string    
         riskAnalysisForm:
-          $ref: '#/components/schemas/RiskAnalysisForm'
+          $ref: '#/components/schemas/RiskAnalysisFormSeed'
         dailyCalls:
           description: 'maximum number of daily calls that this version can perform.'
           type: integer
@@ -1199,7 +1199,7 @@ components:
           type: string
           format: uuid
         riskAnalysisForm:
-          $ref: '#/components/schemas/RiskAnalysisForm'
+          $ref: '#/components/schemas/RiskAnalysisFormSeed'
         title:
           type: string
           minLength: 5
@@ -1250,6 +1250,23 @@ components:
         riskAnalysisId:
             type: string
             format: uuid
+      required:
+        - version
+        - answers
+    RiskAnalysisFormSeed:
+      type: object
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 250
+        answers:
+          additionalProperties:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 250
       required:
         - version
         - answers
