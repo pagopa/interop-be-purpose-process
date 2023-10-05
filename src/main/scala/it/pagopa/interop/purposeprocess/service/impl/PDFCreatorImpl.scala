@@ -83,8 +83,8 @@ object PDFCreatorImpl extends PDFCreator with PDFManager {
       answers <- sortedAnswers(formConfig, riskAnalysisForm, language)
       (freeOfChargeHtml, freeOfChargeReasonHtml) = formatFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
       localizedMode                              = eServiceInfo.mode match {
-        case Receive => getLocalizedLabel(LocalizedText("Riceve", "Receives"), language)
-        case Deliver => getLocalizedLabel(LocalizedText("Eroga", "Distributes"), language)
+        case Receive => getLocalizedLabel(LocalizedText(it = "Riceve", en = "Receives"), language)
+        case Deliver => getLocalizedLabel(LocalizedText(it = "Eroga", en = "Delivers"), language)
       }
     } yield Map(
       "dailyCalls"         -> dailyCalls.toString,
