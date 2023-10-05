@@ -72,8 +72,9 @@ object Adapters {
 
   implicit class TemplateRiskAnalysisFormSeedWrapper(private val riskAnalysis: Template.RiskAnalysisFormSeed)
       extends AnyVal {
-    def toManagement: Management.RiskAnalysisFormSeed =
+    def toManagement(riskAnalysisId: Option[UUID]): Management.RiskAnalysisFormSeed =
       Management.RiskAnalysisFormSeed(
+        riskAnalysisId = riskAnalysisId,
         version = riskAnalysis.version,
         singleAnswers = riskAnalysis.singleAnswers.map(_.toManagement),
         multiAnswers = riskAnalysis.multiAnswers.map(_.toManagement)
@@ -105,7 +106,7 @@ object Adapters {
               .validate(risk.toTemplate, schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
           )
       } yield Management.PurposeSeed(
         eserviceId = seed.eserviceId,
@@ -166,7 +167,8 @@ object Adapters {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
-        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
+        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi,
+        riskAnalysisId = riskAnalysis.riskAnalysisId
       )
   }
 
@@ -218,7 +220,8 @@ object Adapters {
     def toApi: RiskAnalysisForm =
       RiskAnalysisForm(
         version = riskAnalysis.version,
-        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi
+        answers = riskAnalysis.singleAnswers.toApi ++ riskAnalysis.multiAnswers.toApi,
+        riskAnalysisId = riskAnalysis.riskAnalysisId
       )
   }
 
@@ -512,7 +515,31 @@ object Adapters {
               .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
               .leftMap(RiskAnalysisValidationFailed(_))
               .toEither
-              .map(_.toManagement)
+              .map(_.toManagement(risk.riskAnalysisId))
+          )
+      } yield Management.PurposeUpdateContent(
+        title = content.title,
+        description = content.description,
+        isFreeOfCharge = content.isFreeOfCharge,
+        freeOfChargeReason = content.freeOfChargeReason,
+        riskAnalysisForm = riskAnalysisForm,
+        dailyCalls = content.dailyCalls
+      )
+    }
+  }
+
+  implicit class ReversePurposeUpdateContentWrapper(private val content: ReversePurposeUpdateContent) extends AnyVal {
+    def toManagement(schemaOnlyValidation: Boolean, originalRiskAnalysisForm: Option[RiskAnalysisForm])(
+      kind: PersistentTenantKind
+    ): Either[Throwable, Management.PurposeUpdateContent] = {
+      for {
+        riskAnalysisForm <- originalRiskAnalysisForm
+          .traverse(risk =>
+            RiskAnalysisValidation
+              .validate(risk.toTemplate, schemaOnlyValidation = schemaOnlyValidation)(kind.toTemplate)
+              .leftMap(RiskAnalysisValidationFailed(_))
+              .toEither
+              .map(_.toManagement(risk.riskAnalysisId))
           )
       } yield Management.PurposeUpdateContent(
         title = content.title,
