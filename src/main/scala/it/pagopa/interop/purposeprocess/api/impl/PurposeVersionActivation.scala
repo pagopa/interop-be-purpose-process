@@ -248,7 +248,7 @@ final case class PurposeVersionActivation(
     eServiceInfo: EServiceInfo
   )(kind: PersistentTenantKind): Future[String] = {
     for {
-      riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id, version.id))
+      riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purpose.id))
       document         <- pdfCreator.createDocument(
         riskAnalysisTemplate,
         riskAnalysisForm,
