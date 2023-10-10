@@ -80,6 +80,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         freeOfChargeReason = None
       )
 
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
+
       val purposeCloned = PurposeManagementDependency.Purpose(
         id = UUID.randomUUID(),
         eserviceId = eServiceId,
@@ -109,7 +111,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -121,6 +123,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
       val purposeToClone = PersistentPurpose(
         id = purposeId,
@@ -211,7 +215,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -223,6 +227,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
       val purposeToClone = PersistentPurpose(
         id = purposeId,
@@ -313,7 +319,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -325,6 +331,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
       val purposeToClone = PersistentPurpose(
         id = purposeId,
@@ -405,7 +413,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeCloned))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.OK
       }
     }
@@ -418,6 +426,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = UUID.randomUUID())
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       (mockPurposeManagementService
@@ -426,7 +435,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.failed(PurposeNotFound(purposeId)))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.NotFound
       }
     }
@@ -438,6 +447,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
       val purposeToCloneDraft = PersistentPurpose(
         id = purposeId,
@@ -463,7 +474,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeToCloneDraft))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.Conflict
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Conflict.intValue
@@ -478,6 +489,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
       val purposeToCloneDraft = PersistentPurpose(
         id = purposeId,
@@ -515,7 +528,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(purposeToCloneDraft))
 
-      Get() ~> service.clonePurpose(purposeId.toString) ~> check {
+      Get() ~> service.clonePurpose(purposeId.toString, purposeCloneSeed) ~> check {
         status shouldEqual StatusCodes.Conflict
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Conflict.intValue

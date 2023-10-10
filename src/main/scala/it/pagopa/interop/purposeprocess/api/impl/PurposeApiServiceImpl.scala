@@ -562,7 +562,7 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  override def clonePurpose(purposeId: String)(implicit
+  override def clonePurpose(purposeId: String, seed: PurposeCloneSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
     toEntityMarshallerProblem: ToEntityMarshaller[Problem]
@@ -578,9 +578,9 @@ final case class PurposeApiServiceImpl(
         states != Seq(Draft)
       }
 
-      def createPurposeSeed(purpose: PersistentPurpose, dailyCalls: Int): PurposeSeed =
+      def createPurposeSeed(purpose: PersistentPurpose, dailyCalls: Int, eserviceId: UUID): PurposeSeed =
         PurposeSeed(
-          eserviceId = purpose.eserviceId,
+          eserviceId = eserviceId,
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
           title = s"${purpose.title} - clone",
@@ -614,7 +614,7 @@ final case class PurposeApiServiceImpl(
         _ <-
           if (isClonable(purpose)) Future.successful(purpose)
           else Future.failed(PurposeCannotBeCloned(purposeId))
-        dependencySeed = createPurposeSeed(purpose, dailyCalls)
+        dependencySeed = createPurposeSeed(purpose, dailyCalls, seed.eserviceId)
         tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
         purposeSeed <- dependencySeed
           .toManagement(schemaOnlyValidation = true)(tenantKind)
