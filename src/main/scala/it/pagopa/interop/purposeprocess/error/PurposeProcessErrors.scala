@@ -28,8 +28,8 @@ object PurposeProcessErrors {
   final case class DescriptorNotFound(eServiceId: String, descriptorId: String)
       extends ComponentError("0006", s"Descriptor $descriptorId not found for EService $eServiceId")
 
-  final case class MissingRiskAnalysis(purposeId: UUID, versionId: UUID)
-      extends ComponentError("0007", s"Version $versionId of Purpose $purposeId must contain a valid risk analysis")
+  final case class MissingRiskAnalysis(purposeId: UUID)
+      extends ComponentError("0007", s"Purpose $purposeId must contain a valid risk analysis")
 
   final case class PurposeCannotBeDeleted(purposeId: String)
       extends ComponentError("0008", s"Versions in Purpose $purposeId do not allow deletion")
