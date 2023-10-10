@@ -356,26 +356,26 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[PurposeVersion] = for {
-      purposeUUID    <- purposeId.toFutureUUID
-      versionUUID    <- versionId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      consumer       <- tenantManagementService.getTenantById(purpose.consumerId)
-      tenantKind     <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
-      version        <- getVersion(purpose, versionUUID)
-      riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi)
-      _              <-
-        riskAnalysisForm
-          .traverse(RiskAnalysisValidation.validate(_, schemaOnlyValidation = false)(tenantKind))
+      purposeUUID      <- purposeId.toFutureUUID
+      versionUUID      <- versionId.toFutureUUID
+      organizationId   <- getOrganizationIdFutureUUID(contexts)
+      purpose          <- purposeManagementService.getPurposeById(purposeUUID)
+      consumer         <- tenantManagementService.getTenantById(purpose.consumerId)
+      tenantKind       <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
+      version          <- getVersion(purpose, versionUUID)
+      riskAnalysisForm <- purpose.riskAnalysisForm.map(_.toApi).toFuture(MissingRiskAnalysis(purposeUUID, versionUUID))
+      _                <-
+        RiskAnalysisValidation
+          .validate(riskAnalysisForm, schemaOnlyValidation = false)(tenantKind)
           .leftMap(RiskAnalysisValidationFailed(_))
           .toEither
           .whenA(version.state == Draft)
           .toFuture
-      eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
-      ownership      <- Ownership
+      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      ownership        <- Ownership
         .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
         .toFuture
-      updatedVersion <- purposeVersionActivation.activateOrWaitForApproval(
+      updatedVersion   <- purposeVersionActivation.activateOrWaitForApproval(
         eService,
         purpose,
         version,

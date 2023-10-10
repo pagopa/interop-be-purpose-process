@@ -1186,38 +1186,29 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
 
     "fail on missing Risk Analysis Form" in {
 
-      val eServiceId   = UUID.randomUUID()
-      val consumerId   = UUID.randomUUID()
-      val purposeId    = UUID.randomUUID()
-      val versionId    = UUID.randomUUID()
-      val descriptorId = UUID.randomUUID()
-      val documentId   = UUID.randomUUID()
+      val eServiceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val version = SpecData.purposeVersion.copy(id = versionId, state = Draft, dailyCalls = 1000)
       val purpose = SpecData.purpose.copy(
-        riskAnalysisForm = None,
         eserviceId = eServiceId,
         consumerId = consumerId,
-        versions = Seq(version)
+        versions = Seq(version),
+        riskAnalysisForm = None
       )
 
-      val purposes = Seq(purpose)
+      (mockPurposeManagementService
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purposeId, *, *)
+        .once()
+        .returns(Future.successful(purpose))
 
-      val descriptor = SpecData.descriptor.copy(id = descriptorId, dailyCallsPerConsumer = 10000)
-      val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor))
-      val consumer   = SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some)
-
-      mockPurposeRetrieve(purposeId, purpose)
-      mockTenantRetrieve(purpose.consumerId, consumer)
-      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
-      mockEServiceRetrieve(eServiceId, eService)
-      mockTenantRetrieve(purpose.consumerId, consumer)
-      mockVersionLoadValidation(purpose, purposes, descriptorId)
-      mockOrganizationRetrieve(eService.producerId)
-      (() => mockUUIDSupplier.get()).expects().returning(documentId).once()
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.BadRequest
