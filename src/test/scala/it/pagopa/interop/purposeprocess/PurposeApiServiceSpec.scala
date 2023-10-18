@@ -593,7 +593,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_PrivateSeed),
         isFreeOfCharge = false,
         dailyCalls = 100
       )
@@ -646,7 +646,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_PrivateSeed),
         isFreeOfCharge = false,
         dailyCalls = 100
       )
@@ -675,7 +675,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         consumerId = consumerId,
         title = "A title",
         description = "A description",
-        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_Private),
+        riskAnalysisForm = Some(SpecData.validRiskAnalysis2_0_PrivateSeed),
         isFreeOfCharge = true,
         dailyCalls = 100
       )
@@ -697,7 +697,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val incorrectRiskAnalysis =
-        RiskAnalysisForm(
+        RiskAnalysisFormSeed(
           version = "1.0",
           answers = Map("purpose1" -> List("purpose"), "usesPersonalData" -> List("YES"))
         )
