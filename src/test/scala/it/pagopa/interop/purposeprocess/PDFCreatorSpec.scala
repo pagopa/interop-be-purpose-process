@@ -1,5 +1,6 @@
 package it.pagopa.interop.purposeprocess
 
+import it.pagopa.interop.catalogmanagement.model.Receive
 import it.pagopa.interop.purposemanagement.model.purpose.{
   PersistentRiskAnalysisForm,
   PersistentRiskAnalysisMultiAnswer,
@@ -273,6 +274,7 @@ object PDFCreatorSpec {
   val eServiceInfo: EServiceInfo                        =
     EServiceInfo(
       "EServiceName",
+      Receive,
       "ProducerName",
       "ProducerOrigin",
       "ProducerIPACode",

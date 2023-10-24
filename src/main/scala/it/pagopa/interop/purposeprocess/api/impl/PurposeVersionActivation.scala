@@ -204,6 +204,7 @@ final case class PurposeVersionActivation(
       (producer, consumer) <- getTenant(eService.producerId).zip(getTenant(purpose.consumerId))
       eServiceInfo = EServiceInfo(
         name = eService.name,
+        mode = eService.mode,
         producerName = producer.name,
         producerOrigin = producer.externalId.origin,
         producerIPACode = producer.externalId.value,
