@@ -24,6 +24,9 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   Draft,
   PersistentPurpose,
   PersistentPurposeVersion,
+  PersistentRiskAnalysisForm,
+  PersistentRiskAnalysisMultiAnswer,
+  PersistentRiskAnalysisSingleAnswer,
   WaitingForApproval
 }
 import it.pagopa.interop.catalogmanagement.model.{CatalogItem, Deliver, Receive}
@@ -576,11 +579,35 @@ final case class PurposeApiServiceImpl(
         states != Seq(Draft)
       }
 
-      def createPurposeSeed(purpose: PersistentPurpose, dailyCalls: Int, eserviceId: UUID): PurposeSeed =
-        PurposeSeed(
+      def singleAnswerToSeed(
+        answer: PersistentRiskAnalysisSingleAnswer
+      ): PurposeManagementDependency.RiskAnalysisSingleAnswerSeed =
+        PurposeManagementDependency.RiskAnalysisSingleAnswerSeed(key = answer.key, value = answer.value)
+
+      def multiAnswerToSeed(
+        answer: PersistentRiskAnalysisMultiAnswer
+      ): PurposeManagementDependency.RiskAnalysisMultiAnswerSeed =
+        PurposeManagementDependency.RiskAnalysisMultiAnswerSeed(key = answer.key, values = answer.values)
+
+      def riskAnalysisToSeed(
+        riskAnalysis: PersistentRiskAnalysisForm
+      ): PurposeManagementDependency.RiskAnalysisFormSeed =
+        PurposeManagementDependency.RiskAnalysisFormSeed(
+          riskAnalysisId = riskAnalysis.riskAnalysisId,
+          version = riskAnalysis.version,
+          singleAnswers = riskAnalysis.singleAnswers.map(singleAnswerToSeed),
+          multiAnswers = riskAnalysis.multiAnswers.map(multiAnswerToSeed)
+        )
+
+      def createPurposeSeed(
+        purpose: PersistentPurpose,
+        dailyCalls: Int,
+        eserviceId: UUID
+      ): PurposeManagementDependency.PurposeSeed =
+        PurposeManagementDependency.PurposeSeed(
           eserviceId = eserviceId,
           consumerId = purpose.consumerId,
-          riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
+          riskAnalysisForm = purpose.riskAnalysisForm.map(riskAnalysisToSeed),
           title = s"${purpose.title} - clone",
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
@@ -613,11 +640,8 @@ final case class PurposeApiServiceImpl(
           if (isClonable(purpose)) Future.successful(purpose)
           else Future.failed(PurposeCannotBeCloned(purposeId))
         dependencySeed = createPurposeSeed(purpose, dailyCalls, seed.eserviceId)
-        tenantKind  <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
-        purposeSeed <- dependencySeed
-          .toManagement(schemaOnlyValidation = true)(tenantKind)
-          .toFuture
-        newPurpose  <- purposeManagementService.createPurpose(purposeSeed)
+        tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
+        newPurpose <- purposeManagementService.createPurpose(dependencySeed)
         isValidRiskAnalysisForm = isRiskAnalysisFormValid(newPurpose.riskAnalysisForm.map(_.toApi))(tenantKind)
       } yield newPurpose.toApi(isRiskAnalysisValid = isValidRiskAnalysisForm)
 
