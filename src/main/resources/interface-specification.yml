@@ -498,6 +498,12 @@ paths:
     post:
       summary: Clone Purpose
       operationId: clonePurpose
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeCloneSeed'
+        required: true
       responses:
         '200':
           description: Purpose Cloned
@@ -1129,6 +1135,14 @@ components:
         createdAt:
           type: string
           format: date-time
+    PurposeCloneSeed:
+      type: object
+      properties:
+        eserviceId:
+          type: string
+          format: uuid
+      required:
+        - eserviceId      
     EServicePurposeSeed:
       type: object
       description: contains the expected payload for purpose creation.
