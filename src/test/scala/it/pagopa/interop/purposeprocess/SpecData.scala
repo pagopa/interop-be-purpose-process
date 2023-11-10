@@ -444,6 +444,7 @@ object SpecData {
       purposes = Seq.empty,
       relationships = Set.empty,
       kind = Consumer,
-      createdAt = timestamp
+      createdAt = timestamp,
+      users = Set.empty
     )
 }
