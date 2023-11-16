@@ -443,8 +443,8 @@ object SpecData {
       description = None,
       purposes = Seq.empty,
       relationships = Set.empty,
-      users = Set.empty,
       kind = Consumer,
-      createdAt = timestamp
+      createdAt = timestamp,
+      users = Set.empty
     )
 }
