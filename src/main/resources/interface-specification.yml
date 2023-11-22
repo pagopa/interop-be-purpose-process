@@ -714,10 +714,12 @@ paths:
         required: true
         schema:
           type: string
-      - name: tenantKind
+      - name: eserviceId
         in: query
+        required: true
         schema:
-          $ref: '#/components/schemas/TenantKind'
+          type: string
+          format: uuid
     get:
       tags:
         - purpose
