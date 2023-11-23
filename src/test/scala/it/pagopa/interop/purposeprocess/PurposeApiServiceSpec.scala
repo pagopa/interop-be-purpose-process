@@ -2512,7 +2512,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   "Purpose Risk Analysis Configuration for retrieving a specified version " should {
     "succeed when Tenant kind is PA and eService is Receive" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
@@ -2522,13 +2522,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(eServiceId, *, *)
         .once()
-        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = consumerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "2.0") ~> check {
         status shouldEqual StatusCodes.OK
@@ -2538,7 +2538,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
     "succeed when Tenant kind is PRIVATE and eService is Receive" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
@@ -2548,13 +2548,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(eServiceId, *, *)
         .once()
-        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = consumerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
@@ -2564,7 +2564,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
     "succeed when Tenant kind is GSP and eService is Receive" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
@@ -2574,13 +2574,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
         .expects(eServiceId, *, *)
         .once()
-        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = consumerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.GSP.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
@@ -2589,11 +2589,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
     "succeed when Tenant kind is PA and eService is Deliver" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       (mockCatalogManagementService
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2605,9 +2605,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "2.0") ~> check {
         status shouldEqual StatusCodes.OK
@@ -2618,10 +2618,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed when Tenant kind is PRIVATE and eService is Deliver" in {
 
       val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       (mockCatalogManagementService
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2633,7 +2634,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
@@ -2645,11 +2646,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
     "succeed when Tenant kind is GSP and eService is Deliver" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       (mockCatalogManagementService
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2661,9 +2662,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.GSP.some)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
@@ -2684,16 +2685,16 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .returns(Future.failed(EServiceNotFound(eServiceId)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
-        status shouldEqual StatusCodes.InternalServerError
+        status shouldEqual StatusCodes.NotFound
       }
     }
     "fail when Tenant not found" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       (mockCatalogManagementService
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2705,9 +2706,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.failed(TenantNotFound(producerId)))
+        .returns(Future.failed(TenantNotFound(consumerId)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.InternalServerError
@@ -2715,11 +2716,11 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     }
     "fail when Tenant kind not found" in {
 
-      val producerId: UUID = UUID.randomUUID()
+      val consumerId: UUID = UUID.randomUUID()
       val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       (mockCatalogManagementService
         .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2731,9 +2732,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(producerId, *, *)
+        .expects(consumerId, *, *)
         .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = None)))
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = None)))
 
       Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.InternalServerError
