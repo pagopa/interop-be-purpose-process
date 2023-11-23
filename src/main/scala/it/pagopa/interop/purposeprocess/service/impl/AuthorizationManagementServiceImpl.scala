@@ -26,12 +26,11 @@ final case class AuthorizationManagementServiceImpl(
   override def updateStateOnClients(purposeId: UUID, versionId: UUID, state: ClientComponentState)(implicit
     contexts: Seq[(String, String)]
   ): Future[Unit] =
-    withHeaders { (bearerToken, correlationId, ip) =>
+    withHeaders { (bearerToken, correlationId) =>
       val request = purposeApi.updatePurposeState(
         xCorrelationId = correlationId,
         purposeId = purposeId,
-        clientPurposeDetailsUpdate = ClientPurposeDetailsUpdate(versionId = versionId, state = state),
-        xForwardedFor = ip
+        clientPurposeDetailsUpdate = ClientPurposeDetailsUpdate(versionId = versionId, state = state)
       )(BearerToken(bearerToken))
       // Do not fail because this service should not be blocked by this update
       invoker
@@ -41,11 +40,9 @@ final case class AuthorizationManagementServiceImpl(
 
   override def removePurposeFromClient(purposeId: UUID, clientId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Unit] = withHeaders { (bearerToken, correlationId, ip) =>
+  ): Future[Unit] = withHeaders { (bearerToken, correlationId) =>
     val request =
-      purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId, xForwardedFor = ip)(
-        BearerToken(bearerToken)
-      )
+      purposeApi.removeClientPurpose(xCorrelationId = correlationId, clientId, purposeId)(BearerToken(bearerToken))
     invoker.invoke(request, s"Removing purpose $purposeId from client $clientId")
   }
 
