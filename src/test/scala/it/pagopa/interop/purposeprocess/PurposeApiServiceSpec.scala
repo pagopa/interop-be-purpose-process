@@ -12,7 +12,8 @@ import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.{
   EServiceNotFound,
   PurposeNotFound,
   PurposeVersionDocumentNotFound,
-  PurposeVersionNotFound
+  PurposeVersionNotFound,
+  TenantNotFound
 }
 import it.pagopa.interop.purposeprocess.model._
 import org.scalatest.concurrent.ScalaFutures
@@ -2522,12 +2523,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
   }
 
   "Purpose Risk Analysis Configuration for retrieving a specified version " should {
-    "succeed when Tenant kind is PA" in {
+    "succeed when Tenant kind is PA and eService is Receive" in {
 
       val producerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2535,18 +2543,25 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(Some("PA"), "2.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "2.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
       }
     }
 
-    "succeed when Tenant kind is PRIVATE" in {
+    "succeed when Tenant kind is PRIVATE and eService is Receive" in {
 
       val producerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2554,18 +2569,25 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
       }
     }
 
-    "succeed when Tenant kind is GSP" in {
+    "succeed when Tenant kind is GSP and eService is Receive" in {
 
       val producerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
-        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> producerId.toString)
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.eService.copy(id = eServiceId, producerId = producerId, mode = Receive)))
 
       (mockTenantManagementService
         .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
@@ -2573,9 +2595,161 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         .once()
         .returns(Future.successful(SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.GSP.some)))
 
-      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(None, "1.0") ~> check {
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
+    "succeed when Tenant kind is PA and eService is Deliver" in {
+
+      val consumerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(
+          Future.successful(SpecData.eService.copy(id = eServiceId, producerId = UUID.randomUUID(), mode = Deliver))
+        )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "2.0") ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "2.0"
+      }
+    }
+
+    "succeed when Tenant kind is PRIVATE and eService is Deliver" in {
+
+      val consumerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(
+          Future.successful(SpecData.eService.copy(id = eServiceId, producerId = UUID.randomUUID(), mode = Deliver))
+        )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
+
+    "succeed when Tenant kind is GSP and eService is Deliver" in {
+
+      val consumerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(
+          Future.successful(SpecData.eService.copy(id = eServiceId, producerId = UUID.randomUUID(), mode = Deliver))
+        )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.GSP.some)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[RiskAnalysisFormConfigResponse].version shouldEqual "1.0"
+      }
+    }
+    "fail when eService is not found" in {
+
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(Future.failed(EServiceNotFound(eServiceId)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
+        status shouldEqual StatusCodes.NotFound
+      }
+    }
+    "fail when Tenant not found" in {
+
+      val consumerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(
+          Future.successful(SpecData.eService.copy(id = eServiceId, producerId = UUID.randomUUID(), mode = Deliver))
+        )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.failed(TenantNotFound(consumerId)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
+        status shouldEqual StatusCodes.InternalServerError
+      }
+    }
+    "fail when Tenant kind not found" in {
+
+      val consumerId: UUID = UUID.randomUUID()
+      val eServiceId: UUID = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      (mockCatalogManagementService
+        .getEServiceById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(eServiceId, *, *)
+        .once()
+        .returns(
+          Future.successful(SpecData.eService.copy(id = eServiceId, producerId = UUID.randomUUID(), mode = Deliver))
+        )
+
+      (mockTenantManagementService
+        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(consumerId, *, *)
+        .once()
+        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = None)))
+
+      Get() ~> service.retrieveRiskAnalysisConfigurationByVersion(eServiceId.toString, "1.0") ~> check {
+        status shouldEqual StatusCodes.InternalServerError
       }
     }
   }
