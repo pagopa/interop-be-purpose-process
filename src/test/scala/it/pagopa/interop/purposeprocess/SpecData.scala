@@ -231,6 +231,9 @@ object SpecData {
     )
   )
 
+  val validRiskAnalysis2_0_PrivateSeed: RiskAnalysisFormSeed =
+    RiskAnalysisFormSeed(validRiskAnalysis2_0_Private.version, answers = validRiskAnalysis2_0_Private.answers)
+
   val validOnlySchemaRiskAnalysis2_0: RiskAnalysisForm = RiskAnalysisForm(
     version = "3.0",
     answers = Map(
@@ -441,6 +444,7 @@ object SpecData {
       purposes = Seq.empty,
       relationships = Set.empty,
       kind = Consumer,
-      createdAt = timestamp
+      createdAt = timestamp,
+      users = Set.empty
     )
 }
