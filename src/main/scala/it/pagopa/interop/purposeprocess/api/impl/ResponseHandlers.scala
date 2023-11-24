@@ -181,9 +181,7 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: OrganizationNotAllowed)       => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)              => notFound(ex, logMessage)
       case Failure(ex: PurposeVersionNotFound)       => notFound(ex, logMessage)
-      case Failure(ex)                               =>
-        ex.printStackTrace()
-        internalServerError(ex, logMessage)
+      case Failure(ex)                               => internalServerError(ex, logMessage)
     }
 
   def suspendPurposeVersionResponse[T](logMessage: String)(
