@@ -1578,7 +1578,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive, producerId = producerId))
 
-      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
 
