@@ -212,7 +212,7 @@ final case class PurposeVersionActivation(
         consumerIPACode = consumer.externalId.value
       )
       tenantKind <- eService.mode match {
-        case Receive => producer.kind.toFuture(TenantKindNotFound(consumer.id))
+        case Receive => producer.kind.toFuture(TenantKindNotFound(producer.id))
         case Deliver => consumer.kind.toFuture(TenantKindNotFound(consumer.id))
       }
       path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
