@@ -874,6 +874,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "succeed" in {
       val eServiceId     = UUID.randomUUID()
       val consumerId     = UUID.randomUUID()
+      val producerId     = UUID.randomUUID()
       val riskAnalysisId = UUID.randomUUID()
       val purposeId      = UUID.randomUUID()
 
@@ -909,12 +910,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(
         purpose.eserviceId,
         SpecData.eService.copy(
+          producerId = producerId,
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
           mode = Receive,
           riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
         )
       )
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
 
@@ -1077,6 +1079,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
     "fail on SUSPENDED agreement " in {
       val eServiceId     = UUID.randomUUID()
       val consumerId     = UUID.randomUUID()
+      val producerId     = UUID.randomUUID()
       val purposeId      = UUID.randomUUID()
       val riskAnalysisId = UUID.randomUUID()
 
@@ -1112,13 +1115,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(
         purpose.eserviceId,
         SpecData.eService.copy(
+          producerId = producerId,
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
           mode = Receive,
           riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
         )
       )
 
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
 
@@ -1187,6 +1191,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId     = UUID.randomUUID()
       val consumerId     = UUID.randomUUID()
+      val producerId     = UUID.randomUUID()
       val riskAnalysisId = UUID.randomUUID()
       val purposeId      = UUID.randomUUID()
 
@@ -1222,12 +1227,13 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(
         purpose.eserviceId,
         SpecData.eService.copy(
+          producerId = producerId,
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
           mode = Receive,
           riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
         )
       )
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive), Seq.empty)
 
@@ -1270,6 +1276,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId     = UUID.randomUUID()
       val consumerId     = UUID.randomUUID()
+      val producerId     = UUID.randomUUID()
       val riskAnalysisId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
@@ -1291,17 +1298,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(
         purpose.eserviceId,
         SpecData.eService.copy(
+          producerId = producerId,
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
           mode = Receive,
           riskAnalysis = Seq(SpecData.riskAnalysis.copy(id = riskAnalysisId))
         )
       )
 
-      (mockTenantManagementService
-        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(consumerId, *, *)
-        .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
 
@@ -1317,6 +1321,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val eServiceId     = UUID.randomUUID()
       val consumerId     = UUID.randomUUID()
+      val producerId     = UUID.randomUUID()
       val riskAnalysisId = UUID.randomUUID()
 
       implicit val context: Seq[(String, String)] =
@@ -1348,17 +1353,14 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       mockEServiceRetrieve(
         purpose.eserviceId,
         SpecData.eService.copy(
+          producerId = producerId,
           descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId)),
           mode = Receive,
           riskAnalysis = Seq(SpecData.riskAnalysisOnlySchema.copy(id = riskAnalysisId))
         )
       )
 
-      (mockTenantManagementService
-        .getTenantById(_: UUID)(_: ExecutionContext, _: ReadModelService))
-        .expects(consumerId, *, *)
-        .once()
-        .returns(Future.successful(SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PA.some)))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockAgreementsRetrieve(eServiceId, consumerId, Seq(AgreementActive))
 
@@ -1578,7 +1580,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive, producerId = producerId))
 
-      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
 
