@@ -30,7 +30,6 @@ paths:
   /purposes:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
     get:
       tags:
         - purpose
@@ -152,11 +151,9 @@ paths:
   /reverse/purposes:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
     post:
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: createPurposeFromEService
@@ -195,7 +192,6 @@ paths:
   /reverse/purposes/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: id
         in: path
         description: the purpose id
@@ -206,7 +202,6 @@ paths:
     post:
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: updateReversePurpose
@@ -233,7 +228,6 @@ paths:
   /purposes/{id}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: id
         in: path
         description: the purpose id
@@ -268,7 +262,6 @@ paths:
     post:
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: updatePurpose
@@ -295,7 +288,6 @@ paths:
     delete:
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/IpAddress'
       tags:
         - purpose
       operationId: deletePurpose
@@ -324,7 +316,6 @@ paths:
   /purposes/{purposeId}/versions:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         description: the purpose id
@@ -359,7 +350,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -396,7 +386,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}/documents/{documentId}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
     get:
       security:
         - bearerAuth: []
@@ -460,7 +449,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}/activate:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -501,7 +489,6 @@ paths:
   /purposes/{purposeId}/clone:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -511,6 +498,12 @@ paths:
     post:
       summary: Clone Purpose
       operationId: clonePurpose
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurposeCloneSeed'
+        required: true
       responses:
         '200':
           description: Purpose Cloned
@@ -542,7 +535,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}/suspend:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -583,7 +575,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}/archive:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -624,7 +615,6 @@ paths:
   /purposes/{purposeId}/versions/{versionId}/update/waitingForApproval:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: purposeId
         in: path
         required: true
@@ -676,7 +666,6 @@ paths:
   /purposes/riskAnalysis/latest:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: tenantKind
         in: query
         schema:
@@ -708,7 +697,6 @@ paths:
   /purposes/riskAnalysis/version/{riskAnalysisVersion}:
     parameters:
       - $ref: '#/components/parameters/CorrelationIdHeader'
-      - $ref: '#/components/parameters/IpAddress'
       - name: riskAnalysisVersion
         in: path
         required: true
@@ -750,11 +738,6 @@ components:
       in: header
       name: X-Correlation-Id
       required: true
-      schema:
-        type: string
-    IpAddress:
-      in: header
-      name: X-Forwarded-For
       schema:
         type: string
   schemas:
@@ -1044,7 +1027,7 @@ components:
         freeOfChargeReason:
           type: string    
         riskAnalysisForm:
-          $ref: '#/components/schemas/RiskAnalysisForm'
+          $ref: '#/components/schemas/RiskAnalysisFormSeed'
         dailyCalls:
           description: 'maximum number of daily calls that this version can perform.'
           type: integer
@@ -1154,6 +1137,14 @@ components:
         createdAt:
           type: string
           format: date-time
+    PurposeCloneSeed:
+      type: object
+      properties:
+        eserviceId:
+          type: string
+          format: uuid
+      required:
+        - eserviceId      
     EServicePurposeSeed:
       type: object
       description: contains the expected payload for purpose creation.
@@ -1201,7 +1192,7 @@ components:
           type: string
           format: uuid
         riskAnalysisForm:
-          $ref: '#/components/schemas/RiskAnalysisForm'
+          $ref: '#/components/schemas/RiskAnalysisFormSeed'
         title:
           type: string
           minLength: 5
@@ -1252,6 +1243,23 @@ components:
         riskAnalysisId:
             type: string
             format: uuid
+      required:
+        - version
+        - answers
+    RiskAnalysisFormSeed:
+      type: object
+      properties:
+        version:
+          type: string
+          minLength: 1
+          maxLength: 250
+        answers:
+          additionalProperties:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 250
       required:
         - version
         - answers

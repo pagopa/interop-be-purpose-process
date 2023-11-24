@@ -32,18 +32,16 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
 
   override def createPurpose(seed: PurposeSeed)(implicit contexts: Seq[(String, String)]): Future[Purpose] =
-    withHeaders { (bearerToken, correlationId, ip) =>
+    withHeaders { (bearerToken, correlationId) =>
       val request =
-        api.createPurpose(xCorrelationId = correlationId, seed, xForwardedFor = ip)(BearerToken(bearerToken))
+        api.createPurpose(xCorrelationId = correlationId, seed)(BearerToken(bearerToken))
       invoker.invoke(request, s"Creating purpose for EService ${seed.eserviceId} and Consumer ${seed.consumerId}")
     }
 
   override def createPurposeVersion(purposeId: UUID, seed: PurposeVersionSeed)(implicit
     contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.createPurposeVersion(xCorrelationId = correlationId, purposeId, seed, xForwardedFor = ip)(
-      BearerToken(bearerToken)
-    )
+  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
+    val request = api.createPurposeVersion(xCorrelationId = correlationId, purposeId, seed)(BearerToken(bearerToken))
     invoker
       .invoke(request, s"Creating purpose version for Purpose $purposeId")
       .recoverWith { case err: ApiError[_] if err.code == 409 => Future.failed(PurposeVersionConflict(purposeId)) }
@@ -51,11 +49,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def updatePurpose(purposeId: UUID, purposeUpdateContent: PurposeUpdateContent)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Purpose] = withHeaders { (bearerToken, correlationId, ip) =>
+  ): Future[Purpose] = withHeaders { (bearerToken, correlationId) =>
     val request =
-      api.updatePurpose(xCorrelationId = correlationId, purposeId, purposeUpdateContent, xForwardedFor = ip)(
-        BearerToken(bearerToken)
-      )
+      api.updatePurpose(xCorrelationId = correlationId, purposeId, purposeUpdateContent)(BearerToken(bearerToken))
     invoker.invoke(request, s"Updating Purpose $purposeId")
   }
 
@@ -124,9 +120,9 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def activatePurposeVersion(purposeId: UUID, versionId: UUID, payload: ActivatePurposeVersionPayload)(implicit
     contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId, ip) =>
+  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
     val request =
-      api.activatePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, payload, xForwardedFor = ip)(
+      api.activatePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, payload)(
         BearerToken(bearerToken)
       )
     invoker.invoke(
@@ -137,27 +133,20 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def suspendPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.suspendPurposeVersion(
-      xCorrelationId = correlationId,
-      purposeId,
-      versionId,
-      stateChangeDetails,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
+  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
+    val request = api.suspendPurposeVersion(xCorrelationId = correlationId, purposeId, versionId, stateChangeDetails)(
+      BearerToken(bearerToken)
+    )
     invoker.invoke(request, s"Suspending Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }
 
   override def waitForApprovalPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(
     implicit contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.waitForApprovalPurposeVersion(
-      xCorrelationId = correlationId,
-      purposeId,
-      versionId,
-      stateChangeDetails,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
+  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
+    val request =
+      api.waitForApprovalPurposeVersion(xCorrelationId = correlationId, purposeId, versionId, stateChangeDetails)(
+        BearerToken(bearerToken)
+      )
     invoker.invoke(
       request,
       s"Waiting for Approval for Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}"
@@ -166,14 +155,10 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
 
   override def archivePurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
-  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.archivePurposeVersion(
-      xCorrelationId = correlationId,
-      purposeId,
-      versionId,
-      stateChangeDetails,
-      xForwardedFor = ip
-    )(BearerToken(bearerToken))
+  ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
+    val request = api.archivePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, stateChangeDetails)(
+      BearerToken(bearerToken)
+    )
     invoker.invoke(request, s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }
 
@@ -181,34 +166,29 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     purposeId: UUID,
     versionId: UUID,
     updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = withHeaders {
-    (bearerToken, correlationId, ip) =>
-      val request = api.updateWaitingForApprovalPurposeVersion(
-        xCorrelationId = correlationId,
-        purposeId,
-        versionId,
-        updateContent,
-        xForwardedFor = ip
-      )(BearerToken(bearerToken))
-      invoker.invoke(
-        request,
-        s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
+  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
+    val request =
+      api.updateWaitingForApprovalPurposeVersion(xCorrelationId = correlationId, purposeId, versionId, updateContent)(
+        BearerToken(bearerToken)
       )
+    invoker.invoke(
+      request,
+      s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
+    )
   }
 
   override def deletePurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] = withHeaders {
-    (bearerToken, correlationId, ip) =>
+    (bearerToken, correlationId) =>
       val request =
-        api.deletePurpose(xCorrelationId = correlationId, purposeId, xForwardedFor = ip)(BearerToken(bearerToken))
+        api.deletePurpose(xCorrelationId = correlationId, purposeId)(BearerToken(bearerToken))
       invoker.invoke(request, s"Deleting purpose $purposeId")
   }
 
   override def deletePurposeVersion(purposeId: UUID, versionId: UUID)(implicit
     contexts: Seq[(String, String)]
-  ): Future[Unit] = withHeaders { (bearerToken, correlationId, ip) =>
-    val request = api.deletePurposeVersion(xCorrelationId = correlationId, purposeId, versionId, xForwardedFor = ip)(
-      BearerToken(bearerToken)
-    )
+  ): Future[Unit] = withHeaders { (bearerToken, correlationId) =>
+    val request =
+      api.deletePurposeVersion(xCorrelationId = correlationId, purposeId, versionId)(BearerToken(bearerToken))
     invoker
       .invoke(request, s"Deleting purpose version $purposeId/$versionId")
       .recoverWith {
