@@ -27,7 +27,7 @@ import it.pagopa.interop.purposemanagement.model.purpose.{
   WaitingForApproval
 }
 import it.pagopa.interop.catalogmanagement.model.{CatalogItem, Deliver, Receive}
-import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
+import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenant, PersistentTenantKind}
 import it.pagopa.interop.purposeprocess.service.AgreementManagementService.OPERATIVE_AGREEMENT_STATES
 import it.pagopa.interop.commons.riskanalysis.service.RiskAnalysisService
 import it.pagopa.interop.commons.riskanalysis.api.impl.RiskAnalysisValidation
@@ -265,15 +265,15 @@ final case class PurposeApiServiceImpl(
     freeOfChargeReason: Option[String],
     payload: (PersistentPurpose, PersistentTenantKind) => Future[PurposeManagementDependency.PurposeUpdateContent]
   )(implicit contexts: Seq[(String, String)]): Future[Purpose] = for {
-    organizationId <- getOrganizationIdFutureUUID(contexts)
+    requesterOrgId <- getOrganizationIdFutureUUID(contexts)
     purposeUUID    <- purposeId.toFutureUUID
     purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-    _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+    _              <- assertOrganizationIsAConsumer(requesterOrgId, purpose.consumerId)
     _              <- assertPurposeIsInDraftState(purpose)
     eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
     _              <- eServiceModeCheck(eService)
     _              <- checkFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
-    tenant         <- tenantManagementService.getTenantById(organizationId)
+    tenant         <- getInvolvedTenantByEServiceMode(eService, requesterOrgId)
     tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
     purposePayload <- payload(purpose, tenantKind)
     updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, purposePayload)
@@ -633,17 +633,17 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
-      organizationId  <- getOrganizationIdFutureUUID(contexts)
-      tenant          <- tenantManagementService.getTenantById(organizationId)
-      tenantKindParam <- tenantKind.traverse(TenantKind.fromValue).toFuture
-      kind            <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
+      organizationId              <- getOrganizationIdFutureUUID(contexts)
+      tenant                      <- tenantManagementService.getTenantById(organizationId)
+      tenantKindParam             <- tenantKind.traverse(TenantKind.fromValue).toFuture
+      kind                        <- tenantKindParam.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind =>
         Future.successful(kind.toPersistent)
       )
-      kindConfig      <- RiskAnalysisService
+      kindConfig                  <- RiskAnalysisService
         .riskAnalysisForms()
         .get(kind.toTemplate)
         .toFuture(RiskAnalysisConfigForTenantKindNotFound(tenant.id))
-      (latest, riskAnalysisFormConfig) <- kindConfig
+      (_, riskAnalysisFormConfig) <- kindConfig
         .maxByOption(_._1.toDouble)
         .toFuture(RiskAnalysisConfigLatestVersionNotFound(kind))
     } yield riskAnalysisFormConfig.toApi
@@ -664,13 +664,10 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[RiskAnalysisFormConfigResponse] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
+      requesterOrgId <- getOrganizationIdFutureUUID(contexts)
       eserviceId     <- eserviceId.toFutureUUID
       eservice       <- catalogManagementService.getEServiceById(eserviceId)
-      tenant         <- eservice.mode match {
-        case Deliver => tenantManagementService.getTenantById(organizationId)
-        case Receive => tenantManagementService.getTenantById(eservice.producerId)
-      }
+      tenant         <- getInvolvedTenantByEServiceMode(eservice, requesterOrgId)
       kind <- tenant.kind.fold(tenant.kind.toFuture(TenantKindNotFound(tenant.id)))(kind => Future.successful(kind))
       kindConfig             <- RiskAnalysisService
         .riskAnalysisForms()
@@ -687,6 +684,12 @@ final case class PurposeApiServiceImpl(
       )
     }
   }
+
+  private def getInvolvedTenantByEServiceMode(eservice: CatalogItem, requesterId: UUID): Future[PersistentTenant] =
+    eservice.mode match {
+      case Deliver => tenantManagementService.getTenantById(requesterId)
+      case Receive => tenantManagementService.getTenantById(eservice.producerId)
+    }
 
   private def assertOrganizationIsAConsumer(organizationId: UUID, consumerId: UUID): Future[Ownership] =
     if (organizationId == consumerId) Future.successful(Ownership.CONSUMER)

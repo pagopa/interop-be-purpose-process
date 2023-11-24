@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.directives.FileInfo
 import cats.syntax.all._
 import it.pagopa.interop.authorizationmanagement.client.model.ClientComponentState
-import it.pagopa.interop.catalogmanagement.model.CatalogItem
+import it.pagopa.interop.catalogmanagement.model.{CatalogItem, Deliver, Receive}
 import it.pagopa.interop.commons.cqrs.service.ReadModelService
 import it.pagopa.interop.commons.files.service.FileManager
 import it.pagopa.interop.commons.utils.TypeConversions._
@@ -211,8 +211,11 @@ final case class PurposeVersionActivation(
         consumerOrigin = consumer.externalId.origin,
         consumerIPACode = consumer.externalId.value
       )
-      consumerKind <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
-      path         <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(consumerKind)
+      tenantKind <- eService.mode match {
+        case Receive => producer.kind.toFuture(TenantKindNotFound(consumer.id))
+        case Deliver => consumer.kind.toFuture(TenantKindNotFound(consumer.id))
+      }
+      path       <- createRiskAnalysisDocument(documentId, purpose, version, eServiceInfo)(tenantKind)
       payload = ActivatePurposeVersionPayload(
         riskAnalysis = Some(
           PurposeVersionDocument(

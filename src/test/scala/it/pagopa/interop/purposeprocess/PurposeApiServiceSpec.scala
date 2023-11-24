@@ -1543,6 +1543,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       val purposeId                   = UUID.randomUUID()
       val eserviceId                  = UUID.randomUUID()
       val consumerId                  = UUID.randomUUID()
+      val producerId                  = UUID.randomUUID()
       val reversePurposeUpdateContent =
         ReversePurposeUpdateContent(
           title = "A title",
@@ -1575,9 +1576,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, purpose)
 
-      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
+      mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive, producerId = producerId))
 
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
+      mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PA.some))
 
       mockPurposeUpdate(purposeId, seed, SpecData.dependencyPurpose.copy(id = purpose.id))
 
