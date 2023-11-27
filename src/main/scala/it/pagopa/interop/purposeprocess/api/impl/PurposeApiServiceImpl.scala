@@ -133,15 +133,15 @@ final case class PurposeApiServiceImpl(
       s"Creating Purposes for EService ${seed.eServiceId}, Consumer ${seed.consumerId}"
 
     val result: Future[Purpose] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      requesterOrgId <- getOrganizationIdFutureUUID(contexts)
+      _              <- assertOrganizationIsAConsumer(requesterOrgId, seed.consumerId)
       eService       <- catalogManagementService.getEServiceById(seed.eServiceId)
       _ <- if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id))
       riskAnalysis <- eService.riskAnalysis
         .find(_.id == seed.riskAnalysisId)
         .toFuture(RiskAnalysisNotFound(seed.eServiceId, seed.riskAnalysisId))
       _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
-      tenantKind   <- getTenantKind(organizationId)
+      tenantKind   <- getTenantKind(eService.producerId)
       purposeSeed = seed.toManagement(seed.eServiceId, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
       _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title)
       purpose <- purposeManagementService.createPurpose(purposeSeed)
@@ -163,10 +163,10 @@ final case class PurposeApiServiceImpl(
     logger.info(operationLabel)
 
     val result: Future[Purpose] = for {
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      _              <- assertOrganizationIsAConsumer(organizationId, seed.consumerId)
+      requesterOrgId <- getOrganizationIdFutureUUID(contexts)
+      _              <- assertOrganizationIsAConsumer(requesterOrgId, seed.consumerId)
       _              <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
-      tenantKind     <- getTenantKind(organizationId)
+      tenantKind     <- getTenantKind(requesterOrgId)
       purposeSeed    <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
       _              <- checkAgreements(seed.eserviceId, seed.consumerId, seed.title)
       purpose        <- purposeManagementService.createPurpose(purposeSeed)
@@ -276,7 +276,7 @@ final case class PurposeApiServiceImpl(
     eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
     _              <- eServiceModeCheck(eService)
     _              <- checkFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
-    tenant         <- getInvolvedTenantByEServiceMode(eService, requesterOrgId)
+    tenant         <- getInvolvedTenantByEServiceMode(eService, purpose.consumerId)
     tenantKind     <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
     purposePayload <- payload(purpose, tenantKind)
     updatedPurpose <- purposeManagementService.updatePurpose(purposeUUID, purposePayload)
@@ -438,10 +438,11 @@ final case class PurposeApiServiceImpl(
     val result: Future[PurposeVersion] = for {
       purposeUUID      <- purposeId.toFutureUUID
       versionUUID      <- versionId.toFutureUUID
-      organizationId   <- getOrganizationIdFutureUUID(contexts)
+      requesterOrgId   <- getOrganizationIdFutureUUID(contexts)
       purpose          <- purposeManagementService.getPurposeById(purposeUUID)
-      consumer         <- tenantManagementService.getTenantById(purpose.consumerId)
-      tenantKind       <- consumer.kind.toFuture(TenantKindNotFound(consumer.id))
+      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
+      tenant           <- getInvolvedTenantByEServiceMode(eService, purpose.consumerId)
+      tenantKind       <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
       version          <- getVersion(purpose, versionUUID)
       riskAnalysisForm <- purpose.riskAnalysisForm.toFuture(MissingRiskAnalysis(purposeUUID))
       _                <-
@@ -451,15 +452,14 @@ final case class PurposeApiServiceImpl(
           .toEither
           .whenA(version.state == Draft)
           .toFuture
-      eService         <- catalogManagementService.getEServiceById(purpose.eserviceId)
       ownership        <- Ownership
-        .getOrganizationRole(organizationId, eService.producerId, purpose.consumerId)
+        .getOrganizationRole(requesterOrgId, eService.producerId, purpose.consumerId)
         .toFuture
       updatedVersion   <- purposeVersionActivation.activateOrWaitForApproval(
         eService,
         purpose,
         version,
-        organizationId,
+        requesterOrgId,
         ownership
       )
     } yield updatedVersion.toApi
@@ -709,9 +709,9 @@ final case class PurposeApiServiceImpl(
     }
   }
 
-  private def getInvolvedTenantByEServiceMode(eservice: CatalogItem, requesterId: UUID): Future[PersistentTenant] =
+  private def getInvolvedTenantByEServiceMode(eservice: CatalogItem, consumerId: UUID): Future[PersistentTenant] =
     eservice.mode match {
-      case Deliver => tenantManagementService.getTenantById(requesterId)
+      case Deliver => tenantManagementService.getTenantById(consumerId)
       case Receive => tenantManagementService.getTenantById(eservice.producerId)
     }
 

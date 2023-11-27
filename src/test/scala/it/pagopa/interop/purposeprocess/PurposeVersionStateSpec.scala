@@ -382,6 +382,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .once()
         .returns(Future.successful(purpose))
 
+      mockEServiceRetrieve(eServiceId, SpecData.eService.copy(id = eServiceId))
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
@@ -1173,8 +1174,8 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val eService   = SpecData.eService.copy(id = eServiceId, descriptors = Seq(descriptor), producerId = producerId)
 
       mockPurposeRetrieve(purposeId, purpose)
-      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
       mockEServiceRetrieve(eServiceId, eService)
+      mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -1208,6 +1209,7 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         .once()
         .returns(Future.successful(purpose))
 
+      mockEServiceRetrieve(eServiceId, SpecData.eService.copy(id = eServiceId))
       mockTenantRetrieve(consumerId, SpecData.tenant.copy(id = consumerId, kind = PersistentTenantKind.PRIVATE.some))
 
       Get() ~> service.activatePurposeVersion(purposeId.toString, versionId.toString) ~> check {
