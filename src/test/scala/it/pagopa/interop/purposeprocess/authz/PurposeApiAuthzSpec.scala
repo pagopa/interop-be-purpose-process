@@ -102,8 +102,12 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
     }
 
     "accept authorized roles for clonePurpose" in {
-      val endpoint = AuthorizedRoutes.endpoints("clonePurpose")
-      validateAuthorization(endpoint, { implicit c: Seq[(String, String)] => service.clonePurpose("fakeSeed") })
+      val endpoint      = AuthorizedRoutes.endpoints("clonePurpose")
+      val fakeCloneSeed = PurposeCloneSeed(eserviceId = UUID.randomUUID())
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] => service.clonePurpose("fakeSeed", fakeCloneSeed) }
+      )
     }
 
     "accept authorized roles for getPurpose" in {
