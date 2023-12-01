@@ -174,7 +174,9 @@ object SpecData {
     createdAt = OffsetDateTimeSupplier.get(),
     updatedAt = None,
     mails = Nil,
-    name = "test_name"
+    name = "test_name",
+    onboardedAt = None,
+    subUnitType = None
   )
 
   val validRiskAnalysis3_0_Pa: RiskAnalysisForm = RiskAnalysisForm(
