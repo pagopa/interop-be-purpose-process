@@ -91,5 +91,6 @@ object PurposeProcessErrors {
       extends ComponentError("0026", s"EService ${eServiceId.toString} has not Receive mode")
   final case class RiskAnalysisNotFound(eServiceId: UUID, riskAnalysisId: UUID)
       extends ComponentError("0027", s"EService $eServiceId does not contain Risk Analysis $riskAnalysisId")
-
+  final case class DailyCallsEqualThanBefore(purposeId: UUID)
+      extends ComponentError("0028", s"Purpose $purposeId has the same dailyCalls")
 }

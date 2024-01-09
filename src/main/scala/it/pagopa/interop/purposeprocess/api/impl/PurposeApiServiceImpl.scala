@@ -230,6 +230,7 @@ final case class PurposeApiServiceImpl(
       eService => if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id)),
       seed.isFreeOfCharge,
       seed.freeOfChargeReason,
+      seed.dailyCalls,
       (_, tenantKind) =>
         seed
           .toManagement(schemaOnlyValidation = true)(tenantKind)
@@ -252,6 +253,7 @@ final case class PurposeApiServiceImpl(
       eService => if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id)),
       seed.isFreeOfCharge,
       seed.freeOfChargeReason,
+      seed.dailyCalls,
       (purpose, tenantKind) =>
         seed
           .toManagement(schemaOnlyValidation = true, purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
@@ -266,6 +268,7 @@ final case class PurposeApiServiceImpl(
     eServiceModeCheck: CatalogItem => Future[Unit],
     isFreeOfCharge: Boolean,
     freeOfChargeReason: Option[String],
+    dailyCalls: Int,
     payload: (PersistentPurpose, PersistentTenantKind) => Future[PurposeManagementDependency.PurposeUpdateContent]
   )(implicit contexts: Seq[(String, String)]): Future[Purpose] = for {
     requesterOrgId <- getOrganizationIdFutureUUID(contexts)
@@ -273,6 +276,7 @@ final case class PurposeApiServiceImpl(
     purpose        <- purposeManagementService.getPurposeById(purposeUUID)
     _              <- assertOrganizationIsAConsumer(requesterOrgId, purpose.consumerId)
     _              <- assertPurposeIsInDraftState(purpose)
+    _              <- assertDailyCallsIsDifferentThanBefore(purpose, dailyCalls)
     eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
     _              <- eServiceModeCheck(eService)
     _              <- checkFreeOfCharge(isFreeOfCharge, freeOfChargeReason)
@@ -615,21 +619,6 @@ final case class PurposeApiServiceImpl(
           dailyCalls = dailyCalls
         )
 
-      def getDailyCalls(versions: Seq[PersistentPurposeVersion]): Int = {
-
-        val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
-
-        val latestNoWaiting: Option[Int] = versions
-          .filterNot(_.state == WaitingForApproval)
-          .sortBy(_.createdAt)(ordering)
-          .map(_.dailyCalls)
-          .headOption
-
-        val latestAll: Option[Int] = versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
-
-        latestNoWaiting.getOrElse(latestAll.getOrElse(0))
-      }
-
       val result: Future[Purpose] = for {
         organizationId <- getOrganizationIdFutureUUID(contexts)
         tenant         <- tenantManagementService.getTenantById(organizationId)
@@ -647,6 +636,21 @@ final case class PurposeApiServiceImpl(
 
       onComplete(result) { clonePurposeResponse[Purpose](operationLabel)(clonePurpose200) }
     }
+
+  private def getDailyCalls(versions: Seq[PersistentPurposeVersion]): Int = {
+
+    val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
+
+    val latestNoWaiting: Option[Int] = versions
+      .filterNot(_.state == WaitingForApproval)
+      .sortBy(_.createdAt)(ordering)
+      .map(_.dailyCalls)
+      .headOption
+
+    val latestAll: Option[Int] = versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
+
+    latestNoWaiting.getOrElse(latestAll.getOrElse(0))
+  }
 
   override def retrieveLatestRiskAnalysisConfiguration(tenantKind: Option[String])(implicit
     contexts: Seq[(String, String)],
@@ -732,6 +736,13 @@ final case class PurposeApiServiceImpl(
     if (purpose.versions.map(_.state) == Seq(Draft))
       Future.successful(())
     else Future.failed(PurposeNotInDraftState(purpose.id))
+  }
+
+  private def assertDailyCallsIsDifferentThanBefore(purpose: PersistentPurpose, dailyCalls: Int): Future[Unit] = {
+    val previousDailyCalls = getDailyCalls(purpose.versions)
+    if (previousDailyCalls != dailyCalls)
+      Future.successful(())
+    else Future.failed(DailyCallsEqualThanBefore(purpose.id))
   }
 
   private def isRiskAnalysisFormValid(

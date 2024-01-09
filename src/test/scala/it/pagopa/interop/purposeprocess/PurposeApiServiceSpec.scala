@@ -1431,6 +1431,35 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
+    "fail if daily calls attribute has the same value of previous version" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None,
+          dailyCalls = 1000
+        )
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0028"
+      }
+    }
     "fail if case of eService with Receive mode" in {
 
       val purposeId            = UUID.randomUUID()
@@ -1599,6 +1628,35 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail if daily calls attribute has the same value of previous version" in {
+
+      val purposeId  = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 1000
+        )
+
+      val purpose =
+        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0028"
       }
     }
     "fail if case of eService with Deliver mode" in {
