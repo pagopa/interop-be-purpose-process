@@ -739,8 +739,8 @@ final case class PurposeApiServiceImpl(
     val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
     val previousDailyCalls                 = purpose.versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
     previousDailyCalls match {
-      case Some(x) if x != dailyCalls => Future.successful(())
-      case _                          => Future.failed(DailyCallsEqualThanBefore(purpose.id))
+      case Some(x) if x == dailyCalls => Future.failed(UnchangedDailyCalls(purpose.id))
+      case _                          => Future.successful(())
     }
   }
 
