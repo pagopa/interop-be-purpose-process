@@ -2156,19 +2156,20 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val version2_1 = SpecData.purposeVersion.copy(id = UUID.randomUUID(), state = Active, dailyCalls = 1000)
+      val version2_1 = SpecData.purposeVersion.copy(id = UUID.randomUUID(), state = Active, dailyCalls = 1002)
       val purpose2 = SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(version2_1))
 
       val path: String                               = "/here/there/foo/bar.pdf"
       val document: PersistentPurposeVersionDocument =
         PersistentPurposeVersionDocument(documentId, "application/pdf", path, SpecData.timestamp)
 
-      val version1_1 = SpecData.purposeVersion.copy(id = purposeVersionId1, state = Active)
+      val version1_1 = SpecData.purposeVersion.copy(id = purposeVersionId1, state = Active, dailyCalls = 1000)
       val version1_2 = SpecData.purposeVersion.copy(
         id = purposeVersionId2,
         state = WaitingForApproval,
         riskAnalysis = Some(document),
-        firstActivationAt = Some(SpecData.timestamp)
+        firstActivationAt = Some(SpecData.timestamp),
+        dailyCalls = 1001
       )
 
       val purpose =
@@ -2180,7 +2181,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       val purposes                 = Seq(purpose, purpose2)
-      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 1000)
+      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 2000)
 
       val purposeVersion = PersistentPurposeVersion(
         id = purposeVersionId3,
@@ -2188,7 +2189,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         createdAt = SpecData.timestamp,
         updatedAt = None,
         expectedApprovalDate = None,
-        dailyCalls = seed.dailyCalls,
+        dailyCalls = 2000,
         riskAnalysis = Some(document),
         firstActivationAt = Some(SpecData.timestamp),
         suspendedAt = None
@@ -2216,7 +2217,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           riskAnalysis = Some(
             PurposeManagementDependency.PurposeVersionDocument(documentId, "application/pdf", path, SpecData.timestamp)
           ),
-          firstActivationAt = Some(SpecData.timestamp)
+          firstActivationAt = Some(SpecData.timestamp),
+          dailyCalls = 2000
         )
 
       mockVersionFirstActivation(purposeId, purposeVersionId3, eService.producerId, purpose.consumerId, updatedVersion)
@@ -2248,7 +2250,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
-      val version2_1 = SpecData.purposeVersion.copy(id = UUID.randomUUID(), state = Active, dailyCalls = 1000)
+      val version2_1 = SpecData.purposeVersion.copy(id = UUID.randomUUID(), state = Active, dailyCalls = 1002)
       val purpose2 = SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(version2_1))
 
       val path: String                               = "/here/there/foo/bar.pdf"
@@ -2260,7 +2262,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         id = purposeVersionId2,
         state = WaitingForApproval,
         riskAnalysis = Some(document),
-        firstActivationAt = Some(SpecData.timestamp)
+        firstActivationAt = Some(SpecData.timestamp),
+        dailyCalls = 1001
       )
 
       val purpose =
@@ -2272,7 +2275,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       val purposes                 = Seq(purpose, purpose2)
-      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 1000)
+      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 2000)
 
       val purposeVersion = PersistentPurposeVersion(
         id = purposeVersionId3,
@@ -2280,7 +2283,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         createdAt = SpecData.timestamp,
         updatedAt = None,
         expectedApprovalDate = None,
-        dailyCalls = seed.dailyCalls,
+        dailyCalls = 2000,
         riskAnalysis = None,
         firstActivationAt = Some(SpecData.timestamp),
         suspendedAt = None
@@ -2306,7 +2309,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
           id = purposeVersionId3,
           state = PurposeManagementDependency.PurposeVersionState.WAITING_FOR_APPROVAL,
           riskAnalysis = None,
-          firstActivationAt = Some(SpecData.timestamp)
+          firstActivationAt = Some(SpecData.timestamp),
+          dailyCalls = 2000
         )
 
       val payload = PurposeManagementDependency.StateChangeDetails(
@@ -2325,7 +2329,51 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         responseAs[PurposeVersion] shouldEqual expected
       }
     }
+    "fail in case of version with the same dailyCalls than previous version" in {
 
+      val consumerId        = UUID.randomUUID()
+      val documentId        = UUID.randomUUID()
+      val purposeId         = UUID.randomUUID()
+      val purposeVersionId1 = UUID.randomUUID()
+      val purposeVersionId2 = UUID.randomUUID()
+      val eserviceId        = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      val path: String                               = "/here/there/foo/bar.pdf"
+      val document: PersistentPurposeVersionDocument =
+        PersistentPurposeVersionDocument(documentId, "application/pdf", path, SpecData.timestamp)
+
+      val version1_1 = SpecData.purposeVersion.copy(id = purposeVersionId1, state = Draft, dailyCalls = 1000)
+      val version1_2 = SpecData.purposeVersion.copy(
+        id = purposeVersionId2,
+        state = WaitingForApproval,
+        riskAnalysis = Some(document),
+        firstActivationAt = None,
+        createdAt = SpecData.timestamp.plusDays(1),
+        dailyCalls = 1001
+      )
+
+      val purpose =
+        SpecData.purpose.copy(
+          id = purposeId,
+          versions = Seq(version1_1, version1_2),
+          consumerId = consumerId,
+          eserviceId = eserviceId
+        )
+
+      val seed: PurposeVersionSeed = PurposeVersionSeed(dailyCalls = 1001)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      Get() ~> service.createPurposeVersion(purposeId.toString, seed) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.BadRequest.intValue
+        problem.errors.head.code shouldBe "012-0028"
+      }
+    }
     "fail if Purpose does not exist" in {
 
       val purposeId = UUID.randomUUID()

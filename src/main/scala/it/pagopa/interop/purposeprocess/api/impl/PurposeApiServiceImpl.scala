@@ -211,6 +211,7 @@ final case class PurposeApiServiceImpl(
       purposeUUID    <- purposeId.toFutureUUID
       purpose        <- purposeManagementService.getPurposeById(purposeUUID)
       _              <- assertOrganizationIsAConsumer(organizationId, purpose.consumerId)
+      _              <- assertDailyCallsIsDifferentThanBefore(purpose, seed.dailyCalls)
       version        <- purposeManagementService.createPurposeVersion(purposeUUID, seed.toManagement)
       published      <- publish(organizationId, purpose, version.toPersistent)
     } yield published.toApi
@@ -732,6 +733,15 @@ final case class PurposeApiServiceImpl(
     if (purpose.versions.map(_.state) == Seq(Draft))
       Future.successful(())
     else Future.failed(PurposeNotInDraftState(purpose.id))
+  }
+
+  private def assertDailyCallsIsDifferentThanBefore(purpose: PersistentPurpose, dailyCalls: Int): Future[Unit] = {
+    val ordering: Ordering[OffsetDateTime] = Ordering(Ordering.by[OffsetDateTime, Long](_.toEpochSecond).reverse)
+    val previousDailyCalls                 = purpose.versions.sortBy(_.createdAt)(ordering).map(_.dailyCalls).headOption
+    previousDailyCalls match {
+      case Some(x) if x == dailyCalls => Future.failed(UnchangedDailyCalls(purpose.id))
+      case _                          => Future.successful(())
+    }
   }
 
   private def isRiskAnalysisFormValid(
