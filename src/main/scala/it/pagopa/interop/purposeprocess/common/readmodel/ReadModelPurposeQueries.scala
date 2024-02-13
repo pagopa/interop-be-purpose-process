@@ -143,8 +143,8 @@ object ReadModelPurposeQueries extends ReadModelQuery {
     val eServicesIdsFilter = mapToVarArgs(eServicesIds.map(Filters.eq("data.eserviceId", _)))(Filters.or)
     val consumersIdsFilter = mapToVarArgs(consumersIds.map(Filters.eq("data.consumerId", _)))(Filters.or)
     val titleFilter        =
-      if (exactMatchOnTitle) title.map(n => Filters.regex("data.title", s"^$n$$", "i"))
-      else title.map(Filters.regex("data.title", _, "i"))
+      if (exactMatchOnTitle) title.map(n => safeRegex("data.title", s"^$n$$", "i"))
+      else title.map(safeRegex("data.title", _, "i"))
     mapToVarArgs(
       eServicesIdsFilter.toList ++ consumersIdsFilter.toList ++ statesFilter.toList ++ titleFilter.toList // :+ permissionFilter
     )(Filters.and).getOrElse(Filters.empty())
