@@ -19,10 +19,10 @@ object Versions {
 }
 
 object PagopaVersions {
-  lazy val agreementManagementVersion         = "1.0.x-SNAPSHOT"
-  lazy val authorizationManagementVersion     = "1.0.x-SNAPSHOT"
-  lazy val purposeManagementVersion           = "1.0.x-SNAPSHOT"
-  lazy val catalogManagementVersion           = "1.0.x-SNAPSHOT"
-  lazy val tenantManagementVersion            = "1.0.x-SNAPSHOT"
-  lazy val commonsVersion                     = "1.0.x-SNAPSHOT"
+  lazy val agreementManagementVersion     = "1.0.15"
+  lazy val authorizationManagementVersion = "1.0.16"
+  lazy val purposeManagementVersion       = "1.0.14"
+  lazy val catalogManagementVersion       = "1.0.19"
+  lazy val tenantManagementVersion        = "1.0.11"
+  lazy val commonsVersion                 = "1.0.23"
 }
