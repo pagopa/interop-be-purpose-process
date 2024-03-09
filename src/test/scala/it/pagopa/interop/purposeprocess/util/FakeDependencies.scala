@@ -138,6 +138,12 @@ object FakeDependencies {
       )
     )
 
+    override def rejectPurposeVersion(
+      purposeId: UUID,
+      versionId: UUID,
+      payload: Management.RejectPurposeVersionPayload
+    )(implicit contexts: Seq[(String, String)]): Future[Unit] = Future.successful(())
+
     override def waitForApprovalPurposeVersion(
       purposeId: UUID,
       versionId: UUID,

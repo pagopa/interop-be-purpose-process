@@ -12,7 +12,7 @@ import it.pagopa.interop.purposeprocess.SpecData.timestamp
 import it.pagopa.interop.purposeprocess.api.Adapters._
 import it.pagopa.interop.purposeprocess.api.impl.PurposeApiMarshallerImpl
 import it.pagopa.interop.purposeprocess.error.PurposeProcessErrors.PurposeNotFound
-import it.pagopa.interop.purposeprocess.model.{Problem, PurposeVersion}
+import it.pagopa.interop.purposeprocess.model.{Problem, PurposeVersion, RejectPurposeVersionPayload}
 import it.pagopa.interop.tenantmanagement.model.tenant.PersistentTenantKind
 import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -266,6 +266,110 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
         val problem = responseAs[Problem]
         problem.status shouldBe StatusCodes.Forbidden.intValue
         problem.errors.head.code shouldBe "012-0003"
+      }
+    }
+  }
+
+  "Purpose version reject" should {
+    "succeed if organization is a Producer" in {
+      val purposeId       = UUID.randomUUID()
+      val versionId       = UUID.randomUUID()
+      val rejectionReason = "reason"
+
+      implicit val context: Seq[(String, String)] =
+        Seq(
+          "bearer"              -> bearerToken,
+          USER_ROLES            -> "admin",
+          ORGANIZATION_ID_CLAIM -> SpecData.agreement.producerId.toString
+        )
+
+      val version = SpecData.purposeVersion.copy(id = versionId, state = Active)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(versions = Seq(version)))
+      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
+
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
+      (mockPurposeManagementService
+        .rejectPurposeVersion(_: UUID, _: UUID, _: PurposeManagement.RejectPurposeVersionPayload)(
+          _: Seq[(String, String)]
+        ))
+        .expects(
+          purposeId,
+          versionId,
+          PurposeManagement.RejectPurposeVersionPayload(
+            rejectionReason = rejectionReason,
+            stateChangeDetails =
+              PurposeManagement.StateChangeDetails(changedBy = PurposeManagement.ChangedBy.PRODUCER, timestamp)
+          ),
+          context
+        )
+        .once()
+        .returns(Future.successful(()))
+
+      mockEServiceRetrieve(
+        SpecData.purpose.eserviceId,
+        SpecData.eService
+          .copy(
+            id = SpecData.purpose.eserviceId,
+            producerId = SpecData.agreement.producerId,
+            descriptors = Seq(SpecData.descriptor.copy(id = SpecData.agreement.descriptorId))
+          )
+      )
+
+      Post() ~> service.rejectPurposeVersion(
+        purposeId.toString,
+        versionId.toString,
+        RejectPurposeVersionPayload(rejectionReason)
+      ) ~> check {
+        status shouldEqual StatusCodes.NoContent
+      }
+    }
+
+    "fail if organization is not a producer" in {
+      val eServiceId = UUID.randomUUID()
+      val producerId = UUID.randomUUID()
+      val purposeId  = UUID.randomUUID()
+      val versionId  = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      val version = SpecData.purposeVersion.copy(id = versionId, state = Active)
+
+      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eServiceId, versions = Seq(version)))
+      mockEServiceRetrieve(eServiceId, SpecData.eService.copy(producerId = producerId))
+
+      Post() ~> service.rejectPurposeVersion(
+        purposeId.toString,
+        versionId.toString,
+        RejectPurposeVersionPayload("reason")
+      ) ~> check {
+        val problem = responseAs[Problem]
+        problem.status shouldBe StatusCodes.Forbidden.intValue
+        problem.errors.head.code shouldBe "012-0002"
+      }
+    }
+
+    "fail if Purpose does not exist" in {
+      val purposeId = UUID.randomUUID()
+      val versionId = UUID.randomUUID()
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> UUID.randomUUID().toString)
+
+      (mockPurposeManagementService
+        .getPurposeById(_: UUID)(_: ExecutionContext, _: ReadModelService))
+        .expects(purposeId, *, *)
+        .once()
+        .returns(Future.failed(PurposeNotFound(purposeId)))
+
+      Post() ~> service.rejectPurposeVersion(
+        purposeId.toString,
+        versionId.toString,
+        RejectPurposeVersionPayload("reason")
+      ) ~> check {
+        status shouldEqual StatusCodes.NotFound
       }
     }
   }

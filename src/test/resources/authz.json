@@ -59,6 +59,13 @@
       "roles": [
         "admin"
       ],
+      "route": "rejectPurposeVersion"
+    },
+    {
+      "verb": "POST",
+      "roles": [
+        "admin"
+      ],
       "route": "suspendPurposeVersion"
     },
     {

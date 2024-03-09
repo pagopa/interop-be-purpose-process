@@ -498,6 +498,42 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { suspendPurposeVersionResponse[PurposeVersion](operationLabel)(suspendPurposeVersion200) }
   }
 
+  override def rejectPurposeVersion(purposeId: String, versionId: String, payload: RejectPurposeVersionPayload)(implicit
+    contexts: Seq[(String, String)],
+    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
+  ): Route =
+    authorize(ADMIN_ROLE) {
+      val operationLabel = s"Rejecting Version $versionId of Purpose $purposeId"
+      logger.info(operationLabel)
+
+      val result: Future[Unit] = for {
+        purposeUUID    <- purposeId.toFutureUUID
+        versionUUID    <- versionId.toFutureUUID
+        organizationId <- getOrganizationIdFutureUUID(contexts)
+        purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+        _              <- assertOrganizationIsAProducer(organizationId, purpose.eserviceId)
+        _              <- getVersion(purpose, versionUUID)
+        _              <- purposeManagementService.rejectPurposeVersion(
+          purposeUUID,
+          versionUUID,
+          PurposeManagementDependency.RejectPurposeVersionPayload(
+            rejectionReason = payload.rejectionReason,
+            stateChangeDetails = PurposeManagementDependency.StateChangeDetails(
+              PurposeManagementDependency.ChangedBy.PRODUCER,
+              dateTimeSupplier.get()
+            )
+          )
+        )
+        _              <- authorizationManagementService.updateStateOnClients(
+          purposeId = purposeUUID,
+          versionId = versionUUID,
+          state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
+        )
+      } yield ()
+
+      onComplete(result) { rejectPurposeVersionResponse[Unit](operationLabel)(_ => rejectPurposeVersion204) }
+    }
+
   override def archivePurposeVersion(purposeId: String, versionId: String)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],

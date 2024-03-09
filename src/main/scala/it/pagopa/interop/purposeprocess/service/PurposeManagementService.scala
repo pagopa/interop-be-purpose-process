@@ -44,6 +44,10 @@ trait PurposeManagementService {
     contexts: Seq[(String, String)]
   ): Future[PurposeVersion]
 
+  def rejectPurposeVersion(purposeId: UUID, versionId: UUID, payload: RejectPurposeVersionPayload)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit]
+
   def suspendPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
   ): Future[PurposeVersion]

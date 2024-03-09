@@ -349,7 +349,8 @@ object SpecData {
     expectedApprovalDate = None,
     dailyCalls = 1000,
     riskAnalysis = None,
-    suspendedAt = None
+    suspendedAt = None,
+    rejectionReason = None
   )
 
   val purposeVersion: PersistentPurposeVersion = PersistentPurposeVersion(
@@ -361,7 +362,8 @@ object SpecData {
     expectedApprovalDate = None,
     dailyCalls = 1000,
     riskAnalysis = None,
-    suspendedAt = None
+    suspendedAt = None,
+    rejectionReason = None
   )
 
   val dependencyPurpose: PurposeManagement.Purpose = PurposeManagement.Purpose(

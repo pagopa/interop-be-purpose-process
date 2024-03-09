@@ -131,6 +131,17 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     )
   }
 
+  def rejectPurposeVersion(purposeId: UUID, versionId: UUID, payload: RejectPurposeVersionPayload)(implicit
+    contexts: Seq[(String, String)]
+  ): Future[Unit] = withHeaders { (bearerToken, correlationId) =>
+    val request =
+      api.rejectPurposeVersion(xCorrelationId = correlationId, purposeId, versionId, payload)(BearerToken(bearerToken))
+    invoker.invoke(
+      request,
+      s"Rejecting Version $versionId of Purpose $purposeId with reason ${payload.rejectionReason}"
+    )
+  }
+
   override def suspendPurposeVersion(purposeId: UUID, versionId: UUID, stateChangeDetails: StateChangeDetails)(implicit
     contexts: Seq[(String, String)]
   ): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
