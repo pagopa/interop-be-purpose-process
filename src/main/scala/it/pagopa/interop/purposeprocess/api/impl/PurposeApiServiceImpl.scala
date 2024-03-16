@@ -524,11 +524,6 @@ final case class PurposeApiServiceImpl(
             )
           )
         )
-        _              <- authorizationManagementService.updateStateOnClients(
-          purposeId = purposeUUID,
-          versionId = versionUUID,
-          state = AuthorizationManagementDependency.ClientComponentState.INACTIVE
-        )
       } yield ()
 
       onComplete(result) { rejectPurposeVersionResponse[Unit](operationLabel)(_ => rejectPurposeVersion204) }

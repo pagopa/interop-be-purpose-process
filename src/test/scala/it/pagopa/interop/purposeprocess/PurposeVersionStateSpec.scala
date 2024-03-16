@@ -286,7 +286,6 @@ class PurposeVersionStateSpec extends AnyWordSpecLike with SpecHelper with Scala
       val version = SpecData.purposeVersion.copy(id = versionId, state = Active)
 
       mockPurposeRetrieve(purposeId, SpecData.purpose.copy(versions = Seq(version)))
-      mockClientStateUpdate(purposeId, versionId, AuthorizationManagement.ClientComponentState.INACTIVE)
 
       (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
 
