@@ -6,9 +6,9 @@ import it.pagopa.interop.purposemanagement.model.purpose._
 import org.mongodb.scala.Document
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Aggregates._
-import org.mongodb.scala.model.{Field, Filters}
 import org.mongodb.scala.model.Projections.{computed, fields, include}
 import org.mongodb.scala.model.Sorts.ascending
+import org.mongodb.scala.model.{Field, Filters, Projections}
 
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,18 +60,16 @@ object ReadModelPurposeQueries extends ReadModelQuery {
     limit: Int,
     exactMatchOnTitle: Boolean = false
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[PaginatedResult[PersistentPurpose]] = {
+
     val simpleFilters: Bson = listPurposesFilters(title, eServicesIds, consumersIds, states, exactMatchOnTitle)
-    val query: Seq[Bson]    = Seq(
-      `match`(simpleFilters),
-      lookup("eservices", "data.eserviceId", "data.id", "eservices"),
-      addFields(Field("eservice", Document("""{ $arrayElemAt: [ "$eservices", 0 ] }"""))),
-      `match`(
-        Filters
-          .and(listPurposesAuthorizationFilters(excludeDraft), listPurposesProducersFilters(producersIds))
-      )
-    )
 
     for {
+      producersFilter <- producersEservicesFilter(producersIds)
+      query = Seq(
+        `match`(simpleFilters),
+        `match`(listPurposesAuthorizationFilters(excludeDraft)),
+        `match`(producersFilter)
+      )
       // Using aggregate to perform case insensitive sorting
       //   N.B.: Required because DocumentDB does not support collation
       purposes <- readModel.aggregate[PersistentPurpose](
@@ -160,6 +158,25 @@ object ReadModelPurposeQueries extends ReadModelQuery {
     mapToVarArgs(versionsFilter :: Nil)(Filters.and).getOrElse(Filters.empty())
   }
 
-  private def listPurposesProducersFilters(producersIds: Seq[String]): Bson =
-    mapToVarArgs(producersIds.map(Filters.eq("eservices.data.producerId", _)))(Filters.or).getOrElse(Filters.empty())
+  private def producersEservicesFilter(
+    producersIds: Seq[String]
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Bson] = {
+    val producersEservicesIds: Future[Seq[ReadModelId]] =
+      if (producersIds.isEmpty) {
+        Future.successful(Seq.empty)
+      } else {
+        readModel.find[ReadModelId](
+          "eservices",
+          mapToVarArgs(producersIds.map(Filters.eq("data.producerId", _)))(Filters.or).getOrElse(Filters.empty()),
+          Projections.include("data.id"),
+          offset = 0,
+          limit = Int.MaxValue
+        )
+      }
+
+    producersEservicesIds.map(ids =>
+      mapToVarArgs(ids.map(id => Filters.eq("data.eserviceId", id.id)))(Filters.or).getOrElse(Filters.empty())
+    )
+
+  }
 }
