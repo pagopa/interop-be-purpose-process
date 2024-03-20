@@ -407,7 +407,8 @@ object Adapters {
         expectedApprovalDate = version.expectedApprovalDate,
         riskAnalysis = version.riskAnalysis.map(_.toPersistent),
         dailyCalls = version.dailyCalls,
-        suspendedAt = version.suspendedAt
+        suspendedAt = version.suspendedAt,
+        rejectionReason = version.rejectionReason
       )
   }
 
@@ -433,6 +434,7 @@ object Adapters {
         case PurposeVersionState.ACTIVE               => Persistent.Active
         case PurposeVersionState.DRAFT                => Persistent.Draft
         case PurposeVersionState.SUSPENDED            => Persistent.Suspended
+        case PurposeVersionState.REJECTED             => Persistent.Rejected
         case PurposeVersionState.WAITING_FOR_APPROVAL => Persistent.WaitingForApproval
         case PurposeVersionState.ARCHIVED             => Persistent.Archived
       }
@@ -445,6 +447,7 @@ object Adapters {
         case Management.PurposeVersionState.ACTIVE               => PurposeVersionState.ACTIVE
         case Management.PurposeVersionState.DRAFT                => PurposeVersionState.DRAFT
         case Management.PurposeVersionState.SUSPENDED            => PurposeVersionState.SUSPENDED
+        case Management.PurposeVersionState.REJECTED             => PurposeVersionState.REJECTED
         case Management.PurposeVersionState.WAITING_FOR_APPROVAL => PurposeVersionState.WAITING_FOR_APPROVAL
         case Management.PurposeVersionState.ARCHIVED             => PurposeVersionState.ARCHIVED
       }
@@ -454,6 +457,7 @@ object Adapters {
         case Management.PurposeVersionState.ACTIVE               => Persistent.Active
         case Management.PurposeVersionState.DRAFT                => Persistent.Draft
         case Management.PurposeVersionState.SUSPENDED            => Persistent.Suspended
+        case Management.PurposeVersionState.REJECTED             => Persistent.Rejected
         case Management.PurposeVersionState.WAITING_FOR_APPROVAL => Persistent.WaitingForApproval
         case Management.PurposeVersionState.ARCHIVED             => Persistent.Archived
       }
@@ -466,6 +470,7 @@ object Adapters {
         case Persistent.Active             => PurposeVersionState.ACTIVE
         case Persistent.Draft              => PurposeVersionState.DRAFT
         case Persistent.Suspended          => PurposeVersionState.SUSPENDED
+        case Persistent.Rejected           => PurposeVersionState.REJECTED
         case Persistent.WaitingForApproval => PurposeVersionState.WAITING_FOR_APPROVAL
         case Persistent.Archived           => PurposeVersionState.ARCHIVED
       }

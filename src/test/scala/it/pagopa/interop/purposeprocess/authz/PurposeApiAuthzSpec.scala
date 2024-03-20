@@ -145,6 +145,17 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
       )
     }
 
+    "accept authorized roles for rejectPurposeVersion " in {
+      val fakepayload = RejectPurposeVersionPayload(rejectionReason = "fake")
+      val endpoint    = AuthorizedRoutes.endpoints("rejectPurposeVersion")
+      validateAuthorization(
+        endpoint,
+        { implicit c: Seq[(String, String)] =>
+          service.rejectPurposeVersion(UUID.randomUUID().toString, UUID.randomUUID().toString, fakepayload)
+        }
+      )
+    }
+
     "accept authorized roles for suspendPurposeVersion" in {
       val endpoint = AuthorizedRoutes.endpoints("suspendPurposeVersion")
       validateAuthorization(

@@ -67,7 +67,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             firstActivationAt = None,
             suspendedAt = None,
             expectedApprovalDate = None,
-            riskAnalysis = None
+            riskAnalysis = None,
+            rejectionReason = None
           )
         ),
         suspendedByConsumer = None,
@@ -141,7 +142,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 100,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           ),
           PersistentPurposeVersion(
             id = UUID.randomUUID(),
@@ -152,7 +154,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 50,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           )
         ),
         suspendedByConsumer = None,
@@ -245,7 +248,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 50,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           ),
           PersistentPurposeVersion(
             id = UUID.randomUUID(),
@@ -256,7 +260,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 100,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           )
         ),
         suspendedByConsumer = None,
@@ -349,7 +354,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 500,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           )
         ),
         suspendedByConsumer = None,
@@ -507,7 +513,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
             expectedApprovalDate = None,
             dailyCalls = 1000,
             riskAnalysis = None,
-            suspendedAt = None
+            suspendedAt = None,
+            rejectionReason = None
           )
         ),
         suspendedByConsumer = None,
@@ -2192,7 +2199,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         dailyCalls = 2000,
         riskAnalysis = Some(document),
         firstActivationAt = Some(SpecData.timestamp),
-        suspendedAt = None
+        suspendedAt = None,
+        rejectionReason = None
       )
 
       mockPurposeRetrieve(purposeId, purpose)
@@ -2286,7 +2294,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         dailyCalls = 2000,
         riskAnalysis = None,
         firstActivationAt = Some(SpecData.timestamp),
-        suspendedAt = None
+        suspendedAt = None,
+        rejectionReason = None
       )
 
       mockPurposeRetrieve(purposeId, purpose)
