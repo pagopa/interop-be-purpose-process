@@ -160,19 +160,29 @@ object ReadModelPurposeQueries extends ReadModelQuery {
 
   private def producersEservicesFilter(
     producersIds: Seq[String]
-  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Bson] = {
+  )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Bson] =
+    producersIds match {
+      case Nil   => Future.successful(Filters.empty())
+      case other =>
+        val producersEservicesIds: Future[Seq[ReadModelId]] =
+          mapToVarArgs(other.map(Filters.eq("data.producerId", _)))(Filters.or)
+            .fold[Future[Seq[ReadModelId]]](Future.successful(Seq.empty))(filter =>
+              readModel
+                .find[ReadModelId](
+                  "eservices",
+                  filter,
+                  Projections.include("data.id"),
+                  offset = 0,
+                  limit = Int.MaxValue
+                )
+            )
 
-    val producersEservicesIds: Future[Seq[ReadModelId]] =
-      mapToVarArgs(producersIds.map(Filters.eq("data.producerId", _)))(Filters.or)
-        .fold[Future[Seq[ReadModelId]]](Future.successful(Seq.empty))(filter =>
-          readModel
-            .find[ReadModelId]("eservices", filter, Projections.include("data.id"), offset = 0, limit = Int.MaxValue)
+        producersEservicesIds.map(ids =>
+          mapToVarArgs(ids.map(id => Filters.eq("data.eserviceId", id.id.toString)))(Filters.or)
+            // Producers have no EServices, we need to force an empty result
+            .getOrElse(Filters.eq("field.that.does.not.exist", "0"))
         )
-
-    producersEservicesIds.map(ids =>
-      mapToVarArgs(ids.map(id => Filters.eq("data.eserviceId", id.id.toString)))(Filters.or).getOrElse(Filters.empty())
-    )
-  }
+    }
 
   private def purposesEservices(purposes: Seq[PersistentPurpose], limit: Int)(implicit
     ec: ExecutionContext,
