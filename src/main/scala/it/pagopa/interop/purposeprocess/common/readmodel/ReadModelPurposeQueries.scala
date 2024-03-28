@@ -162,26 +162,17 @@ object ReadModelPurposeQueries extends ReadModelQuery {
     producersIds: Seq[String]
   )(implicit ec: ExecutionContext, readModel: ReadModelService): Future[Bson] =
     producersIds match {
-      case Nil   => Future.successful(Filters.empty())
-      case other =>
-        val producersEservicesIds: Future[Seq[ReadModelId]] =
-          mapToVarArgs(other.map(Filters.eq("data.producerId", _)))(Filters.or)
-            .fold[Future[Seq[ReadModelId]]](Future.successful(Seq.empty))(filter =>
-              readModel
-                .find[ReadModelId](
-                  "eservices",
-                  filter,
-                  Projections.include("data.id"),
-                  offset = 0,
-                  limit = Int.MaxValue
-                )
-            )
-
-        producersEservicesIds.map(ids =>
-          mapToVarArgs(ids.map(id => Filters.eq("data.eserviceId", id.id.toString)))(Filters.or)
-            // Producers have no EServices, we need to force an empty result
-            .getOrElse(Filters.eq("field.that.does.not.exist", "0"))
-        )
+      case Nil          => Future.successful(Filters.empty())
+      case nonEmptyList =>
+        readModel
+          .find[ReadModelId](
+            "eservices",
+            Filters.in("data.producerId", nonEmptyList: _*),
+            Projections.include("data.id"),
+            offset = 0,
+            limit = Int.MaxValue
+          )
+          .map(eserviceIds => Filters.in("data.eserviceId", eserviceIds.map(_.id.toString): _*))
     }
 
   private def purposesEservices(purposes: Seq[PersistentPurpose], limit: Int)(implicit
