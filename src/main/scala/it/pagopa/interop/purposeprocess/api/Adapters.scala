@@ -395,7 +395,8 @@ object Adapters {
         expectedApprovalDate = version.expectedApprovalDate,
         riskAnalysis = version.riskAnalysis.map(_.toApi),
         dailyCalls = version.dailyCalls,
-        suspendedAt = version.suspendedAt
+        suspendedAt = version.suspendedAt,
+        rejectionReason = version.rejectionReason
       )
     def toPersistent: Persistent.PersistentPurposeVersion =
       Persistent.PersistentPurposeVersion(
@@ -424,7 +425,8 @@ object Adapters {
         expectedApprovalDate = version.expectedApprovalDate,
         riskAnalysis = version.riskAnalysis.map(_.toApi),
         dailyCalls = version.dailyCalls,
-        suspendedAt = version.suspendedAt
+        suspendedAt = version.suspendedAt,
+        rejectionReason = version.rejectionReason
       )
   }
 
