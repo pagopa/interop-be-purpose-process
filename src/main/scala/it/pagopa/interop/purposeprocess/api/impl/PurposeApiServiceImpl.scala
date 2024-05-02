@@ -39,6 +39,7 @@ import it.pagopa.interop.purposeprocess.service._
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
@@ -55,6 +56,8 @@ final case class PurposeApiServiceImpl(
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
+
+  private val dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss")
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
@@ -640,7 +643,7 @@ final case class PurposeApiServiceImpl(
           eserviceId = eserviceId,
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(riskAnalysisToSeed),
-          title = s"${purpose.title} - clone",
+          title = s"${purpose.title} - clone - ${dateTimeSupplier.get().format(dtf)}",
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
           freeOfChargeReason = purpose.freeOfChargeReason,
