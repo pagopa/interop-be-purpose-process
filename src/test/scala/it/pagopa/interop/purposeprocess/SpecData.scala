@@ -410,9 +410,6 @@ object SpecData {
     freeOfChargeReason = None
   )
 
-  def waitingForApprovalUpdate: WaitingForApprovalPurposeVersionUpdateContent =
-    WaitingForApprovalPurposeVersionUpdateContent(timestamp)
-
   val purposes: Seq[PersistentPurpose] = Seq(purpose)
 
   val agreement: PersistentAgreement =

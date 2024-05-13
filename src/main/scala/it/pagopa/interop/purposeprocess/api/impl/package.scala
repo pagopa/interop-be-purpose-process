@@ -28,9 +28,6 @@ package object impl extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def purposeVersionSeedFormat: RootJsonFormat[PurposeVersionSeed] = jsonFormat1(PurposeVersionSeed)
   implicit def problemErrorFormat: RootJsonFormat[ProblemError]             = jsonFormat2(ProblemError)
   implicit def problemFormat: RootJsonFormat[Problem]                       = jsonFormat6(Problem)
-  implicit def waitingForApprovalPurposeVersionUpdateFormat
-    : RootJsonFormat[WaitingForApprovalPurposeVersionUpdateContent] =
-    jsonFormat1(WaitingForApprovalPurposeVersionUpdateContent)
   implicit def rejectPurposeVersionPayloadFormat: RootJsonFormat[RejectPurposeVersionPayload]       =
     jsonFormat1(RejectPurposeVersionPayload)
   implicit def dependencyResponseFormat: RootJsonFormat[DependencyResponse]                         =

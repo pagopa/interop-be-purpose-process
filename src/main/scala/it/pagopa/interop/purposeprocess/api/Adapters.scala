@@ -376,13 +376,6 @@ object Adapters {
       Management.PurposeVersionSeed(seed.dailyCalls, None)
   }
 
-  implicit class WaitingForApprovalPurposeVersionUpdateContentWrapper(
-    private val updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  ) extends AnyVal {
-    def toManagement: Management.WaitingForApprovalPurposeVersionUpdateContent =
-      Management.WaitingForApprovalPurposeVersionUpdateContent(updateContent.expectedApprovalDate)
-  }
-
   implicit class ManagementPurposeVersionWrapper(private val version: Management.PurposeVersion) extends AnyVal {
 
     def toApi: PurposeVersion                             =
