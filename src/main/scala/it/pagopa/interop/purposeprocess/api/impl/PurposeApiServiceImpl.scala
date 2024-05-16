@@ -565,39 +565,6 @@ final case class PurposeApiServiceImpl(
     onComplete(result) { archivePurposeVersionResponse[PurposeVersion](operationLabel)(archivePurposeVersion200) }
   }
 
-  override def updateWaitingForApprovalPurposeVersion(
-    purposeId: String,
-    versionId: String,
-    updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  )(implicit
-    contexts: Seq[(String, String)],
-    toEntityMarshallerPurposeVersion: ToEntityMarshaller[PurposeVersion],
-    toEntityMarshallerProblem: ToEntityMarshaller[Problem]
-  ): Route = authorize(ADMIN_ROLE) {
-    val operationLabel = s"Updating Waiting For Approval Version $versionId of Purpose $purposeId"
-    logger.info(operationLabel)
-
-    val result: Future[PurposeVersion] = for {
-      purposeUUID    <- purposeId.toFutureUUID
-      versionUUID    <- versionId.toFutureUUID
-      organizationId <- getOrganizationIdFutureUUID(contexts)
-      purpose        <- purposeManagementService.getPurposeById(purposeUUID)
-      _              <- assertOrganizationIsAProducer(organizationId, purpose.eserviceId)
-      _              <- getVersion(purpose, versionUUID)
-      purposeVersion <- purposeManagementService.updateWaitingForApprovalPurposeVersion(
-        purposeUUID,
-        versionUUID,
-        updateContent.toManagement
-      )
-    } yield purposeVersion.toApi
-
-    onComplete(result) {
-      updateWaitingForApprovalPurposeVersionResponse[PurposeVersion](operationLabel)(
-        updateWaitingForApprovalPurposeVersion200
-      )
-    }
-  }
-
   override def clonePurpose(purposeId: String, seed: PurposeCloneSeed)(implicit
     contexts: Seq[(String, String)],
     toEntityMarshallerPurpose: ToEntityMarshaller[Purpose],
