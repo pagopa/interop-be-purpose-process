@@ -201,16 +201,6 @@ class PurposeApiAuthzSpec extends AnyWordSpecLike with BeforeAndAfterAll with Au
         { implicit c: Seq[(String, String)] => service.updateReversePurpose("fake", fakeContent) }
       )
     }
-    "accept authorized roles for updateWaitingForApprovalPurposeVersion" in {
-      val endpoint    = AuthorizedRoutes.endpoints("updateWaitingForApprovalPurposeVersion")
-      val fakeContent = WaitingForApprovalPurposeVersionUpdateContent(OffsetDateTime.now())
-      validateAuthorization(
-        endpoint,
-        { implicit c: Seq[(String, String)] =>
-          service.updateWaitingForApprovalPurposeVersion("fakeSeed", "fake", fakeContent)
-        }
-      )
-    }
 
     "accept authorized roles for getRiskAnalysisDocument" in {
       val endpoint = AuthorizedRoutes.endpoints("getRiskAnalysisDocument")
