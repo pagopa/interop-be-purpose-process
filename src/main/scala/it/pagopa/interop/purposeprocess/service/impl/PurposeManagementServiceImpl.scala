@@ -170,21 +170,6 @@ final case class PurposeManagementServiceImpl(invoker: PurposeManagementInvoker,
     invoker.invoke(request, s"Archiving Version $versionId of Purpose $purposeId by ${stateChangeDetails.changedBy}")
   }
 
-  override def updateWaitingForApprovalPurposeVersion(
-    purposeId: UUID,
-    versionId: UUID,
-    updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion] = withHeaders { (bearerToken, correlationId) =>
-    val request =
-      api.updateWaitingForApprovalPurposeVersion(xCorrelationId = correlationId, purposeId, versionId, updateContent)(
-        BearerToken(bearerToken)
-      )
-    invoker.invoke(
-      request,
-      s"Updating waiting for approval version $versionId of Purpose $purposeId with $updateContent"
-    )
-  }
-
   override def deletePurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit] = withHeaders {
     (bearerToken, correlationId) =>
       val request =

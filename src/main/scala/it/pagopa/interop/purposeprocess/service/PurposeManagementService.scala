@@ -60,12 +60,6 @@ trait PurposeManagementService {
     contexts: Seq[(String, String)]
   ): Future[PurposeVersion]
 
-  def updateWaitingForApprovalPurposeVersion(
-    purposeId: UUID,
-    versionId: UUID,
-    updateContent: WaitingForApprovalPurposeVersionUpdateContent
-  )(implicit contexts: Seq[(String, String)]): Future[PurposeVersion]
-
   def deletePurpose(purposeId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
 
   def deletePurposeVersion(purposeId: UUID, versionId: UUID)(implicit contexts: Seq[(String, String)]): Future[Unit]
