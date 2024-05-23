@@ -1447,7 +1447,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "fail if there is other purposes with the same title" in {
+    "fail if there is another purpose with the same title" in {
 
       val purposeId            = UUID.randomUUID()
       val eserviceId           = UUID.randomUUID()
@@ -1697,7 +1697,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         status shouldEqual StatusCodes.OK
       }
     }
-    "fail if there is other purposes with the same title" in {
+    "fail if there is another purpose with the same title" in {
       val purposeId  = UUID.randomUUID()
       val eserviceId = UUID.randomUUID()
       val consumerId = UUID.randomUUID()
