@@ -600,6 +600,17 @@ final case class PurposeApiServiceImpl(
           singleAnswers = riskAnalysis.singleAnswers.map(singleAnswerToSeed),
           multiAnswers = riskAnalysis.multiAnswers.map(multiAnswerToSeed)
         )
+      def generateName(title: String): String             = {
+        val dots: String               = "..."
+        val suffix: String             = s" - clone - ${dateTimeSupplier.get().format(dtf)}"
+        val maxTitleLength: Int        = 60
+        val prefixLengthAllowance: Int = maxTitleLength - suffix.length - dots.length
+
+        if ((title.length + suffix.length) <= maxTitleLength)
+          s"${title}${suffix}"
+        else
+          s"${title.substring(0, prefixLengthAllowance)}${dots}${suffix}"
+      }
 
       def createPurposeSeed(
         purpose: PersistentPurpose,
@@ -610,7 +621,7 @@ final case class PurposeApiServiceImpl(
           eserviceId = eserviceId,
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(riskAnalysisToSeed),
-          title = s"${purpose.title} - clone - ${dateTimeSupplier.get().format(dtf)}",
+          title = generateName(purpose.title),
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
           freeOfChargeReason = purpose.freeOfChargeReason,
