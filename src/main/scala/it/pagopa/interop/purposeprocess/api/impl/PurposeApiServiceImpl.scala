@@ -600,7 +600,7 @@ final case class PurposeApiServiceImpl(
           singleAnswers = riskAnalysis.singleAnswers.map(singleAnswerToSeed),
           multiAnswers = riskAnalysis.multiAnswers.map(multiAnswerToSeed)
         )
-      def generateName(title: String): String             = {
+      def generateTitle(title: String): String            = {
         val dots: String               = "..."
         val suffix: String             = s" - clone - ${dateTimeSupplier.get().format(dtf)}"
         val maxTitleLength: Int        = 60
@@ -621,7 +621,7 @@ final case class PurposeApiServiceImpl(
           eserviceId = eserviceId,
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(riskAnalysisToSeed),
-          title = generateName(purpose.title),
+          title = generateTitle(purpose.title),
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
           freeOfChargeReason = purpose.freeOfChargeReason,
