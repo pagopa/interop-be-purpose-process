@@ -96,8 +96,8 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: OrganizationIsNotTheConsumer)   => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotInDraftState)         => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)                => notFound(ex, logMessage)
-
-      case Failure(ex) => internalServerError(ex, logMessage)
+      case Failure(ex: DuplicatedPurposeName)          => conflict(ex, logMessage)
+      case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
 
   def updateReversePurposeResponse[T](logMessage: String)(
@@ -114,8 +114,8 @@ object ResponseHandlers extends AkkaResponses {
       case Failure(ex: OrganizationIsNotTheConsumer)   => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotInDraftState)         => forbidden(ex, logMessage)
       case Failure(ex: PurposeNotFound)                => notFound(ex, logMessage)
-
-      case Failure(ex) => internalServerError(ex, logMessage)
+      case Failure(ex: DuplicatedPurposeName)          => conflict(ex, logMessage)
+      case Failure(ex)                                 => internalServerError(ex, logMessage)
     }
 
   def getPurposeResponse[T](logMessage: String)(

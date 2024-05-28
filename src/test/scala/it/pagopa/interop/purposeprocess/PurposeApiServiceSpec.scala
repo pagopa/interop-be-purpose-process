@@ -1429,12 +1429,21 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       )
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
 
@@ -1444,6 +1453,47 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail if there is another purpose with the same title" in {
+
+      val purposeId            = UUID.randomUUID()
+      val eserviceId           = UUID.randomUUID()
+      val consumerId           = UUID.randomUUID()
+      val purposeUpdateContent =
+        PurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          riskAnalysisForm = None,
+          dailyCalls = 100
+        )
+
+      val purpose =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      val other = SpecData.purpose.copy(
+        eserviceId = eserviceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        title = "A title"
+      )
+      mockListPurposesRetrieve(Seq(purpose, other))
+
+      Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Conflict
       }
     }
     "fail if case of eService with Receive mode" in {
@@ -1464,11 +1514,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
@@ -1493,10 +1551,18 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       mockPurposeRetrieve(purposeId, purpose)
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId))
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+      mockListPurposesRetrieve(Seq(purpose))
 
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest
@@ -1524,8 +1590,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId))
+      val purpose =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
@@ -1548,6 +1625,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       val purpose              =
         SpecData.purpose.copy(
+          id = purposeId,
           eserviceId = eserviceId,
           consumerId = consumerId,
           versions = Seq(SpecData.purposeVersionNotInDraftState)
@@ -1558,6 +1636,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       Post() ~> service.updatePurpose(purposeId.toString, purposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]
@@ -1583,7 +1664,12 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       val seed = PurposeManagementDependency.PurposeUpdateContent(
         title = "A title",
@@ -1606,6 +1692,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive, producerId = producerId))
 
       mockTenantRetrieve(producerId, SpecData.tenant.copy(id = producerId, kind = PersistentTenantKind.PRIVATE.some))
@@ -1614,6 +1703,46 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.OK
+      }
+    }
+    "fail if there is another purpose with the same title" in {
+      val purposeId  = UUID.randomUUID()
+      val eserviceId = UUID.randomUUID()
+      val consumerId = UUID.randomUUID()
+
+      val reversePurposeUpdateContent =
+        ReversePurposeUpdateContent(
+          title = "A title",
+          description = "A description",
+          isFreeOfCharge = false,
+          dailyCalls = 100
+        )
+
+      val purpose =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
+
+      implicit val context: Seq[(String, String)] =
+        Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      val other = SpecData.purpose.copy(
+        eserviceId = eserviceId,
+        consumerId = consumerId,
+        versions = Seq(SpecData.purposeVersion),
+        title = "A title"
+      )
+      mockListPurposesRetrieve(Seq(purpose, other))
+
+      Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
+        status shouldEqual StatusCodes.Conflict
       }
     }
     "fail if case of eService with Deliver mode" in {
@@ -1633,11 +1762,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Deliver))
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.BadRequest
         val problem = responseAs[Problem]
@@ -1661,9 +1798,18 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> consumerId.toString)
 
       val purpose =
-        SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId, versions = Seq(SpecData.purposeVersion))
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
 
       mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       mockEServiceRetrieve(eserviceId, SpecData.eService.copy(id = eserviceId, mode = Receive))
 
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
@@ -1691,7 +1837,19 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
       implicit val context: Seq[(String, String)] =
         Seq("bearer" -> bearerToken, USER_ROLES -> "admin", ORGANIZATION_ID_CLAIM -> requesterId.toString)
 
-      mockPurposeRetrieve(purposeId, SpecData.purpose.copy(eserviceId = eserviceId, consumerId = consumerId))
+      val purpose =
+        SpecData.purpose.copy(
+          id = purposeId,
+          eserviceId = eserviceId,
+          consumerId = consumerId,
+          versions = Seq(SpecData.purposeVersion)
+        )
+
+      mockPurposeRetrieve(purposeId, purpose)
+
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
 
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
@@ -1714,6 +1872,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         )
       val purpose                     =
         SpecData.purpose.copy(
+          id = purposeId,
           eserviceId = eserviceId,
           consumerId = consumerId,
           versions = Seq(SpecData.purposeVersionNotInDraftState)
@@ -1724,6 +1883,9 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       mockPurposeRetrieve(purposeId, purpose)
 
+      mockAgreementsRetrieve(eserviceId, consumerId, Seq(AgreementActive))
+
+      mockListPurposesRetrieve(Seq(purpose))
       Post() ~> service.updateReversePurpose(purposeId.toString, reversePurposeUpdateContent) ~> check {
         status shouldEqual StatusCodes.Forbidden
         val problem = responseAs[Problem]

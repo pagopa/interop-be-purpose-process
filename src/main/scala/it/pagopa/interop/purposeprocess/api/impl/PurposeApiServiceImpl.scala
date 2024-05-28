@@ -106,10 +106,15 @@ final case class PurposeApiServiceImpl(
     tenantKind <- tenant.kind.toFuture(TenantKindNotFound(tenant.id))
   } yield tenantKind
 
-  private def checkAgreements(eServiceId: UUID, consumerId: UUID, title: String): Future[Unit] = for {
-    agreements   <- agreementManagementService.getAgreements(eServiceId, consumerId, OPERATIVE_AGREEMENT_STATES)
-    agreement    <- agreements.headOption.toFuture(AgreementNotFound(eServiceId.toString, consumerId.toString))
-    maybePurpose <- purposeManagementService
+  private def checkAgreements(
+    eServiceId: UUID,
+    consumerId: UUID,
+    title: String,
+    purposeId: Option[UUID]
+  ): Future[Unit] = for {
+    agreements <- agreementManagementService.getAgreements(eServiceId, consumerId, OPERATIVE_AGREEMENT_STATES)
+    agreement  <- agreements.headOption.toFuture(AgreementNotFound(eServiceId.toString, consumerId.toString))
+    result     <- purposeManagementService
       .listPurposes(
         consumerId,
         title.some,
@@ -122,9 +127,8 @@ final case class PurposeApiServiceImpl(
         limit = 1,
         exactMatchOnTitle = true
       )
-      .map(_.results.headOption)
-
-    _ <- maybePurpose.fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
+    purpose = purposeId.fold(result.results)(id => result.results.filterNot(_.id == id))
+    _ <- purpose.headOption.map(_.title).fold(Future.unit)(_ => Future.failed(DuplicatedPurposeName(title)))
   } yield ()
 
   override def createPurposeFromEService(seed: EServicePurposeSeed)(implicit
@@ -146,7 +150,7 @@ final case class PurposeApiServiceImpl(
       _            <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
       tenantKind   <- getTenantKind(eService.producerId)
       purposeSeed = seed.toManagement(seed.eServiceId, riskAnalysis.riskAnalysisForm.toManagement(seed.riskAnalysisId))
-      _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title)
+      _       <- checkAgreements(seed.eServiceId, seed.consumerId, seed.title, None)
       purpose <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(
         riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
@@ -171,7 +175,7 @@ final case class PurposeApiServiceImpl(
       _              <- checkFreeOfCharge(seed.isFreeOfCharge, seed.freeOfChargeReason)
       tenantKind     <- getTenantKind(requesterOrgId)
       purposeSeed    <- seed.toManagement(schemaOnlyValidation = true)(tenantKind).toFuture
-      _              <- checkAgreements(seed.eserviceId, seed.consumerId, seed.title)
+      _              <- checkAgreements(seed.eserviceId, seed.consumerId, seed.title, None)
       purpose        <- purposeManagementService.createPurpose(purposeSeed)
       isValidRiskAnalysisForm = isRiskAnalysisFormValid(
         riskAnalysisForm = purpose.riskAnalysisForm.map(_.toApi),
@@ -234,6 +238,7 @@ final case class PurposeApiServiceImpl(
       eService => if (eService.mode == Deliver) Future.unit else Future.failed(EServiceNotInDeliverMode(eService.id)),
       seed.isFreeOfCharge,
       seed.freeOfChargeReason,
+      seed.title,
       (_, tenantKind) =>
         seed
           .toManagement(schemaOnlyValidation = true)(tenantKind)
@@ -256,6 +261,7 @@ final case class PurposeApiServiceImpl(
       eService => if (eService.mode == Receive) Future.unit else Future.failed(EServiceNotInReceiveMode(eService.id)),
       seed.isFreeOfCharge,
       seed.freeOfChargeReason,
+      seed.title,
       (purpose, tenantKind) =>
         seed
           .toManagement(schemaOnlyValidation = true, purpose.riskAnalysisForm.map(_.toApi))(tenantKind)
@@ -270,11 +276,13 @@ final case class PurposeApiServiceImpl(
     eServiceModeCheck: CatalogItem => Future[Unit],
     isFreeOfCharge: Boolean,
     freeOfChargeReason: Option[String],
+    title: String,
     payload: (PersistentPurpose, PersistentTenantKind) => Future[PurposeManagementDependency.PurposeUpdateContent]
   )(implicit contexts: Seq[(String, String)]): Future[Purpose] = for {
     requesterOrgId <- getOrganizationIdFutureUUID(contexts)
     purposeUUID    <- purposeId.toFutureUUID
     purpose        <- purposeManagementService.getPurposeById(purposeUUID)
+    _              <- checkAgreements(purpose.eserviceId, purpose.consumerId, title, Some(purposeUUID))
     _              <- assertOrganizationIsAConsumer(requesterOrgId, purpose.consumerId)
     _              <- assertPurposeIsInDraftState(purpose)
     eService       <- catalogManagementService.getEServiceById(purpose.eserviceId)
