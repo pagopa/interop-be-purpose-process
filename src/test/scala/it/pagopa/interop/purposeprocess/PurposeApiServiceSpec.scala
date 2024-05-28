@@ -84,6 +84,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
 
       val purposeCloneSeed = PurposeCloneSeed(eserviceId = eServiceId)
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       val purposeCloned = PurposeManagementDependency.Purpose(
         id = UUID.randomUUID(),
         eserviceId = eServiceId,
@@ -91,7 +93,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         versions = Seq(SpecData.dependencyPurposeVersion),
         suspendedByConsumer = None,
         suspendedByProducer = None,
-        title = "title - clone",
+        title = s"${purposeToClone} - clone - ${SpecData.timestamp.format(SpecData.dtf)}",
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(PersistentTenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
@@ -169,6 +171,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         freeOfChargeReason = None
       )
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       val purposeCloned = PurposeManagementDependency.Purpose(
         id = UUID.randomUUID(),
         eserviceId = eServiceId,
@@ -197,7 +201,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         ),
         suspendedByConsumer = None,
         suspendedByProducer = None,
-        title = "title - clone",
+        title = s"${purposeToClone} - clone - ${SpecData.timestamp.format(SpecData.dtf)}",
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(PersistentTenantKind.PRIVATE)),
         createdAt = SpecData.timestamp,
@@ -275,6 +279,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         freeOfChargeReason = None
       )
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       val purposeCloned = PurposeManagementDependency.Purpose(
         id = UUID.randomUUID(),
         eserviceId = eServiceId,
@@ -303,7 +309,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         ),
         suspendedByConsumer = None,
         suspendedByProducer = None,
-        title = "title - clone",
+        title = s"${purposeToClone} - clone - ${SpecData.timestamp.format(SpecData.dtf)}",
         description = "description",
         riskAnalysisForm = Some(SpecData.validManagementRiskAnalysis(PersistentTenantKind.PA)),
         createdAt = SpecData.timestamp,
@@ -369,6 +375,8 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         freeOfChargeReason = None
       )
 
+      (() => mockDateTimeSupplier.get()).expects().returning(SpecData.timestamp).once()
+
       val purposeCloned = PurposeManagementDependency.Purpose(
         id = UUID.randomUUID(),
         eserviceId = eServiceId,
@@ -388,7 +396,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         ),
         suspendedByConsumer = None,
         suspendedByProducer = None,
-        title = "title - clone",
+        title = s"${purposeToClone.title} - clone - ${SpecData.timestamp.format(SpecData.dtf)}",
         description = "description",
         riskAnalysisForm = None,
         createdAt = SpecData.timestamp,
@@ -400,7 +408,7 @@ class PurposeApiServiceSpec extends AnyWordSpecLike with SpecHelper with Scalate
         eserviceId = purposeToClone.eserviceId,
         consumerId = purposeToClone.consumerId,
         riskAnalysisForm = None,
-        title = s"${purposeToClone.title} - clone",
+        title = s"${purposeToClone.title} - clone - ${SpecData.timestamp.format(SpecData.dtf)}",
         description = purposeToClone.description,
         isFreeOfCharge = false,
         dailyCalls = 500

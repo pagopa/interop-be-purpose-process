@@ -39,6 +39,7 @@ import it.pagopa.interop.purposeprocess.service._
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 final case class PurposeApiServiceImpl(
   agreementManagementService: AgreementManagementService,
@@ -55,6 +56,8 @@ final case class PurposeApiServiceImpl(
 
   private implicit val logger: LoggerTakingImplicit[ContextFieldsToLog] =
     Logger.takingImplicit[ContextFieldsToLog](this.getClass)
+
+  private val dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss")
 
   private[this] val purposeVersionActivation = PurposeVersionActivation(
     agreementManagementService,
@@ -605,6 +608,17 @@ final case class PurposeApiServiceImpl(
           singleAnswers = riskAnalysis.singleAnswers.map(singleAnswerToSeed),
           multiAnswers = riskAnalysis.multiAnswers.map(multiAnswerToSeed)
         )
+      def generateTitle(title: String): String            = {
+        val dots: String               = "..."
+        val suffix: String             = s" - clone - ${dateTimeSupplier.get().format(dtf)}"
+        val maxTitleLength: Int        = 60
+        val prefixLengthAllowance: Int = maxTitleLength - suffix.length - dots.length
+
+        if ((title.length + suffix.length) <= maxTitleLength)
+          s"${title}${suffix}"
+        else
+          s"${title.substring(0, prefixLengthAllowance)}${dots}${suffix}"
+      }
 
       def createPurposeSeed(
         purpose: PersistentPurpose,
@@ -615,7 +629,7 @@ final case class PurposeApiServiceImpl(
           eserviceId = eserviceId,
           consumerId = purpose.consumerId,
           riskAnalysisForm = purpose.riskAnalysisForm.map(riskAnalysisToSeed),
-          title = s"${purpose.title} - clone",
+          title = generateTitle(purpose.title),
           description = purpose.description,
           isFreeOfCharge = purpose.isFreeOfCharge,
           freeOfChargeReason = purpose.freeOfChargeReason,

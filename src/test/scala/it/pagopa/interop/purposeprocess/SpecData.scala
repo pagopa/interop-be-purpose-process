@@ -32,6 +32,7 @@ import it.pagopa.interop.agreementmanagement.model.agreement.{Active, Persistent
 import it.pagopa.interop.tenantmanagement.model.tenant.{PersistentTenantKind, PersistentTenant, PersistentExternalId}
 import it.pagopa.interop.purposeprocess.api.Adapters._
 import java.time.{OffsetDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 object SpecData {
@@ -323,6 +324,8 @@ object SpecData {
       )
     )
   }
+
+  val dtf: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss")
 
   val purpose: PersistentPurpose = PersistentPurpose(
     id = UUID.randomUUID(),
